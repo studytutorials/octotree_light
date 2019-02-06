@@ -593,7 +593,7 @@ float Octree<T>::interp(const Eigen::Vector3f& pos, FieldSelector select) const 
 
   // Get the values stored in the 8 nearest voxels/octants.
   float points[8];
-  gather_points(*this, lower, select, points);
+  internal::gather_points(*this, lower, select, points);
 
   // Interpolate the value based on the fractional part.
   return (((points[0] * (1 - factor(0))
