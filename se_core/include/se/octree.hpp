@@ -199,8 +199,6 @@ public:
    * to the interval [0, size]
    * \return gradient at voxel position pos
    */
-  Eigen::Vector3f grad(const Eigen::Vector3f& pos) const;
-
   template <typename FieldSelect>
   Eigen::Vector3f grad(const Eigen::Vector3f& pos, FieldSelect selector) const;
 
@@ -626,176 +624,17 @@ float Octree<T>::interp(const Eigen::Vector3f& pos, const int stride,
           * factor(1)) * factor(2));
 }
 
-
-template <typename T>
-Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos) const {
-
-   Eigen::Vector3i base = Eigen::Vector3i(math::floorf(pos).cast<int>());
-   Eigen::Vector3f factor = math::fracf(pos);
-   Eigen::Vector3i lower_lower = (base - Eigen::Vector3i::Constant(1)).cwiseMax(Eigen::Vector3i::Constant(0));
-   Eigen::Vector3i lower_upper = base.cwiseMax(Eigen::Vector3i::Constant(0));
-   Eigen::Vector3i upper_lower = (base + Eigen::Vector3i::Constant(1)).cwiseMin(
-      Eigen::Vector3i::Constant(size_) - Eigen::Vector3i::Constant(1));
-   Eigen::Vector3i upper_upper = (base + Eigen::Vector3i::Constant(2)).cwiseMin(
-      Eigen::Vector3i::Constant(size_) - Eigen::Vector3i::Constant(1));
-   Eigen::Vector3i & lower = lower_upper;
-   Eigen::Vector3i & upper = upper_lower;
-
-  Eigen::Vector3f gradient;
-
-  VoxelBlock<T> * n = fetch(base(0), base(1), base(2));
-  gradient(0) = (((get(upper_lower(0), lower(1), lower(2), n)(0)
-          - get(lower_lower(0), lower(1), lower(2), n)(0)) * (1 - factor(0))
-        + (get(upper_upper(0), lower(1), lower(2), n)(0)
-          - get(lower_upper(0), lower(1), lower(2), n)(0)) * factor(0))
-      * (1 - factor(1))
-      + ((get(upper_lower(0), upper(1), lower(2), n)(0)
-          - get(lower_lower(0), upper(1), lower(2), n)(0)) * (1 - factor(0))
-        + (get(upper_upper(0), upper(1), lower(2), n)(0)
-          - get(lower_upper(0), upper(1), lower(2), n)(0))
-        * factor(0)) * factor(1)) * (1 - factor(2))
-    + (((get(upper_lower(0), lower(1), upper(2), n)(0)
-            - get(lower_lower(0), lower(1), upper(2), n)(0)) * (1 - factor(0))
-          + (get(upper_upper(0), lower(1), upper(2), n)(0)
-            - get(lower_upper(0), lower(1), upper(2), n)(0))
-          * factor(0)) * (1 - factor(1))
-        + ((get(upper_lower(0), upper(1), upper(2), n)(0)
-            - get(lower_lower(0), upper(1), upper(2), n)(0))
-          * (1 - factor(0))
-          + (get(upper_upper(0), upper(1), upper(2), n)(0)
-            - get(lower_upper(0), upper(1), upper(2), n)(0))
-          * factor(0)) * factor(1)) * factor(2);
-
-  gradient(1) = (((get(lower(0), upper_lower(1), lower(2), n)(0)
-          - get(lower(0), lower_lower(1), lower(2), n)(0)) * (1 - factor(0))
-        + (get(upper(0), upper_lower(1), lower(2), n)(0)
-          - get(upper(0), lower_lower(1), lower(2), n)(0)) * factor(0))
-      * (1 - factor(1))
-      + ((get(lower(0), upper_upper(1), lower(2), n)(0)
-          - get(lower(0), lower_upper(1), lower(2), n)(0)) * (1 - factor(0))
-        + (get(upper(0), upper_upper(1), lower(2), n)(0)
-          - get(upper(0), lower_upper(1), lower(2), n)(0))
-        * factor(0)) * factor(1)) * (1 - factor(2))
-    + (((get(lower(0), upper_lower(1), upper(2), n)(0)
-            - get(lower(0), lower_lower(1), upper(2), n)(0)) * (1 - factor(0))
-          + (get(upper(0), upper_lower(1), upper(2), n)(0)
-            - get(upper(0), lower_lower(1), upper(2), n)(0))
-          * factor(0)) * (1 - factor(1))
-        + ((get(lower(0), upper_upper(1), upper(2), n)(0)
-            - get(lower(0), lower_upper(1), upper(2), n)(0))
-          * (1 - factor(0))
-          + (get(upper(0), upper_upper(1), upper(2), n)(0)
-            - get(upper(0), lower_upper(1), upper(2), n)(0))
-          * factor(0)) * factor(1)) * factor(2);
-
-  gradient(2) = (((get(lower(0), lower(1), upper_lower(2), n)(0)
-          - get(lower(0), lower(1), lower_lower(2), n)(0)) * (1 - factor(0))
-        + (get(upper(0), lower(1), upper_lower(2), n)(0)
-          - get(upper(0), lower(1), lower_lower(2), n)(0)) * factor(0))
-      * (1 - factor(1))
-      + ((get(lower(0), upper(1), upper_lower(2), n)(0)
-          - get(lower(0), upper(1), lower_lower(2), n)(0)) * (1 - factor(0))
-        + (get(upper(0), upper(1), upper_lower(2), n)(0)
-          - get(upper(0), upper(1), lower_lower(2), n)(0))
-        * factor(0)) * factor(1)) * (1 - factor(2))
-    + (((get(lower(0), lower(1), upper_upper(2), n)(0)
-            - get(lower(0), lower(1), lower_upper(2), n)(0)) * (1 - factor(0))
-          + (get(upper(0), lower(1), upper_upper(2), n)(0)
-            - get(upper(0), lower(1), lower_upper(2), n)(0))
-          * factor(0)) * (1 - factor(1))
-        + ((get(lower(0), upper(1), upper_upper(2), n)(0)
-            - get(lower(0), upper(1), lower_upper(2), n)(0))
-          * (1 - factor(0))
-          + (get(upper(0), upper(1), upper_upper(2), n)(0)
-            - get(upper(0), upper(1), lower_upper(2), n)(0))
-          * factor(0)) * factor(1)) * factor(2);
-
-  return (0.5f * dim_ / size_) * gradient;
-}
-
 template <typename T>
 template <typename FieldSelector>
 Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos, FieldSelector select) const {
 
-   Eigen::Vector3i base = Eigen::Vector3i(math::floorf(pos).cast<int>());
-   Eigen::Vector3f factor = math::fracf(pos);
-   Eigen::Vector3i lower_lower = (base - Eigen::Vector3i::Constant(1)).cwiseMax(Eigen::Vector3i::Constant(0));
-   Eigen::Vector3i lower_upper = base.cwiseMax(Eigen::Vector3i::Constant(0));
-   Eigen::Vector3i upper_lower = (base + Eigen::Vector3i::Constant(1)).cwiseMin(
-      Eigen::Vector3i::Constant(size_) - Eigen::Vector3i::Constant(1));
-   Eigen::Vector3i upper_upper = (base + Eigen::Vector3i::Constant(2)).cwiseMin(
-      Eigen::Vector3i::Constant(size_) - Eigen::Vector3i::Constant(1));
-   Eigen::Vector3i & lower = lower_upper;
-   Eigen::Vector3i & upper = upper_lower;
-
   Eigen::Vector3f gradient;
-
-  VoxelBlock<T> * n = fetch(base(0), base(1), base(2));
-  gradient(0) = (((select(get(upper_lower(0), lower(1), lower(2), n))
-          - select(get(lower_lower(0), lower(1), lower(2), n))) * (1 - factor(0))
-        + (select(get(upper_upper(0), lower(1), lower(2), n))
-          - select(get(lower_upper(0), lower(1), lower(2), n))) * factor(0))
-      * (1 - factor(1))
-      + ((select(get(upper_lower(0), upper(1), lower(2), n))
-          - select(get(lower_lower(0), upper(1), lower(2), n))) * (1 - factor(0))
-        + (select(get(upper_upper(0), upper(1), lower(2), n))
-          - select(get(lower_upper(0), upper(1), lower(2), n)))
-        * factor(0)) * factor(1)) * (1 - factor(2))
-    + (((select(get(upper_lower(0), lower(1), upper(2), n))
-            - select(get(lower_lower(0), lower(1), upper(2), n))) * (1 - factor(0))
-          + (select(get(upper_upper(0), lower(1), upper(2), n))
-            - select(get(lower_upper(0), lower(1), upper(2), n)))
-          * factor(0)) * (1 - factor(1))
-        + ((select(get(upper_lower(0), upper(1), upper(2), n))
-            - select(get(lower_lower(0), upper(1), upper(2), n)))
-          * (1 - factor(0))
-          + (select(get(upper_upper(0), upper(1), upper(2), n))
-            - select(get(lower_upper(0), upper(1), upper(2), n)))
-          * factor(0)) * factor(1)) * factor(2);
-
-  gradient(1) = (((select(get(lower(0), upper_lower(1), lower(2), n))
-          - select(get(lower(0), lower_lower(1), lower(2), n))) * (1 - factor(0))
-        + (select(get(upper(0), upper_lower(1), lower(2), n))
-          - select(get(upper(0), lower_lower(1), lower(2), n))) * factor(0))
-      * (1 - factor(1))
-      + ((select(get(lower(0), upper_upper(1), lower(2), n))
-          - select(get(lower(0), lower_upper(1), lower(2), n))) * (1 - factor(0))
-        + (select(get(upper(0), upper_upper(1), lower(2), n))
-          - select(get(upper(0), lower_upper(1), lower(2), n)))
-        * factor(0)) * factor(1)) * (1 - factor(2))
-    + (((select(get(lower(0), upper_lower(1), upper(2), n))
-            - select(get(lower(0), lower_lower(1), upper(2), n))) * (1 - factor(0))
-          + (select(get(upper(0), upper_lower(1), upper(2), n))
-            - select(get(upper(0), lower_lower(1), upper(2), n)))
-          * factor(0)) * (1 - factor(1))
-        + ((select(get(lower(0), upper_upper(1), upper(2), n))
-            - select(get(lower(0), lower_upper(1), upper(2), n)))
-          * (1 - factor(0))
-          + (select(get(upper(0), upper_upper(1), upper(2), n))
-            - select(get(upper(0), lower_upper(1), upper(2), n)))
-          * factor(0)) * factor(1)) * factor(2);
-
-  gradient(2) = (((select(get(lower(0), lower(1), upper_lower(2), n))
-          - select(get(lower(0), lower(1), lower_lower(2), n))) * (1 - factor(0))
-        + (select(get(upper(0), lower(1), upper_lower(2), n))
-          - select(get(upper(0), lower(1), lower_lower(2), n))) * factor(0))
-      * (1 - factor(1))
-      + ((select(get(lower(0), upper(1), upper_lower(2), n))
-          - select(get(lower(0), upper(1), lower_lower(2), n))) * (1 - factor(0))
-        + (select(get(upper(0), upper(1), upper_lower(2), n))
-          - select(get(upper(0), upper(1), lower_lower(2), n)))
-        * factor(0)) * factor(1)) * (1 - factor(2))
-    + (((select(get(lower(0), lower(1), upper_upper(2), n))
-            - select(get(lower(0), lower(1), lower_upper(2), n))) * (1 - factor(0))
-          + (select(get(upper(0), lower(1), upper_upper(2), n))
-            - select(get(upper(0), lower(1), lower_upper(2), n)))
-          * factor(0)) * (1 - factor(1))
-        + ((select(get(lower(0), upper(1), upper_upper(2), n))
-            - select(get(lower(0), upper(1), lower_upper(2), n)))
-          * (1 - factor(0))
-          + (select(get(upper(0), upper(1), upper_upper(2), n))
-            - select(get(upper(0), upper(1), lower_upper(2), n)))
-          * factor(0)) * factor(1)) * factor(2);
+  gradient.x() = interp(pos + Eigen::Vector3f(1.f, 0.f, 0.f), 1, select) -
+    interp(pos - Eigen::Vector3f(1.f, 0.f, 0.f), 1, select);
+  gradient.y() = interp(pos + Eigen::Vector3f(0.f, 1.f, 0.f), 1, select) -
+    interp(pos - Eigen::Vector3f(0.f, 1.f, 0.f), 1, select);
+  gradient.z() = interp(pos + Eigen::Vector3f(0.f, 0.f, 1.f), 1, select) -
+    interp(pos - Eigen::Vector3f(0.f, 0.f, 1.f), 1, select);
 
   return (0.5f * dim_ / size_) * gradient;
 }
