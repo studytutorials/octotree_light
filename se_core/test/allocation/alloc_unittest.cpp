@@ -1,5 +1,5 @@
 /*
-  Copyright 2016 Emanuele Vespa, Imperial College London 
+  Copyright 2016 Emanuele Vespa, Imperial College London
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
 
@@ -23,7 +23,7 @@
   SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
   CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <random>
 #include "octree.hpp"
@@ -43,8 +43,8 @@ TEST(AllocationTest, EmptySingleVoxel) {
   OctreeF oct;
   oct.init(256, 5);
   const Eigen::Vector3i vox = {25, 65, 127};
-  const se::key_t code = oct.hash(vox(0), vox(1), vox(2)); 
-  se::key_t allocList[1] = {code};
+  const se::key_t code = oct.hash(vox(0), vox(1), vox(2));
+  se::key_t allocation_list[1] = {code};
   const float val = oct.get(vox(0), vox(1), vox(2));
   EXPECT_EQ(val, voxel_traits<float>::empty());
 }
@@ -54,9 +54,9 @@ TEST(AllocationTest, SetSingleVoxel) {
   OctreeF oct;
   oct.init(256, 5);
   const Eigen::Vector3i vox = {25, 65, 127};
-  const se::key_t code = oct.hash(vox(0), vox(1), vox(2)); 
-  se::key_t allocList[1] = {code};
-  oct.allocate(allocList, 1);
+  const se::key_t code = oct.hash(vox(0), vox(1), vox(2));
+  se::key_t allocation_list[1] = {code};
+  oct.allocate(allocation_list, 1);
 
   se::VoxelBlock<float> * block = oct.fetch(vox(0), vox(1), vox(2));
   float written_val = 2.f;
@@ -76,9 +76,8 @@ TEST(AllocationTest, FetchOctant) {
   oct.init(size, 5);
   const Eigen::Vector3i vox = {25, 65, 127};
   const se::key_t code = oct.hash(vox(0), vox(1), vox(2));
-  se::key_t allocList[1] = {code};
-
-  oct.allocate(allocList, 1);
+  se::key_t allocation_list[1] = {code};
+  oct.allocate(allocation_list, 1);
 
   const int level = 3; /* 32 voxels per side */
   se::Node<float> * node = oct.fetch_octant(vox(0), vox(1), vox(2), level);
@@ -90,7 +89,7 @@ TEST(AllocationTest, FetchOctant) {
 
 TEST(AllocationTest, MortonPrefixMask) {
 
-  const unsigned int max_bits = 21; 
+  const unsigned int max_bits = 21;
   const unsigned int block_side = 8;
   const unsigned int size = std::pow(2, max_bits);
   std::random_device rd;
@@ -110,10 +109,10 @@ TEST(AllocationTest, MortonPrefixMask) {
   }
 
   const int max_level = log2(size);
-  const int leaf_level = max_level - log2(block_side);
+  const int leaves_level = max_level - log2(block_side);
   const unsigned int shift = max_bits - max_level;
   int edge = size/2;
-  for (int level = 0; level <= leaf_level; level++){
+  for (int level = 0; level <= leaves_level; level++){
     const se::key_t mask = MASK[level + shift];
     compute_prefix(keys, tempkeys, num_samples, mask);
     for(int i = 0; i < num_samples; ++i) {
@@ -126,5 +125,53 @@ TEST(AllocationTest, MortonPrefixMask) {
       // printf("masked level %d: %d, %d, %d\n", level, masked_vox(0), masked_vox(1), masked_vox(2) );
     }
     edge = edge/2;
+  }
+}
+
+TEST(AllocationTest, ParentInsert) {
+  typedef se::Octree<float> OctreeF;
+  OctreeF oct;
+  const unsigned int block_side = 8;
+  const int max_level = 8;
+  const int leaves_level = max_level - log2(block_side);
+  const unsigned int size = std::pow(2, max_level);
+  oct.init(size, 5);
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int> dis(0, size);
+  const Eigen::Vector3i vox = {dis(gen), dis(gen), dis(gen)};
+  oct.insert(vox(0), vox(1), vox(2));
+  se::VoxelBlock<float> * block = oct.fetch(vox(0), vox(1), vox(2));
+  EXPECT_NE(block, nullptr);
+  se::Node<float> * parent_node = block->parent();
+  for(int level = leaves_level - 1; level >= 0; level--){
+    se::Node<float> * node = oct.fetch_octant(vox(0), vox(1), vox(2), level);
+    ASSERT_EQ(parent_node, node);
+    parent_node = parent_node->parent();
+  }
+}
+
+TEST(AllocationTest, ParentAllocation) {
+  typedef se::Octree<float> OctreeF;
+  OctreeF oct;
+  const unsigned int block_side = 8;
+  const int max_level = 8;
+  const int leaves_level = max_level - log2(block_side);
+  const unsigned int size = std::pow(2, max_level);
+  oct.init(size, 5);  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int> dis(0, size);
+  const Eigen::Vector3i vox = {dis(gen), dis(gen), dis(gen)};
+  const unsigned code = oct.hash(vox(0), vox(1), vox(2));
+  se::key_t allocation_list[1] = {code};
+  oct.allocate(allocation_list, 1);
+
+  se::VoxelBlock<float> * block = oct.fetch(vox(0), vox(1), vox(2));
+  EXPECT_NE(block, nullptr);
+  se::Node<float> * parent_node = block->parent();
+  for(int level = leaves_level - 1; level >= 0; level--){
+    se::Node<float> * node = oct.fetch_octant(vox(0), vox(1), vox(2), level);
+    ASSERT_EQ(parent_node, node);
+    parent_node = parent_node->parent();
   }
 }
