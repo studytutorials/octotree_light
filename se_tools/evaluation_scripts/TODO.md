@@ -13,4 +13,5 @@
   algorithm. TUM works with timestamps, ICL-NUIM doesn't, we should 
   CLEARLY separate those stages. 
 
+* `download_datasets` should also convert the datasets to `.raw` files.
 
