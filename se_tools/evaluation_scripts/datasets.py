@@ -15,7 +15,7 @@ TUM_RGB_FR2_XYZ.camera = '520.9,521.0,325.1,249.7'
 TUM_RGB_FR2_XYZ.quat = '-0.5721,0.6521,-0.3565,0.3469'
 TUM_RGB_FR2_XYZ.init_pose = '0.5,0.5,0.5'
 TUM_RGB_FR2_XYZ.rgb_image = os.path.join(DATASETS_PATH, 'rgbd_dataset_freiburg2_xyz/rgb/')
-TUM_RGB_FR2_XYZ.pre_assoc_file_path = os.path.join(DATASETS_PATH, 'rgbd_dataset_freiburg2_xyz/timing.assoc.txt')
+TUM_RGB_FR2_XYZ.pre_assoc_file_path = os.path.join(DATASETS_PATH, 'rgbd_dataset_freiburg2_xyz/timings.assoc.txt')
 TUM_RGB_FR2_XYZ.ate_associate_identity = False
 TUM_RGB_FR2_XYZ.descr = 'fr2_xyz'
 
@@ -32,7 +32,7 @@ TUM_RGB_FR1_XYZ.camera = '517.3,516.5,318.6,255.3'
 TUM_RGB_FR1_XYZ.quat = '0.6132,0.5962,-0.3311,-0.3986'
 TUM_RGB_FR1_XYZ.init_pose = '0.5,0.5,0.5'
 TUM_RGB_FR1_XYZ.rgb_image = os.path.join(DATASETS_PATH, 'rgbd_dataset_freiburg1_xyz/rgb/')
-TUM_RGB_FR1_XYZ.pre_assoc_file_path = os.path.join(DATASETS_PATH, 'rgbd_dataset_freiburg1_xyz/timing.assoc.txt')
+TUM_RGB_FR1_XYZ.pre_assoc_file_path = os.path.join(DATASETS_PATH, 'rgbd_dataset_freiburg1_xyz/timings.assoc.txt')
 TUM_RGB_FR1_XYZ.ate_associate_identity = False
 TUM_RGB_FR1_XYZ.descr = 'fr1_xyz'
 
