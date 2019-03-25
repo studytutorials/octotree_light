@@ -25,21 +25,22 @@ the this software that are released under MIT licence, see individual headers
 for which licence applies.
 
 # Project structure
-supereight is made of three main different components:
+supereight is made of three main components:
 
 * `se_core`: the main header only template octree library
 * `se_denseslam`: the volumetric SLAM pipelines presented in [1], which can be
   compiled in a library and used in external projects. Notice that the pipeline
-  API exposes the discrete octree map via a shared_ptr. As the map is a template
-  class, it needs to be instantiated correctly. You do this by defining a
-  `SE_VOXEL_IMPLEMENTATION` macro before including `DenseSLAMSystem.h`. The
+  API exposes the discrete octree map via a shared pointer. As the map is a
+  template class, it needs to be instantiated correctly. You do this by
+  defining a `SE_FIELD_TYPE` macro before including `DenseSLAMSystem.h`. The
   field type must be consistent with the library you are linking against. Have a
-  look at se_denseslam and se_apps CMakeLists to see how it is done in our
+  look at `se_denseslam` and `se_apps` CMakeLists to see how it is done in our
   examples.
-* `se_apps`: front-end applications which run the se-denseslam pipelines on
+* `se_apps`: front-end applications which run the `se-denseslam` pipelines on
   given inputs or live camera.
 * `se_shared`: third party libraries and code required throughout supereight
-* `se_tools`: related tools and scripts (e.g. for converting datasets)
+* `se_tools`: related tools and scripts (e.g. for converting datasets and
+  evaluating the pipeline)
 
 # Dependencies
 The following packages are required to build the `se-denseslam` library:

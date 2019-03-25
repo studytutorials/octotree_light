@@ -26,6 +26,9 @@
 *.a
 *.lib
 
+# Python
+*.pyc
+
 # Executables
 *.exe
 *.out
@@ -34,6 +37,7 @@
 # Directories
 build
 doc
+se_tools/evaluation_scripts/results
 
 # Benchmark results
 test.bin
