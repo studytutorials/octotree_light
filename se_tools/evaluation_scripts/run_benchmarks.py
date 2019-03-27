@@ -4,9 +4,9 @@ from systemsettings import *
 from datasets import *
 import numpy as np 
 
-TUM_RGB_FR1 = [TUM_RGB_FR1_XYZ, TUM_RGB_FR1_FLOOR, TUM_RGB_FR1_PLANT, TUM_RGB_FR1_DESK]
-TUM_RGB_FR2 = [TUM_RGB_FR2_DESK]
-TUM_RGB_FR3 = [TUM_RGB_FR3_DESK]
+TUM_RGBD_FR1 = [TUM_RGBD_FR1_XYZ, TUM_RGBD_FR1_DESK]
+TUM_RGBD_FR2 = [TUM_RGBD_FR2_DESK]
+TUM_RGBD_FR3 = [TUM_RGBD_FR3_LONG_OFFICE]
 ICL = [ICL_NUIM_LIV_0, ICL_NUIM_LIV_1, ICL_NUIM_LIV_2, ICL_NUIM_LIV_3]
 
 if __name__ == "__main__":
@@ -42,8 +42,7 @@ if __name__ == "__main__":
                 'resolution'))
         # for mu in [0.1, 0.05]:
         run_counter = 0
-        # for sequence in ICL + TUM_RGB_FR1 + TUM_RGB_FR2 + TUM_RGB_FR3:
-        for sequence in [ICL_NUIM_LIV_2, TUM_RGB_FR3_DESK]:
+        for sequence in ICL + TUM_RGBD_FR1 + TUM_RGBD_FR2 + TUM_RGBD_FR3:
             for resol in [512]:
                 for version in ['sdf', 'ofusion']:
                     kernel_data = []
