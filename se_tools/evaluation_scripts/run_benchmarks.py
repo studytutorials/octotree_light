@@ -49,7 +49,6 @@ if __name__ == "__main__":
                     mu = 0.1
                     algorithm.impl = version
                     algorithm.volume_resolution = str(resol)
-                    algorithm.volume_size = '5'
                     algorithm.compute_size_ratio = 2
                     algorithm.integration_rate = 1
                     algorithm.mu = mu

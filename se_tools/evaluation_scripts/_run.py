@@ -253,7 +253,7 @@ class KinectFusion(SLAMAlgorithm):
         self.mu = 0.1
         self.init_pose = '0.5,0.5,0'
 
-        self.volume_size = '9.6'
+        self.volume_size = '5'
 
         self.integration_rate = 1
         self.volume_resolution = '512'
@@ -284,6 +284,9 @@ class KinectFusion(SLAMAlgorithm):
 
         if dataset.init_pose:
             self.init_pose = dataset.init_pose
+
+        if dataset.volume_size:
+            self.volume_size = dataset.volume_size
 
         self.camera = dataset.camera
         #self.ate_associate_identity = dataset.ate_associate_identity

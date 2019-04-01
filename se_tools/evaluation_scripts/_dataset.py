@@ -10,3 +10,4 @@ class Dataset:
         self.rgb_image = None
         self.pre_assoc_file_path = None
         self.descr = None
+        self.volume_size = None
