@@ -46,7 +46,10 @@ if __name__ == "__main__":
             for resol in [512]:
                 for version in ['sdf', 'ofusion']:
                     kernel_data = []
-                    mu = 0.1
+                    if version == 'sdf':
+                        mu = 0.1
+                    elif version == 'ofusion':
+                        mu = 0.01
                     algorithm.impl = version
                     algorithm.volume_resolution = str(resol)
                     algorithm.compute_size_ratio = 2
