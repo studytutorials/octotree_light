@@ -50,6 +50,9 @@
 #include "kfusion/mapping_impl.hpp"
 #include "bfusion/alloc_impl.hpp"
 #include "kfusion/alloc_impl.hpp"
+#include "multires/alloc_impl.hpp"
+#include "multires/mapping_impl.hpp"
+#include "multires/rendering_impl.hpp"
 
 
 extern PerfStats Stats;
@@ -228,7 +231,13 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
      allocated = buildOctantList(allocation_list_.data(), allocation_list_.capacity(),
          *volume_._map_index,
          pose_, getCameraMatrix(k), float_depth_.data(), computation_size_, voxelsize,
-         compute_stepsize, step_to_depth, mu);
+         compute_stepsize, step_to_depth, 6*mu);
+    } else if(std::is_same<FieldType, MultiresSDF>::value) {
+     allocated  = buildAllocationList(allocation_list_.data(),
+         allocation_list_.capacity(),
+        *volume_._map_index, pose_, getCameraMatrix(k), float_depth_.data(),
+        computation_size_, volume_._size,
+      voxelsize, 2*mu);
     }
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
@@ -236,7 +245,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
     // {
     //   std::ofstream f;
-    //   f.open(this->config_.log_file + "_octants.log", 
+    //   f.open(this->config_.log_file + "_octants.log",
     //       std::ofstream::out | std::ofstream::app);
     //   f << (volume_._map_index->leavesCount() + volume_._map_index->nodeCount()) << std::endl;
     // }
@@ -257,7 +266,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
           mu, timestamp, voxelsize);
 
-      se::functor::projective_map(*volume_._map_index, 
+      se::functor::projective_map(*volume_._map_index,
           volume_.voxel_offset,
           Sophus::SE3f(pose_).inverse(),
           getCameraMatrix(k),
