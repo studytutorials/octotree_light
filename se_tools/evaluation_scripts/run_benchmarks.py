@@ -30,7 +30,8 @@ if __name__ == "__main__":
 
     # Open .log file for writing with line buffering
     with open(results_dir + '/resume.log', 'w', buffering=1) as f:
-        f.write('{:<15} {:<15} {:<15} {:<15} {:<15} {:<15} {:<15} {:<15} {:<15}\n'\
+        # Write header.
+        f.write('{:<15} {:<15} {:<15} {:<15} {:<15} {:<15} {:<15} {:<15} {:<}\n'\
                 .format('dataset',
                 'implementation',
                 'ATE',
@@ -57,7 +58,10 @@ if __name__ == "__main__":
                     algorithm.mu = mu
                     algorithm.init_pose = sequence.init_pose
                     algorithm.dump_volume = ".vtk"
+
+                    # Run benchmark with current settings.
                     res = algorithm.run(sequence)
+
                     res['sequence'] = sequence.descr
                     res['noise_factor'] = mu
                     res['implementation'] = version
@@ -66,7 +70,7 @@ if __name__ == "__main__":
                     run_counter += 1
                     kernel_data.append(res)
                     data = res['data']
-                    f.write('{:<15} {:<15} {:<15.4f} {:<15.4f} {:<15.4f} {:<15.4f} {:<15.4f} {:<15.4f} {:<15}\n'
+                    f.write('{:<15} {:<15} {:<15.4f} {:<15.4f} {:<15.4f} {:<15.4f} {:<15.4f} {:<15.4f} {:<}\n'
                             .format(res['sequence'], 
                             res['implementation'],
                             float(res['ate_mean']),

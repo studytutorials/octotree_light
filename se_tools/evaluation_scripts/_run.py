@@ -74,6 +74,8 @@ class SLAMAlgorithm:
                 file.write('{}: {}\n'.format(k, res[k]))
 
     def run(self, dataset):
+        dataset.fix_paths()
+
         res = {}
 
         self.reset_evaluation()
