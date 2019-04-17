@@ -1,74 +1,39 @@
-# Scripts #
-The sripts in this directory are to help with the automation of running tests.
+# Scripts
+The scripts in this directory are to help with the automation of running tests.
 
-They provide a python'ic OO interface. 
+These scripts assume the datasets are contained in a single directory e.g.
 
-These scripts assume the datasets are contained in a single directory
-E.g.
+* `~/Datasets/icl-nuim_living_room_1/...`
+* `~/Datasets/icl-nuim_living_room_2/...`
 
-* ~/datasets/icl-nuim_living_room_1/...
-* ~/datasets/icl-nuim_living_room_2/...
-
-and so on
+and so on.
 
 
-# Initialisation #
+
+## Initialization
 On the first use there is some setup to be performed. 
 
-## systemsettings.py ##
+### Downloading datasets
+You can bulk download some ICL-NUIM and TUM RGB-D datasets using the
+`download_datasets.sh` Bash script. 
+
+### `systemsettings.py`
 Setup the correct paths
 
-* BIN_PATH : Complete path to binaries (probabily $clone_dir$/build
-* RESULTS_PATH : Path to store intermediate results
-* DATASETS_PATH : Path to folder containing datasets (in the example above this would be ~/datasets)
+* `BIN_PATH` : Path to the binaries (the default value should be fine).
+* `RESULTS_PATH` : Path to store the results at.
+* `DATASETS_PATH` : Path to the folder containing the datasets (in the example
+  above this would be `~/Datasets`).
 
-
-## datasets.py ##
-Most of the settings in here are fixed for a particular dataset. You may need to change the paths to the datasets. The paths are relative to DATASETS_PATH.
-
-
-
-# Examples in this directory #
-
-## run_lsd_* ##
-LSD-SLAM examples:
-
-* run_lsd_def.py - Default LSD-SLAM settings (as in my report)
-* run_lsd_var_kfusage_kfdist.py - LSD-SLAM varying the thresholds for determining when to create a new key-frame
+### `datasets.py`
+Most of the settings in here are fixed for a particular dataset. You may need
+to change the paths to the datasets. The paths are relative to `DATASETS_PATH`.
 
 
 
-## run_kf_* ##
-KFusion examples:
+## Evaluating on datasets
+The script `run_benchmarks.py` is used to evaluate supereight on multiple
+datasets. You can edit the lists over which the for loops iterate to change the
+datasets to evaluate, the volume resolutions used and the map type (currently
+only 'sdf' or 'ofusion').
 
-* run_kf_def.py - Default KFusion settings (as in my report)
-* run_kf_vary_icp.py - KFusion varying the ICP threshold
-
-
-# Using the evaluate stuff #
-
-For the algorithm (either KFusion or LSD-SLAM) you need to specify how it is going to calculate the ATE. This does depend a little on the dataset. 
-
-## Pose Optimise using Horn method ##
-```
-#!
-lsdslam.pose_optimise = True
-```
-
-## Associate on the identity (True for ICL-NUIM, false for everything else) ## 
-```
-#!
-lsdslam.ate_associate_identitiy = False
-```
-
-## Do what the original checkPos.py did (True iff using ICL-NUIM) ## 
-```
-#!
-lsdslam.ate_remove_offset = False
-```
-
-## If using an ICL-NUIM dataset (invert the y axis) ## 
-```
-#!
-lsdslam.ate_is_icl_nuim = False
-```

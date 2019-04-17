@@ -41,16 +41,20 @@ if __name__ == "__main__":
                 'computation',
                 'noise_factor',
                 'resolution'))
-        # for mu in [0.1, 0.05]:
         run_counter = 0
+
+        # Iterate over list of datasets to benchmark
         for sequence in ICL + TUM_RGBD_FR1 + TUM_RGBD_FR2 + TUM_RGBD_FR3:
+            # Iterate over list of volume resolution values in voxels.
             for resol in [512]:
+                # Iterate over map types.
                 for version in ['sdf', 'ofusion']:
                     kernel_data = []
-                    if version == 'sdf':
-                        mu = 0.1
-                    elif version == 'ofusion':
+                    # occupancy maps need a lower noise threshold in general.
+                    if version == 'ofusion':
                         mu = 0.01
+                    else:
+                        mu = 0.1
                     algorithm.impl = version
                     algorithm.volume_resolution = str(resol)
                     algorithm.compute_size_ratio = 2
