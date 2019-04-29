@@ -604,14 +604,15 @@ VoxelBlock<T> * Octree<T>::insert(const int x, const int y, const int z) {
 template <typename T>
 template <typename FieldSelector>
 float Octree<T>::interp(const Eigen::Vector3f& pos, FieldSelector select) const {
-  return interp(pos, 1, select);
+  return interp(pos, 0, select);
 }
 
 template <typename T>
 template <typename FieldSelector>
-float Octree<T>::interp(const Eigen::Vector3f& pos, const int stride,
+float Octree<T>::interp(const Eigen::Vector3f& pos, const int scale,
     FieldSelector select) const {
 
+  const int stride = 1 << scale;
   // The integer part of the interpolation point voxel coordinates.
   const Eigen::Vector3i base = math::floorf(pos).cast<int>();
   // The fractional part of the interpolation point voxel coordinates.
@@ -621,7 +622,7 @@ float Octree<T>::interp(const Eigen::Vector3f& pos, const int stride,
 
   // Get the values stored in the 8 nearest voxels/octants.
   float points[8];
-  internal::gather_points(*this, lower, stride, select, points);
+  internal::gather_points(*this, lower, scale, select, points);
 
   // Interpolate the value based on the fractional part.
   return (((points[0] * (1 - factor(0))
