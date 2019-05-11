@@ -57,6 +57,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace se {
 
+/*
+ * Value between 0.f and 1.f. Defines the sample point position relative to the
+ * voxel anchor.  E.g. 0.5f means that the point sample corresponds to the
+ * center of the voxel.
+ */
+#define SAMPLE_POINT_POSITION 0.5f
+
 template <typename T>
 class ray_iterator;
 
@@ -84,6 +91,8 @@ public:
   static constexpr unsigned int max_depth = ((sizeof(key_t)*8)/3);
   // Tree depth at which blocks are found
   static constexpr unsigned int block_depth = max_depth - math::log2_const(BLOCK_SIDE);
+
+  static const Eigen::Vector3f _offset;
 
 
   Octree(){
@@ -116,7 +125,7 @@ public:
    * \param z z coordinate in interval [0, size]
    */
   value_type get(const int x, const int y, const int z) const;
-  value_type get_fine(const int x, const int y, const int z) const;
+  value_type get_fine(const int x, const int y, const int z, const int scale = 0) const;
 
   /*! \brief Retrieves voxel values for the neighbors of voxel at coordinates
    * (x,y,z)
@@ -282,9 +291,9 @@ private:
   value_type get(const int x, const int y, const int z, VoxelBlock<T>* cached) const;
   value_type get(const Eigen::Vector3f& pos, VoxelBlock<T>* cached) const;
 
-  value_type get(const int x, const int y, const int z, 
+  value_type get(const int x, const int y, const int z,
      const int scale, VoxelBlock<T>* cached) const;
-  value_type get(const Eigen::Vector3f& pos, const int scale, 
+  value_type get(const Eigen::Vector3f& pos, const int scale,
       VoxelBlock<T>* cached) const;
 
   // Parallel allocation of a given tree level for a set of input keys.
@@ -311,7 +320,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
 }
 
 template <typename T>
-inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p, 
+inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
     const int scale, VoxelBlock<T>* cached) const {
 
   const Eigen::Vector3i pos = (p.homogeneous() *
@@ -392,7 +401,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const int x,
 
 template <typename T>
 inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
-    const int y, const int z) const {
+    const int y, const int z, const int scale) const {
 
   Node<T> * n = root_;
   if(!n) {
@@ -410,7 +419,7 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
     n = tmp;
   }
 
-  return static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z));
+  return static_cast<VoxelBlock<T> *>(n)->data(Eigen::Vector3i(x, y, z), scale);
 }
 template <typename T>
 template <bool safe>
@@ -628,10 +637,11 @@ float Octree<T>::interp(const Eigen::Vector3f& pos, const int scale,
     FieldSelector select) const {
 
   const int stride = 1 << scale;
-  // The integer part of the interpolation point voxel coordinates.
-  const Eigen::Vector3i base = math::floorf(pos).cast<int>();
+  const Eigen::Vector3f scaled_pos = 1.f / stride * pos - _offset;
   // The fractional part of the interpolation point voxel coordinates.
-  const Eigen::Vector3f factor = (1 / stride) * math::fracf(pos);
+  const Eigen::Vector3f factor = math::fracf(scaled_pos);
+  // The integer part of the interpolation point voxel coordinates.
+  const Eigen::Vector3i base = stride * scaled_pos.cast<int>();
   // Ensure the integer part is non-negative.
   const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
 
@@ -657,17 +667,16 @@ template <typename T>
 template <typename FieldSelector>
 Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& pos, const int scale,
     FieldSelector select) const {
-  
+
   const int stride = 1 << scale;
-  const float invscale = 1.f/stride;
-  const Eigen::Vector3f scaled_pos = invscale * pos;
-  Eigen::Vector3i base = Eigen::Vector3i(math::floorf(scaled_pos).cast<int>());
-  Eigen::Vector3f factor = math::fracf(scaled_pos);
-  Eigen::Vector3i lower_lower = stride * (base - Eigen::Vector3i::Constant(1)).cwiseMax(Eigen::Vector3i::Constant(0));
-  Eigen::Vector3i lower_upper = stride * base.cwiseMax(Eigen::Vector3i::Constant(0));
-  Eigen::Vector3i upper_lower = (stride * (base + Eigen::Vector3i::Constant(1))).cwiseMin(
+  const Eigen::Vector3f scaled_pos = 1.f/stride * pos - _offset;
+  const Eigen::Vector3f factor =  math::fracf(scaled_pos);
+  const Eigen::Vector3i base = stride * scaled_pos.cast<int>();
+  Eigen::Vector3i lower_lower = (base - stride * Eigen::Vector3i::Constant(1)).cwiseMax(Eigen::Vector3i::Constant(0));
+  Eigen::Vector3i lower_upper = base.cwiseMax(Eigen::Vector3i::Constant(0));
+  Eigen::Vector3i upper_lower = (base + stride * Eigen::Vector3i::Constant(1)).cwiseMin(
       Eigen::Vector3i::Constant(size_) - Eigen::Vector3i::Constant(1));
-  Eigen::Vector3i upper_upper = (stride * (base + Eigen::Vector3i::Constant(2))).cwiseMin(
+  Eigen::Vector3i upper_upper = (base + stride * Eigen::Vector3i::Constant(2)).cwiseMin(
       Eigen::Vector3i::Constant(size_) - Eigen::Vector3i::Constant(1));
   Eigen::Vector3i & lower = lower_upper;
   Eigen::Vector3i & upper = upper_lower;
@@ -970,4 +979,7 @@ void Octree<T>::load(const std::string& filename) {
   }
 }
 }
+template <typename FieldType>
+const Eigen::Vector3f se::Octree<FieldType>::_offset =
+  Eigen::Vector3f::Constant(SAMPLE_POINT_POSITION);
 #endif // OCTREE_H
