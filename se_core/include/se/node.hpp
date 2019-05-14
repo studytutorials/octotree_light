@@ -117,6 +117,7 @@ class VoxelBlock: public Node<T> {
 
     VoxelBlock(){
       coordinates_ = Eigen::Vector3i::Constant(0);
+      current_scale_ = 0;
       for (unsigned int i = 0; i < buff_size; i++)
         voxel_block_[i] = initValue();
     }
@@ -138,6 +139,9 @@ class VoxelBlock: public Node<T> {
     void active(const bool a){ active_ = a; }
     bool active() const { return active_; }
 
+    int current_scale() { return current_scale_; }
+    void current_scale(const int s) { current_scale_ = s; }
+
     value_type * getBlockRawPtr(){ return voxel_block_; }
     static constexpr int size(){ return sizeof(VoxelBlock<T>); }
 
@@ -145,6 +149,7 @@ class VoxelBlock: public Node<T> {
     VoxelBlock(const VoxelBlock&) = delete;
     Eigen::Vector3i coordinates_;
     bool active_;
+    int current_scale_;
 
     static constexpr size_t compute_buff_size() {
       size_t size = 0;
