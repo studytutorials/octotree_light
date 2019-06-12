@@ -35,7 +35,7 @@ endif()
 # with the names of the structs defined in
 # se_denseslam/include/se/volume_traits.cpp. When adding a new field type
 # appending it to this list is enough to compile se-denseslam using it.
-set(SUPEREIGHT_FIELD_TYPES MultiresSDF)
+set(SUPEREIGHT_FIELD_TYPES SDF MultiresSDF)
 
 # Iterate over each SE_FIELD_TYPE and compile the se-denseslam library for it.
 foreach(field_type ${SUPEREIGHT_FIELD_TYPES})
