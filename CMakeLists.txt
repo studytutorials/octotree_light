@@ -11,7 +11,8 @@ set(SUPEREIGHT_VERSION
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
 # Compilation options.
-add_compile_options(-std=c++14 -march=native)
+set(CMAKE_CXX_STANDARD 14)
+add_compile_options(-march=native -g)
 option(WITH_OPENMP "Compile with OpenMP" ON)
 
 # Initialize the variables containing the built libraries and field types.
