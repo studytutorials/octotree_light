@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "octree.hpp"
@@ -33,12 +33,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gtest/gtest.h"
 #include "functors/axis_aligned_functor.hpp"
 
-typedef float testT;
-template <>
-struct voxel_traits<testT> {
-  typedef float value_type;
-  static inline value_type empty(){ return 0.f; }
-  static inline value_type initValue(){ return 0.f; }
+struct TestVoxelT {
+  typedef float VoxelData;
+  static inline VoxelData empty(){ return 0.f; }
+  static inline VoxelData initValue(){ return 0.f; }
 };
 
 class AxisAlignedTest : public ::testing::Test {
@@ -53,13 +51,13 @@ class AxisAlignedTest : public ::testing::Test {
       const float voxelsize = oct_.dim()/oct_.size();
       const float inverse_voxelsize = 1.f/voxelsize;
       const int band = 1 * inverse_voxelsize;
-      const Eigen::Vector3i offset = 
+      const Eigen::Vector3i offset =
         Eigen::Vector3i::Constant(oct_.size()/2 - band/2);
-      unsigned leaf_level = log2(size) - log2(se::Octree<testT>::blockSide);
+      unsigned leaf_level = log2(size) - log2(se::Octree<TestVoxelT>::blockSide);
       for(int z = 0; z < band; ++z) {
         for(int y = 0; y < band; ++y) {
           for(int x = 0; x < band; ++x) {
-            const Eigen::Vector3i vox =  Eigen::Vector3i(x + offset(0), 
+            const Eigen::Vector3i vox =  Eigen::Vector3i(x + offset(0),
                 y + offset(1), z + offset(2));
             alloc_list.push_back(oct_.hash(vox(0), vox(1), vox(2), leaf_level));
           }
@@ -68,7 +66,7 @@ class AxisAlignedTest : public ::testing::Test {
       oct_.allocate(alloc_list.data(), alloc_list.size());
     }
 
-  typedef se::Octree<testT> OctreeF;
+  typedef se::Octree<TestVoxelT> OctreeF;
   OctreeF oct_;
   std::vector<se::key_t> alloc_list;
 };
@@ -76,13 +74,13 @@ class AxisAlignedTest : public ::testing::Test {
 TEST_F(AxisAlignedTest, Init) {
 
   auto initialise = [](auto& handler, const Eigen::Vector3i&) {
-    handler.set(voxel_traits<testT>::initValue());
-  }; 
+    handler.set(TestVoxelT::initValue());
+  };
 
   auto test = [](auto& handler, const Eigen::Vector3i&) {
     auto data = handler.get();
-    ASSERT_EQ(data, voxel_traits<testT>::initValue());
-  }; 
+    ASSERT_EQ(data, TestVoxelT::initValue());
+  };
 
   se::functor::axis_aligned_map(oct_, initialise);
   se::functor::axis_aligned_map(oct_, test);
@@ -94,22 +92,22 @@ TEST_F(AxisAlignedTest, BBoxTest) {
           handler.set(10.f);
     };
 
-  se::functor::axis_aligned_map(oct_, set_to_ten, 
+  se::functor::axis_aligned_map(oct_, set_to_ten,
       Eigen::Vector3i::Constant(100), Eigen::Vector3i::Constant(151));
 
   for(int z = 50; z < 200; ++z)
     for(int y = 50; y < 200; ++y)
       for(int x = 50; x < 200; ++x) {
         auto * block = oct_.fetch(x, y, z);
-        if(block && 
-           se::math::in(x, 100, 150) && 
-           se::math::in(y, 100, 150) && 
+        if(block &&
+           se::math::in(x, 100, 150) &&
+           se::math::in(y, 100, 150) &&
            se::math::in(z, 100, 150)){
           ASSERT_EQ(block->data(Eigen::Vector3i(x, y, z)), 10.f);
         }
-        else if(block) { 
-          ASSERT_EQ(block->data(Eigen::Vector3i(x, y, z)), 
-                    voxel_traits<testT>::initValue());
+        else if(block) {
+          ASSERT_EQ(block->data(Eigen::Vector3i(x, y, z)),
+                    TestVoxelT::initValue());
         }
       }
 }

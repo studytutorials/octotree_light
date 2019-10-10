@@ -1,5 +1,5 @@
 /*
-  Copyright 2016 Emanuele Vespa, Imperial College London 
+  Copyright 2016 Emanuele Vespa, Imperial College London
   Redistribution and use in source and binary forms, with or without
   modification, are permitted provided that the following conditions are met:
 
@@ -23,7 +23,7 @@
   SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
   CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "octree.hpp"
@@ -34,14 +34,12 @@
 #include <algorithm>
 #include <bitset>
 
-typedef float testT;
 typedef unsigned int MortonType;
 
-template <>
-struct voxel_traits<testT> {
-  typedef float value_type;
-  static inline value_type empty(){ return 0.f; }
-  static inline value_type initValue(){ return 0.f; }
+struct TestVoxelT {
+  typedef float VoxelData;
+  static inline VoxelData empty(){ return 0.f; }
+  static inline VoxelData initValue(){ return 1.f; }
 };
 
 class UniqueTest : public ::testing::Test {
@@ -49,20 +47,20 @@ class UniqueTest : public ::testing::Test {
     virtual void SetUp() {
       oct.init(1 << max_depth_, 10);
       const Eigen::Vector3i blocks[10] = {
-        {56, 12, 12}, {56, 12, 15}, 
+        {56, 12, 12}, {56, 12, 15},
         {128, 128, 128},
-        {128, 128, 125}, {128, 128, 127}, 
-        {128, 136, 129}, 
-        {128, 136, 127}, 
-        {136, 128, 136}, 
+        {128, 128, 125}, {128, 128, 127},
+        {128, 136, 129},
+        {128, 136, 127},
+        {136, 128, 136},
         {128, 240, 136}, {128, 241, 136}};
-      for(int i = 0; i < 10; ++i) { 
+      for(int i = 0; i < 10; ++i) {
         keys[i] = oct.hash(blocks[i](0), blocks[i](1), blocks[i](2));
       }
     }
-    
+
     MortonType keys[10];
-    typedef se::Octree<testT> OctreeF;
+    typedef se::Octree<TestVoxelT> OctreeF;
     OctreeF oct;
     const int max_depth_ = 10;
 };
@@ -78,25 +76,25 @@ class UniqueMultiscaleTest : public ::testing::Test {
       keys.push_back(oct.hash(base.x() + root_side/2, base.y(), base.z(), 5));
       keys.push_back(oct.hash(base.x() + root_side/4, base.y(), base.z(), 5));
       keys.push_back(oct.hash(128, 24, 80, 5));
-      std::sort(keys.begin(), keys.end()); 
+      std::sort(keys.begin(), keys.end());
     }
-   
+
     std::vector<MortonType> keys;
-    typedef se::Octree<testT> OctreeF;
+    typedef se::Octree<TestVoxelT> OctreeF;
     OctreeF oct;
     const int max_depth_ = 10;
 };
 
 TEST_F(UniqueTest, FilterDuplicates) {
   const int last = se::algorithms::unique(keys, 10);
-  for(int i = 1; i < last; ++i) { 
+  for(int i = 1; i < last; ++i) {
     ASSERT_TRUE(keys[i] != keys[i-1]);
   }
 }
 
 TEST_F(UniqueMultiscaleTest, FilterAncestors) {
   const int last = se::algorithms::filter_ancestors(keys.data(), keys.size(), max_depth_);
-  for(int i = 1; i < last; ++i) { 
+  for(int i = 1; i < last; ++i) {
     // std::cout << std::bitset<64>(keys[i]) << std::endl;
     // std::cout << std::bitset<64>(keys[i - 1]) << std::endl << std::endl;
     ASSERT_TRUE(keys[i] != keys[i-1]);
@@ -110,7 +108,7 @@ TEST_F(UniqueMultiscaleTest, FilterDuplicatesTillLevel) {
    * corresponding to the edge of a voxel block: 3*log2(se::VoxelBlock<T>::side)
    */
   const int last = se::algorithms::unique_multiscale(keys.data(), keys.size());
-  for(int i = 1; i < last; ++i) { 
+  for(int i = 1; i < last; ++i) {
     // std::cout << std::bitset<64>(keys[i]) << std::endl;
     ASSERT_TRUE(keys[i] != keys[i-1]);
   }

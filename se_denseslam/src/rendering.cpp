@@ -241,7 +241,7 @@ void renderVolumeKernel(const Volume<T>& volume,
         const Eigen::Vector3f dir =
           (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
         const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
-        se::ray_iterator<typename Volume<T>::field_type> ray(*volume._map_index,
+        se::ray_iterator<T> ray(*volume._map_index,
             transl, dir, nearPlane, farPlane);
         ray.next();
         const float t_min = ray.tmin(); /* Get distance to the first intersected block */

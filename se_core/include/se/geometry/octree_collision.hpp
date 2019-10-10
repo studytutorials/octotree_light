@@ -1,5 +1,5 @@
 /*
-    Copyright 2016 Emanuele Vespa, Imperial College London 
+    Copyright 2016 Emanuele Vespa, Imperial College London
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
 
@@ -23,7 +23,7 @@
     SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
     CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #ifndef OCTREE_COLLISION_HPP
@@ -41,18 +41,18 @@ enum class collision_status {
 };
 
 /*! \brief Implements a simple state machine to update the collision status.
- * The importance order is given as follows in ascending order: 
+ * The importance order is given as follows in ascending order:
  * Empty, Unseen, Occupied.
  * \param previous_status
- * \param new_status 
+ * \param new_status
  */
-inline collision_status update_status(const collision_status previous_status, 
+inline collision_status update_status(const collision_status previous_status,
     const collision_status new_status) {
   switch(previous_status) {
     case collision_status::unseen:
       if(new_status != collision_status::occupied)
         return previous_status;
-      else 
+      else
         return new_status;
       break;
     case collision_status::occupied:
@@ -64,7 +64,7 @@ inline collision_status update_status(const collision_status previous_status,
   }
 }
 
-/*! \brief Perform a collision test for each voxel value in the input voxel 
+/*! \brief Perform a collision test for each voxel value in the input voxel
  * block. The test function test takes as input a voxel value and returns a
  * collision_status. This is used to distinguish between seen-empty voxels and
  * occupied voxels.
@@ -72,11 +72,11 @@ inline collision_status update_status(const collision_status previous_status,
  * \param test function that takes a voxel and returns a collision_status value
  */
 template <typename FieldType, typename TestVoxelF>
-collision_status collides_with(const se::VoxelBlock<FieldType>* block, 
+collision_status collides_with(const se::VoxelBlock<FieldType>* block,
     const Eigen::Vector3i bbox, const Eigen::Vector3i side, TestVoxelF test) {
   collision_status status = collision_status::empty;
   const Eigen::Vector3i blockCoord = block->coordinates();
-  int x, y, z, blockSide; 
+  int x, y, z, blockSide;
   blockSide = (int) se::VoxelBlock<FieldType>::side;
   int xlast = blockCoord(0) + blockSide;
   int ylast = blockCoord(1) + blockSide;
@@ -85,9 +85,9 @@ collision_status collides_with(const se::VoxelBlock<FieldType>* block,
     for (y = blockCoord(1); y < ylast; ++y){
       for (x = blockCoord(0); x < xlast; ++x){
 
-        typename se::VoxelBlock<FieldType>::value_type value;
+        typename se::VoxelBlock<FieldType>::VoxelData value;
         const Eigen::Vector3i vox{x, y, z};
-        if(!geometry::aabb_aabb_collision(bbox, side, 
+        if(!geometry::aabb_aabb_collision(bbox, side,
           vox, Eigen::Vector3i::Constant(1))) continue;
         value = block->data(Eigen::Vector3i(x, y, z));
         status = update_status(status, test(value));
@@ -97,25 +97,25 @@ collision_status collides_with(const se::VoxelBlock<FieldType>* block,
   return status;
 }
 
-/*! \brief Perform a collision test between the input octree map and the 
- * input axis aligned bounding box bbox of extension side. The test function 
+/*! \brief Perform a collision test between the input octree map and the
+ * input axis aligned bounding box bbox of extension side. The test function
  * test takes as input a voxel value and returns a collision_status. This is
  * used to distinguish between seen-empty voxels and occupied voxels.
  * \param map octree map
- * \param bbox test bounding box lower bottom corner 
+ * \param bbox test bounding box lower bottom corner
  * \param side extension in number of voxels of the bounding box
  * \param test function that takes a voxel and returns a collision_status value
  */
 
 template <typename FieldType, typename TestVoxelF>
-collision_status collides_with(const Octree<FieldType>& map, 
+collision_status collides_with(const Octree<FieldType>& map,
     const Eigen::Vector3i bbox, const Eigen::Vector3i side, TestVoxelF test) {
 
-  typedef struct stack_entry { 
+  typedef struct stack_entry {
     se::Node<FieldType>* node_ptr;
     Eigen::Vector3i coordinates;
     int side;
-    typename se::Node<FieldType>::value_type parent_val;
+    typename se::Node<FieldType>::VoxelData parent_val;
   } stack_entry;
 
   stack_entry stack[Octree<FieldType>::max_depth*8 + 1];
@@ -135,12 +135,12 @@ collision_status collides_with(const Octree<FieldType>& map,
     node = current.node_ptr;
 
     if(node->isLeaf()){
-      status = collides_with(static_cast<se::VoxelBlock<FieldType>*>(node), 
+      status = collides_with(static_cast<se::VoxelBlock<FieldType>*>(node),
           bbox, side, test);
-    } 
+    }
 
     if(node->children_mask_ == 0) {
-       current = stack[--stack_idx]; 
+       current = stack[--stack_idx];
        continue;
     }
 
@@ -149,12 +149,12 @@ collision_status collides_with(const Octree<FieldType>& map,
       stack_entry child_descr;
       child_descr.node_ptr = NULL;
       child_descr.side = current.side / 2;
-      child_descr.coordinates = 
+      child_descr.coordinates =
         Eigen::Vector3i(current.coordinates(0) + child_descr.side*((i & 1) > 0),
             current.coordinates(1) + child_descr.side*((i & 2) > 0),
             current.coordinates(2) + child_descr.side*((i & 4) > 0));
 
-      const bool overlaps = geometry::aabb_aabb_collision(bbox, side, 
+      const bool overlaps = geometry::aabb_aabb_collision(bbox, side,
           child_descr.coordinates, Eigen::Vector3i::Constant(child_descr.side));
 
       if(overlaps && child != NULL) {
@@ -165,7 +165,7 @@ collision_status collides_with(const Octree<FieldType>& map,
         status = update_status(status, test(node->value_[0]));
       }
     }
-    current = stack[--stack_idx]; 
+    current = stack[--stack_idx];
   }
   return status;
 }

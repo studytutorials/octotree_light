@@ -31,26 +31,25 @@
 #include "utils/morton_utils.hpp"
 #include "gtest/gtest.h"
 
-template <>
-struct voxel_traits<float> {
-  typedef float value_type;
-  static inline value_type empty(){ return 0.f; }
-  static inline value_type initValue(){ return 0.f; }
+struct TestVoxelT {
+  typedef float VoxelData;
+  static inline VoxelData empty(){ return 0.f; }
+  static inline VoxelData initValue(){ return 0.f; }
 };
 
 TEST(AllocationTest, EmptySingleVoxel) {
-  typedef se::Octree<float> OctreeF;
+  typedef se::Octree<TestVoxelT> OctreeF;
   OctreeF oct;
   oct.init(256, 5);
   const Eigen::Vector3i vox = {25, 65, 127};
   const se::key_t code = oct.hash(vox(0), vox(1), vox(2));
   se::key_t allocation_list[1] = {code};
-  const float val = oct.get(vox(0), vox(1), vox(2));
-  EXPECT_EQ(val, voxel_traits<float>::empty());
+  const TestVoxelT::VoxelData val = oct.get(vox(0), vox(1), vox(2));
+  EXPECT_EQ(val, TestVoxelT::empty());
 }
 
 TEST(AllocationTest, SetSingleVoxel) {
-  typedef se::Octree<float> OctreeF;
+  typedef se::Octree<TestVoxelT> OctreeF;
   OctreeF oct;
   oct.init(256, 5);
   const Eigen::Vector3i vox = {25, 65, 127};
@@ -58,16 +57,16 @@ TEST(AllocationTest, SetSingleVoxel) {
   se::key_t allocation_list[1] = {code};
   oct.allocate(allocation_list, 1);
 
-  se::VoxelBlock<float> * block = oct.fetch(vox(0), vox(1), vox(2));
-  float written_val = 2.f;
+  se::VoxelBlock<TestVoxelT> * block = oct.fetch(vox(0), vox(1), vox(2));
+  TestVoxelT::VoxelData written_val = 2.f;
   block->data(vox, written_val);
 
-  const float read_val = oct.get(vox(0), vox(1), vox(2));
+  const TestVoxelT::VoxelData read_val = oct.get(vox(0), vox(1), vox(2));
   EXPECT_EQ(written_val, read_val);
 }
 
 TEST(AllocationTest, FetchOctant) {
-  typedef se::Octree<float> OctreeF;
+  typedef se::Octree<TestVoxelT> OctreeF;
   OctreeF oct;
   const int max_level = 8;
   const unsigned int block_side = 8;
@@ -80,7 +79,7 @@ TEST(AllocationTest, FetchOctant) {
   oct.allocate(allocation_list, 1);
 
   const int level = 3; /* 32 voxels per side */
-  se::Node<float> * node = oct.fetch_octant(vox(0), vox(1), vox(2), level);
+  se::Node<TestVoxelT> * node = oct.fetch_octant(vox(0), vox(1), vox(2), level);
   se::key_t fetched_code = node->code_;
 
   const se::key_t gt_code = oct.hash(vox(0), vox(1), vox(2), level);
@@ -129,8 +128,7 @@ TEST(AllocationTest, MortonPrefixMask) {
 }
 
 TEST(AllocationTest, ParentInsert) {
-  typedef se::Octree<float> OctreeF;
-  OctreeF oct;
+  se::Octree<TestVoxelT> oct;
   const unsigned int block_side = 8;
   const int max_level = 8;
   const int leaves_level = max_level - log2(block_side);
@@ -141,19 +139,18 @@ TEST(AllocationTest, ParentInsert) {
   std::uniform_int_distribution<int> dis(0, size);
   const Eigen::Vector3i vox = {dis(gen), dis(gen), dis(gen)};
   oct.insert(vox(0), vox(1), vox(2));
-  se::VoxelBlock<float> * block = oct.fetch(vox(0), vox(1), vox(2));
+  se::VoxelBlock<TestVoxelT> * block = oct.fetch(vox(0), vox(1), vox(2));
   EXPECT_NE(block, nullptr);
-  se::Node<float> * parent_node = block->parent();
+  se::Node<TestVoxelT> * parent_node = block->parent();
   for(int level = leaves_level - 1; level >= 0; level--){
-    se::Node<float> * node = oct.fetch_octant(vox(0), vox(1), vox(2), level);
+    se::Node<TestVoxelT> * node = oct.fetch_octant(vox(0), vox(1), vox(2), level);
     ASSERT_EQ(parent_node, node);
     parent_node = parent_node->parent();
   }
 }
 
 TEST(AllocationTest, ParentAllocation) {
-  typedef se::Octree<float> OctreeF;
-  OctreeF oct;
+  se::Octree<TestVoxelT> oct;
   const unsigned int block_side = 8;
   const int max_level = 8;
   const int leaves_level = max_level - log2(block_side);
@@ -166,11 +163,11 @@ TEST(AllocationTest, ParentAllocation) {
   se::key_t allocation_list[1] = {code};
   oct.allocate(allocation_list, 1);
 
-  se::VoxelBlock<float> * block = oct.fetch(vox(0), vox(1), vox(2));
+  se::VoxelBlock<TestVoxelT> * block = oct.fetch(vox(0), vox(1), vox(2));
   EXPECT_NE(block, nullptr);
-  se::Node<float> * parent_node = block->parent();
+  se::Node<TestVoxelT> * parent_node = block->parent();
   for(int level = leaves_level - 1; level >= 0; level--){
-    se::Node<float> * node = oct.fetch_octant(vox(0), vox(1), vox(2), level);
+    se::Node<TestVoxelT> * node = oct.fetch_octant(vox(0), vox(1), vox(2), level);
     ASSERT_EQ(parent_node, node);
     parent_node = parent_node->parent();
   }

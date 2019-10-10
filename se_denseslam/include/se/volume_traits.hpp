@@ -1,5 +1,5 @@
 /*
- Copyright 2016 Emanuele Vespa, Imperial College London 
+ Copyright 2016 Emanuele Vespa, Imperial College London
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -24,13 +24,12 @@
  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef VOLUME_H
 #define VOLUME_H
 
-// Data types definitions
-#include <se/voxel_traits.hpp>
+
 
 /******************************************************************************
  *
@@ -38,16 +37,14 @@
  *
 ****************************************************************************/
 
-typedef struct {
-  float x;
-  float y;
-} SDF;
+struct SDF {
+  typedef struct {
+    float x;
+    float y;
+  } VoxelData;
 
-template<>
-struct voxel_traits<SDF> {
-  typedef SDF value_type;
-  static inline value_type empty(){ return {1.f, -1.f}; }
-  static inline value_type initValue(){ return {1.f, 0.f}; }
+  static inline VoxelData empty()     { return {1.f, -1.f}; }
+  static inline VoxelData initValue() { return {1.f,  0.f}; }
 };
 
 /******************************************************************************
@@ -56,19 +53,14 @@ struct voxel_traits<SDF> {
  *
 ****************************************************************************/
 
-typedef struct {
-    float x;
+struct OFusion {
+  typedef struct {
+    float  x;
     double y;
-} OFusion;
+  } VoxelData;
 
-template<>
-struct voxel_traits<OFusion> {
-  typedef struct  {
-    float x;
-    double y;
-  } value_type;
-  static inline value_type empty(){ return {0.f, 0.f}; }
-  static inline value_type initValue(){ return {0.f, 0.f}; }
+  static inline VoxelData empty()     { return {0.f, 0.f}; }
+  static inline VoxelData initValue() { return {0.f, 0.f}; }
 };
 
 // Windowing parameters
@@ -86,18 +78,16 @@ struct voxel_traits<OFusion> {
  *
 ****************************************************************************/
 
-typedef struct MultiresSDF {
-  float x;
-  float x_last;
-  int   y;
-  int   delta_y;
-} MultiresSDF;
+struct MultiresSDF {
+  typedef struct {
+    float x;
+    float x_last;
+    int   y;
+    int   delta_y;
+  } VoxelData;
 
-template<>
-struct voxel_traits<MultiresSDF> {
-  typedef MultiresSDF value_type;
-  static inline value_type empty(){ return {1.f, 1.f, 0, 0}; }
-  static inline value_type initValue(){ return {1.f, 1.f, 0, 0}; }
+  static inline VoxelData empty()     { return {1.f, 1.f, 0, 0}; }
+  static inline VoxelData initValue() { return {1.f, 1.f, 0, 0}; }
 };
 
 #endif

@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include <fstream>
@@ -36,30 +36,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "octree.hpp"
 #include "gtest/gtest.h"
 
-typedef float testT;
-template <>
-struct voxel_traits<testT> {
-  typedef float value_type;
-  static inline value_type empty(){ return 0.f; }
-  static inline value_type initValue(){ return 10.f; }
+struct TestVoxelT {
+  typedef float VoxelData;
+  static inline VoxelData empty(){ return 0.f; }
+  static inline VoxelData initValue(){ return 1.f; }
 };
 
-class Occupancy;
-template <>
-struct voxel_traits<Occupancy> {
-  typedef struct { 
+struct OccupancyVoxelT {
+  typedef struct {
     float x;
     double y;
-  } value_type;
-  static inline value_type empty(){ return {0.f, 0.}; }
-  static inline value_type initValue(){ return {1.f, 0.}; }
+  } VoxelData;
+  static inline VoxelData empty(){ return {0.f, 0.}; }
+  static inline VoxelData initValue(){ return {1.f, 0.}; }
 };
 
 TEST(SerialiseUnitTest, WriteReadNode) {
   std::string filename = "test.bin";
   {
-    std::ofstream os (filename, std::ios::binary); 
-    se::Node<testT> octant;
+    std::ofstream os (filename, std::ios::binary);
+    se::Node<TestVoxelT> octant;
     octant.code_ = 24;
     octant.side_ = 256;
     for(int i = 0; i < 8; ++i)
@@ -69,7 +65,7 @@ TEST(SerialiseUnitTest, WriteReadNode) {
 
   {
     std::ifstream is(filename, std::ios::binary);
-    se::Node<testT> octant;
+    se::Node<TestVoxelT> octant;
     se::internal::deserialise(octant, is);
     ASSERT_EQ(octant.code_, 24);
     ASSERT_EQ(octant.side_, 256);
@@ -81,8 +77,8 @@ TEST(SerialiseUnitTest, WriteReadNode) {
 TEST(SerialiseUnitTest, WriteReadBlock) {
   std::string filename = "test.bin";
   {
-    std::ofstream os (filename, std::ios::binary); 
-    se::VoxelBlock<testT> octant;
+    std::ofstream os (filename, std::ios::binary);
+    se::VoxelBlock<TestVoxelT> octant;
     octant.code_ = 24;
     octant.coordinates(Eigen::Vector3i(40, 48, 52));
     for(int i = 0; i < 512; ++i)
@@ -92,7 +88,7 @@ TEST(SerialiseUnitTest, WriteReadBlock) {
 
   {
     std::ifstream is(filename, std::ios::binary);
-    se::VoxelBlock<testT> octant;
+    se::VoxelBlock<TestVoxelT> octant;
     se::internal::deserialise(octant, is);
     ASSERT_EQ(octant.code_, 24);
     ASSERT_TRUE(octant.coordinates() == Eigen::Vector3i(40, 48, 52));
@@ -104,8 +100,8 @@ TEST(SerialiseUnitTest, WriteReadBlock) {
 TEST(SerialiseUnitTest, WriteReadBlockStruct) {
   std::string filename = "test.bin";
   {
-    std::ofstream os (filename, std::ios::binary); 
-    se::VoxelBlock<Occupancy> octant;
+    std::ofstream os (filename, std::ios::binary);
+    se::VoxelBlock<OccupancyVoxelT> octant;
     octant.code_ = 24;
     octant.coordinates(Eigen::Vector3i(40, 48, 52));
     for(int i = 0; i < 512; ++i)
@@ -115,7 +111,7 @@ TEST(SerialiseUnitTest, WriteReadBlockStruct) {
 
   {
     std::ifstream is(filename, std::ios::binary);
-    se::VoxelBlock<Occupancy> octant;
+    se::VoxelBlock<OccupancyVoxelT> octant;
     se::internal::deserialise(octant, is);
     ASSERT_EQ(octant.code_, 24);
     ASSERT_TRUE(octant.coordinates() == Eigen::Vector3i(40, 48, 52));
@@ -128,16 +124,16 @@ TEST(SerialiseUnitTest, WriteReadBlockStruct) {
 }
 
 TEST(SerialiseUnitTest, SerialiseTree) {
-  se::Octree<testT> tree;
+  se::Octree<TestVoxelT> tree;
   tree.init(1024, 10.25);
-  const int side = se::VoxelBlock<testT>::side;
+  const int side = se::VoxelBlock<TestVoxelT>::side;
   const int max_depth = log2(tree.size());
   const int leaves_level = max_depth - log2(side);
   std::mt19937 gen(1); //Standard mersenne_twister_engine seeded with constant
   std::uniform_int_distribution<> dis(0, 1023);
-  
+
   int num_tested = 0;
-  for(int i = 1, edge = tree.size()/2; i <= leaves_level; ++i, edge = edge/2) { 
+  for(int i = 1, edge = tree.size()/2; i <= leaves_level; ++i, edge = edge/2) {
     for(int j = 0; j < 20; ++j) {
       Eigen::Vector3i vox(dis(gen), dis(gen), dis(gen));
       tree.insert(vox(0), vox(1), vox(2), i);
@@ -146,7 +142,7 @@ TEST(SerialiseUnitTest, SerialiseTree) {
   std::string filename = "octree-test.bin";
   tree.save(filename);
 
-  se::Octree<testT> tree_copy;
+  se::Octree<TestVoxelT> tree_copy;
   tree_copy.load(filename);
 
   ASSERT_EQ(tree.size(), tree_copy.size());
@@ -156,8 +152,8 @@ TEST(SerialiseUnitTest, SerialiseTree) {
   auto& node_buffer_copy = tree_copy.getNodesBuffer();
   ASSERT_EQ(node_buffer_base.size(), node_buffer_copy.size());
   for(int i = 0; i < node_buffer_base.size(); ++i) {
-    se::Node<testT> * n  = node_buffer_base[i];
-    se::Node<testT> * n1 = node_buffer_copy[i];
+    se::Node<TestVoxelT> * n  = node_buffer_base[i];
+    se::Node<TestVoxelT> * n1 = node_buffer_copy[i];
     ASSERT_EQ(n->code_, n1->code_);
     ASSERT_EQ(n->children_mask_, n1->children_mask_);
   }
@@ -168,9 +164,9 @@ TEST(SerialiseUnitTest, SerialiseTree) {
 }
 
 TEST(SerialiseUnitTest, SerialiseBlock) {
-  se::Octree<testT> tree;
+  se::Octree<TestVoxelT> tree;
   tree.init(1024, 10);
-  const int side = se::VoxelBlock<testT>::side;
+  const int side = se::VoxelBlock<TestVoxelT>::side;
   const int side_cubed = side * side * side;
   const int max_depth = log2(tree.size());
   const int leaves_level = max_depth - log2(side);
@@ -189,7 +185,7 @@ TEST(SerialiseUnitTest, SerialiseBlock) {
   std::string filename = "block-test.bin";
   tree.save(filename);
 
-  se::Octree<testT> tree_copy;
+  se::Octree<TestVoxelT> tree_copy;
   tree_copy.load(filename);
 
   auto& block_buffer_base = tree.getBlockBuffer();

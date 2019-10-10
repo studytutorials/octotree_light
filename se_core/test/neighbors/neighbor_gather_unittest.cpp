@@ -36,14 +36,11 @@
 #include "neighbors/neighbor_gather.hpp"
 #include "gtest/gtest.h"
 
-typedef float testT;
-
 // Create a voxel trait storing a single float value.
-template <>
-struct voxel_traits<testT> {
-  typedef float value_type;
-  static inline value_type empty(){ return 0.f; }
-  static inline value_type initValue(){ return 1.f; }
+struct TestVoxelT {
+  typedef float VoxelData;
+  static inline VoxelData empty(){ return 0.f; }
+  static inline VoxelData initValue(){ return 1.f; }
 };
 
 
@@ -77,7 +74,7 @@ class NeighborGatherTest : public ::testing::Test {
       }
     }
 
-    typedef se::Octree<testT> OctreeF;
+    typedef se::Octree<TestVoxelT> OctreeF;
     OctreeF octree_;
     static constexpr float value_increment_ = 0.05f;
 };
@@ -88,10 +85,10 @@ class NeighborGatherTest : public ::testing::Test {
 // block.
 TEST_F(NeighborGatherTest, GetFaceNeighborsLocal) {
   // Safe version.
-  std::array<voxel_traits<testT>::value_type, 6> neighbor_values_safe
+  std::array<TestVoxelT::VoxelData, 6> neighbor_values_safe
       = octree_.get_face_neighbors<true>(1, 1, 1);
   // Unsafe version.
-  std::array<voxel_traits<testT>::value_type, 6> neighbor_values_unsafe
+  std::array<TestVoxelT::VoxelData, 6> neighbor_values_unsafe
       = octree_.get_face_neighbors<false>(1, 1, 1);
 
   // Voxel -z (1, 1, 0).
@@ -125,20 +122,20 @@ TEST_F(NeighborGatherTest, GetFaceNeighborsLocal) {
 // NOTE Neighbors outside the volume have a value of empty().
 TEST_F(NeighborGatherTest, GetFaceNeighborsVolumeCorner) {
   // Safe version.
-  std::array<voxel_traits<testT>::value_type, 6> neighbor_values_safe
+  std::array<TestVoxelT::VoxelData, 6> neighbor_values_safe
       = octree_.get_face_neighbors<true>(0, 0, 0);
   // Unsafe version.
-  std::array<voxel_traits<testT>::value_type, 6> neighbor_values_unsafe
+  std::array<TestVoxelT::VoxelData, 6> neighbor_values_unsafe
       = octree_.get_face_neighbors<false>(0, 0, 0);
 
   // Voxel -z (0, 0, -1), outside.
-  EXPECT_EQ(neighbor_values_safe[0], voxel_traits<testT>::empty());
+  EXPECT_EQ(neighbor_values_safe[0], TestVoxelT::empty());
 
   // Voxel -y (0, -1, 0), outside.
-  EXPECT_EQ(neighbor_values_safe[1], voxel_traits<testT>::empty());
+  EXPECT_EQ(neighbor_values_safe[1], TestVoxelT::empty());
 
   // Voxel -x (-1, 0, 0), outside.
-  EXPECT_EQ(neighbor_values_safe[2], voxel_traits<testT>::empty());
+  EXPECT_EQ(neighbor_values_safe[2], TestVoxelT::empty());
 
   // Voxel +x (1, 0, 0), inside.
   EXPECT_EQ(neighbor_values_safe[3], 2 * value_increment_);
@@ -160,36 +157,36 @@ TEST_F(NeighborGatherTest, GetFaceNeighborsVolumeCorner) {
 // NOTE Unallocated neighbors have a value of initValue().
 TEST_F(NeighborGatherTest, GetFaceNeighborsCornerUnallocated) {
   // Safe version.
-  std::array<voxel_traits<testT>::value_type, 6> neighbor_values_safe
+  std::array<TestVoxelT::VoxelData, 6> neighbor_values_safe
       = octree_.get_face_neighbors<true>(octree_.blockSide - 1,
       octree_.blockSide - 1, octree_.blockSide - 1);
   // Unsafe version.
-  std::array<voxel_traits<testT>::value_type, 6> neighbor_values_unsafe
+  std::array<TestVoxelT::VoxelData, 6> neighbor_values_unsafe
       = octree_.get_face_neighbors<false>(octree_.blockSide - 1,
       octree_.blockSide - 1, octree_.blockSide - 1);
 
   // Voxel -z (0, 0, -1), allocated.
-  EXPECT_EQ(neighbor_values_safe[0], voxel_traits<testT>::initValue());
-  EXPECT_EQ(neighbor_values_unsafe[0], voxel_traits<testT>::initValue());
+  EXPECT_EQ(neighbor_values_safe[0], TestVoxelT::initValue());
+  EXPECT_EQ(neighbor_values_unsafe[0], TestVoxelT::initValue());
 
   // Voxel -y (0, -1, 0), allocated.
-  EXPECT_EQ(neighbor_values_safe[1], voxel_traits<testT>::initValue());
-  EXPECT_EQ(neighbor_values_unsafe[1], voxel_traits<testT>::initValue());
+  EXPECT_EQ(neighbor_values_safe[1], TestVoxelT::initValue());
+  EXPECT_EQ(neighbor_values_unsafe[1], TestVoxelT::initValue());
 
   // Voxel -x (-1, 0, 0), allocated.
-  EXPECT_EQ(neighbor_values_safe[2], voxel_traits<testT>::initValue());
-  EXPECT_EQ(neighbor_values_unsafe[2], voxel_traits<testT>::initValue());
+  EXPECT_EQ(neighbor_values_safe[2], TestVoxelT::initValue());
+  EXPECT_EQ(neighbor_values_unsafe[2], TestVoxelT::initValue());
 
   // Voxel +x (1, 0, 0), unallocated.
-  EXPECT_EQ(neighbor_values_safe[3], voxel_traits<testT>::initValue());
-  EXPECT_EQ(neighbor_values_unsafe[3], voxel_traits<testT>::initValue());
+  EXPECT_EQ(neighbor_values_safe[3], TestVoxelT::initValue());
+  EXPECT_EQ(neighbor_values_unsafe[3], TestVoxelT::initValue());
 
   // Voxel +y (0, 1, 0), unallocated.
-  EXPECT_EQ(neighbor_values_safe[4], voxel_traits<testT>::initValue());
-  EXPECT_EQ(neighbor_values_unsafe[4], voxel_traits<testT>::initValue());
+  EXPECT_EQ(neighbor_values_safe[4], TestVoxelT::initValue());
+  EXPECT_EQ(neighbor_values_unsafe[4], TestVoxelT::initValue());
 
   // Voxel +z (0, 0, 1), unallocated.
-  EXPECT_EQ(neighbor_values_safe[5], voxel_traits<testT>::initValue());
-  EXPECT_EQ(neighbor_values_unsafe[5], voxel_traits<testT>::initValue());
+  EXPECT_EQ(neighbor_values_safe[5], TestVoxelT::initValue());
+  EXPECT_EQ(neighbor_values_unsafe[5], TestVoxelT::initValue());
 }
 

@@ -38,12 +38,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "algorithms/balancing.hpp"
 #include "interpolation/idw_interpolation.hpp"
 
-typedef float testT;
-template <>
-struct voxel_traits<testT> {
-  typedef float value_type;
-  static inline value_type empty(){ return 0.f; }
-  static inline value_type initValue(){ return 1.f; }
+struct TestVoxelT {
+  typedef float VoxelData;
+  static inline VoxelData empty(){ return 0.f; }
+  static inline VoxelData initValue(){ return 1.f; }
 };
 
 float test_fun(float x, float y, float z) {
@@ -120,15 +118,15 @@ class InterpolationTest : public ::testing::Test {
 
     }
 
-  typedef se::Octree<testT> OctreeF;
+  typedef se::Octree<TestVoxelT> OctreeF;
   OctreeF oct_;
   std::vector<se::key_t> alloc_list;
 };
 
 TEST_F(InterpolationTest, IDWInterp) {
   Eigen::Vector3f pos(128.4f, 129.1, 127.5);
-  auto select =  [](const float& val){ return val; };
-  se::internal::idw_interp<float>(oct_, pos, select);
+  auto select =  [](const TestVoxelT::VoxelData& val){ return val; };
+  se::internal::idw_interp<TestVoxelT::VoxelData>(oct_, pos, select);
 
 }
 
@@ -136,11 +134,11 @@ TEST_F(InterpolationTest, IDWInterp) {
 //
 //   auto test = [this](auto& handler, const Eigen::Vector3i& v) {
 //     auto data = handler.get();
-//     float interpolated = oct_.interp(make_float3(v(0), v(1), v(2)), [](const auto& val){ return val(0); });
+//     TestVoxelT::VoxelData interpolated = oct_.interp(make_float3(v(0), v(1), v(2)), [](const auto& val){ return val(0); });
 //     ASSERT_EQ(data(0), interpolated);
 //   };
 //
-//   se::functor::axis_aligned<testT, Octree, decltype(test)>
+//   se::functor::axis_aligned<TestVoxelT, Octree, decltype(test)>
 //     funct_test(oct_, test);
 //   funct_test.apply();
 // }

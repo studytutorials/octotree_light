@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <algorithm>
 #include "utils/math_utils.h"
 #include "octree_defines.h"
-#include "voxel_traits.hpp"
 #include "utils/morton_utils.hpp"
 #include "octant_ops.hpp"
 
@@ -78,11 +77,7 @@ class Octree
 {
 
 public:
-
-  typedef voxel_traits<T> traits_type;
-  typedef typename traits_type::value_type value_type;
-  value_type empty() const { return traits_type::empty(); }
-  value_type init_val() const { return traits_type::initValue(); }
+  typedef typename T::VoxelData VoxelData;
 
   // Compile-time constant expressions
   // # of voxels per side in a voxel block
@@ -117,15 +112,15 @@ public:
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
    */
-  void set(const int x, const int y, const int z, const value_type val);
+  void set(const int x, const int y, const int z, const VoxelData val);
 
   /*! \brief Retrieves voxel value at coordinates (x,y,z)
    * \param x x coordinate in interval [0, size]
    * \param y y coordinate in interval [0, size]
    * \param z z coordinate in interval [0, size]
    */
-  value_type get(const int x, const int y, const int z) const;
-  value_type get_fine(const int x, const int y, const int z, const int scale = 0) const;
+  VoxelData get(const int x, const int y, const int z) const;
+  VoxelData get_fine(const int x, const int y, const int z, const int scale = 0) const;
 
   /*! \brief Retrieves voxel values for the neighbors of voxel at coordinates
    * (x,y,z)
@@ -150,7 +145,7 @@ public:
    * used in interp_gather should be used.
    */
   template <bool safe>
-  std::array<value_type, 6> get_face_neighbors(const int x,
+  std::array<VoxelData, 6> get_face_neighbors(const int x,
                                                const int y,
                                                const int z) const;
 
@@ -293,12 +288,12 @@ private:
   int reserved_;
 
   // Private implementation of cached methods
-  value_type get(const int x, const int y, const int z, VoxelBlock<T>* cached) const;
-  value_type get(const Eigen::Vector3f& pos, VoxelBlock<T>* cached) const;
+  VoxelData get(const int x, const int y, const int z, VoxelBlock<T>* cached) const;
+  VoxelData get(const Eigen::Vector3f& pos, VoxelBlock<T>* cached) const;
 
-  value_type get(const int x, const int y, const int z,
+  VoxelData get(const int x, const int y, const int z,
      int&  scale, VoxelBlock<T>* cached) const;
-  value_type get(const Eigen::Vector3f& pos, int& scale,
+  VoxelData get(const Eigen::Vector3f& pos, int& scale,
       VoxelBlock<T>* cached) const;
 
   // Parallel allocation of a given tree level for a set of input keys.
@@ -319,13 +314,13 @@ private:
 };
 
 template <typename T>
-inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
+inline typename Octree<T>::VoxelData Octree<T>::get(const Eigen::Vector3f& p,
     VoxelBlock<T>* cached) const {
   return get(p, 0, cached);
 }
 
 template <typename T>
-inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
+inline typename Octree<T>::VoxelData Octree<T>::get(const Eigen::Vector3f& p,
     int& scale, VoxelBlock<T>* cached) const {
 
   const Eigen::Vector3i pos = (p.homogeneous() *
@@ -343,7 +338,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
 
   Node<T> * n = root_;
   if(!n) {
-    return empty();
+    return T::empty();
   }
 
   // Get the block.
@@ -352,7 +347,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
   for(; edge >= blockSide; edge = edge >> 1){
     n = n->child((pos(0) & edge) > 0, (pos(1) & edge) > 0, (pos(2) & edge) > 0);
     if(!n){
-    return empty();
+    return T::empty();
     }
   }
 
@@ -364,7 +359,7 @@ inline typename Octree<T>::value_type Octree<T>::get(const Eigen::Vector3f& p,
 
 template <typename T>
 inline void  Octree<T>::set(const int x,
-    const int y, const int z, const value_type val) {
+    const int y, const int z, const VoxelData val) {
 
   Node<T> * n = root_;
   if(!n) {
@@ -385,12 +380,12 @@ inline void  Octree<T>::set(const int x,
 
 
 template <typename T>
-inline typename Octree<T>::value_type Octree<T>::get(const int x,
+inline typename Octree<T>::VoxelData Octree<T>::get(const int x,
     const int y, const int z) const {
 
   Node<T> * n = root_;
   if(!n) {
-    return init_val();
+    return T::initValue();
   }
 
   unsigned edge = size_ >> 1;
@@ -407,12 +402,12 @@ inline typename Octree<T>::value_type Octree<T>::get(const int x,
 }
 
 template <typename T>
-inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
+inline typename Octree<T>::VoxelData Octree<T>::get_fine(const int x,
     const int y, const int z, const int scale) const {
 
   Node<T> * n = root_;
   if(!n) {
-    return init_val();
+    return T::initValue();
   }
 
   unsigned edge = size_ >> 1;
@@ -421,7 +416,7 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
       +  4*((z & edge) > 0);
     Node<T>* tmp = n->child(childid);
     if(!tmp){
-      return init_val();
+      return T::initValue();
     }
     n = tmp;
   }
@@ -430,12 +425,12 @@ inline typename Octree<T>::value_type Octree<T>::get_fine(const int x,
 }
 template <typename T>
 template <bool safe>
-inline std::array<typename Octree<T>::value_type, 6> Octree<T>::get_face_neighbors(
+inline std::array<typename Octree<T>::VoxelData, 6> Octree<T>::get_face_neighbors(
     const int x,
     const int y,
     const int z) const {
 
-  std::array<typename Octree<T>::value_type, 6> neighbor_values;
+  std::array<typename Octree<T>::VoxelData, 6> neighbor_values;
 
   for (size_t i = 0; i < 6; ++i) {
     // Compute the neighbor voxel coordinates.
@@ -451,7 +446,7 @@ inline std::array<typename Octree<T>::value_type, 6> Octree<T>::get_face_neighbo
         neighbor_values[i] = get_fine(neighbor_x, neighbor_y, neighbor_z);
       } else {
         // The neighbor voxel is outside the volume, set the value to empty.
-        neighbor_values[i] = empty();
+        neighbor_values[i] = T::empty();
       }
     } else {
       // Get the value of the neighbor voxel.
@@ -463,13 +458,13 @@ inline std::array<typename Octree<T>::value_type, 6> Octree<T>::get_face_neighbo
 }
 
 template <typename T>
-inline typename Octree<T>::value_type Octree<T>::get(const int x,
+inline typename Octree<T>::VoxelData Octree<T>::get(const int x,
    const int y, const int z, VoxelBlock<T>* cached) const {
   return get(x, y, z, 0, cached);
 }
 
 template <typename T>
-inline typename Octree<T>::value_type Octree<T>::get(const int x,
+inline typename Octree<T>::VoxelData Octree<T>::get(const int x,
    const int y, const int z, int& scale, VoxelBlock<T>* cached) const {
 
   if(cached != NULL){
@@ -486,14 +481,14 @@ inline typename Octree<T>::value_type Octree<T>::get(const int x,
 
   Node<T> * n = root_;
   if(!n) {
-    return init_val();
+    return T::initValue();
   }
 
   unsigned edge = size_ >> 1;
   for(; edge >= blockSide; edge = edge >> 1){
     n = n->child((x & edge) > 0, (y & edge) > 0, (z & edge) > 0);
     if(!n){
-      return init_val();
+      return T::initValue();
     }
   }
   auto block = static_cast<VoxelBlock<T> *>(n);
@@ -647,7 +642,7 @@ std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos, const int mi
 
   int iter = 0;
   int scale = min_scale;
-  float points[8] = { select(init_val()) };
+  float points[8] = { select(T::initValue()) };
   Eigen::Vector3f factor;
   while(iter < 3) {
     const int stride = 1 << scale;
@@ -656,7 +651,7 @@ std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos, const int mi
     const Eigen::Vector3i base = stride * scaled_pos.cast<int>();
     const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
     if(((lower + Eigen::Vector3i::Constant(stride)).array() >= size_).any()) {
-      return {select(init_val()), scale};
+      return {select(T::initValue()), scale};
     }
 
     int res = internal::gather_points(*this, lower, scale, select, points);
@@ -686,7 +681,7 @@ std::pair<float, int> Octree<T>::interp_checked(const Eigen::Vector3f& pos,
 
   int iter = 0;
   int scale = min_scale;
-  float points[8] = { select(init_val()) };
+  float points[8] = { select(T::initValue()) };
   float   weights[8];
   Eigen::Vector3f factor;
   while(iter < 3) {
@@ -696,7 +691,7 @@ std::pair<float, int> Octree<T>::interp_checked(const Eigen::Vector3f& pos,
     const Eigen::Vector3i base = stride * scaled_pos.cast<int>();
     const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
     if(((lower + Eigen::Vector3i::Constant(stride)).array() >= size_).any()) {
-      return {select(init_val()), -1};
+      return {select(T::initValue()), -1};
     }
 
     int res = internal::gather_points(*this, lower, scale, select, points);
@@ -709,7 +704,7 @@ std::pair<float, int> Octree<T>::interp_checked(const Eigen::Vector3f& pos,
   }
 
   for(int i = 0; i < 8; ++i) {
-    if(weights[i] == 0) return {select(init_val()), -1};
+    if(weights[i] == 0) return {select(T::initValue()), -1};
   }
 
   return {(((points[0] * (1 - factor(0))

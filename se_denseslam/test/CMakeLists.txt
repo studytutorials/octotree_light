@@ -12,9 +12,9 @@ enable_testing()
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 add_compile_options(-std=c++14)
-include_directories(../../se_core/include 
-                    ../include/se ../include 
-                    ${EIGEN3_INCLUDE_DIR} 
+include_directories(../../se_core/include
+                    ../include/se ../include
+                    ${EIGEN3_INCLUDE_DIR}
                     ${SOPHUS_INCLUDE_DIR})
 
 add_subdirectory(multiscale_esdf_moving_sphere)

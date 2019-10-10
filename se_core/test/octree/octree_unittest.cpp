@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "utils/math_utils.h"
@@ -36,62 +36,59 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <io/ply_io.hpp>
 #include <algorithms/balancing.hpp>
 
-typedef float testT;
-
-template <>
-struct voxel_traits<testT> {
-  typedef float value_type;
-  static inline value_type empty(){ return 0.f; }
-  static inline value_type initValue(){ return 1.f; }
+struct TestVoxelT {
+  typedef float VoxelData;
+  static inline VoxelData empty(){ return 0.f; }
+  static inline VoxelData initValue(){ return 1.f; }
 };
 
 TEST(Octree, OctantFaceNeighbours) {
   const Eigen::Vector3i octant = {112, 80, 160};
   const unsigned int max_depth = 8;
   const unsigned int leaves_depth = 5;
-  const se::key_t code = 
+  const se::key_t code =
     se::keyops::encode(octant(0), octant(1), octant(2), leaves_depth, max_depth);
   const unsigned int side = 8;
-  const Eigen::Vector3i faces[6] = {{-1, 0, 0}, {1, 0, 0}, {0, -1, 0}, {0, 1, 0}, 
+  const Eigen::Vector3i faces[6] = {{-1, 0, 0}, {1, 0, 0}, {0, -1, 0}, {0, 1, 0},
     {0, 0, -1}, {0, 0, 1}};
   for(int i = 0; i < 6; ++i) {
     const Eigen::Vector3i neighbour = octant + side * faces[i];
-    const Eigen::Vector3i computed = se::face_neighbour(code, i, leaves_depth, max_depth); 
-    ASSERT_EQ(neighbour(0), computed(0)); 
-    ASSERT_EQ(neighbour(1), computed(1)); 
-    ASSERT_EQ(neighbour(2), computed(2)); 
+    const Eigen::Vector3i computed = se::face_neighbour(code, i, leaves_depth, max_depth);
+    ASSERT_EQ(neighbour(0), computed(0));
+    ASSERT_EQ(neighbour(1), computed(1));
+    ASSERT_EQ(neighbour(2), computed(2));
   }
 }
 
 TEST(Octree, OctantDescendant) {
   const unsigned max_depth = 8;
   Eigen::Vector3i octant = {110, 80, 159};
-  se::key_t code = 
+  se::key_t code =
     se::keyops::encode(octant(0), octant(1), octant(2), 5, max_depth);
-  se::key_t ancestor = 
+  se::key_t ancestor =
     se::keyops::encode(96, 64, 128, 3, max_depth);
-  ASSERT_EQ(true , se::descendant(code, ancestor, max_depth)); 
+  ASSERT_EQ(true , se::descendant(code, ancestor, max_depth));
 
   ancestor = se::keyops::encode(128, 64, 64, 3, max_depth);
-  ASSERT_FALSE(se::descendant(code, ancestor, max_depth)); 
+  ASSERT_FALSE(se::descendant(code, ancestor, max_depth));
 }
 
 TEST(Octree, OctantParent) {
   const int max_depth = 8;
   Eigen::Vector3i octant = {112, 80, 160};
-  se::key_t code = 
+  se::key_t code =
     se::keyops::encode(octant(0), octant(1), octant(2), 5, max_depth);
   se::key_t p = se::parent(code, max_depth);
   ASSERT_EQ(se::keyops::code(code), se::keyops::code(p));
   ASSERT_EQ(4, p & SCALE_MASK);
 
   code = p;
-  p = se::parent(code, max_depth); 
+  p = se::parent(code, max_depth);
   ASSERT_EQ(3, se::keyops::level(p));
   ASSERT_EQ(p, se::keyops::encode(96, 64, 160, 3, max_depth));
 
   code = p;
-  p = se::parent(code, max_depth); 
+  p = se::parent(code, max_depth);
   ASSERT_EQ(2, se::keyops::level(p));
   ASSERT_EQ(p, se::keyops::encode(64, 64, 128, 2, max_depth));
 }
@@ -99,7 +96,7 @@ TEST(Octree, OctantParent) {
 TEST(Octree, FarCorner) {
   /*
    * The far corner should always be "exterior", meaning that moving one step
-   * in the outward direction (i.e. away from the center) in *any* direction 
+   * in the outward direction (i.e. away from the center) in *any* direction
    * implies leaving the parent octant. For simplicity here the corners
    * individually, but this can be done programmatically testing this property.
    * TODO: change this test case to be more exhaustive.
@@ -109,7 +106,7 @@ TEST(Octree, FarCorner) {
   const int level = 2;
 
   /* First child */
-  const se::key_t cell0 = 
+  const se::key_t cell0 =
     se::keyops::encode(16, 16, 16, level, max_depth);
   const Eigen::Vector3i fc0 = se::far_corner(cell0, level, max_depth);
   ASSERT_EQ(fc0(0), 16);
@@ -174,8 +171,8 @@ TEST(Octree, InnerOctantExteriorNeighbours) {
   se::key_t N[7];
   se::exterior_neighbours(N, cell, level, max_depth);
   const se::key_t p = se::parent(cell, max_depth);
-  
-  const se::key_t neighbours_gt[7] = 
+
+  const se::key_t neighbours_gt[7] =
     {se::keyops::encode(15, 16, 16, level, max_depth),
      se::keyops::encode(16, 15, 16, level, max_depth),
      se::keyops::encode(15, 15, 16, level, max_depth),
@@ -202,10 +199,10 @@ TEST(Octree, EdgeOctantExteriorNeighbours) {
   se::key_t N[7];
   se::exterior_neighbours(N, cell, level, max_depth);
   const se::key_t p = se::parent(cell, max_depth);
-  
+
   for(int i = 0; i < 7; ++i) {
     const Eigen::Vector3i corner = unpack_morton(N[i] & ~SCALE_MASK);
-    const int res = ((corner.array() >= Eigen::Vector3i::Constant(0).array()) 
+    const int res = ((corner.array() >= Eigen::Vector3i::Constant(0).array())
      && (corner.array() <= Eigen::Vector3i::Constant(size - 1).array())).all();
     ASSERT_TRUE(res);
   }
@@ -221,7 +218,7 @@ TEST(Octree, OctantSiblings) {
 
   const int childidx = se::child_id(cell, level, max_depth);
   ASSERT_EQ(s[childidx], cell);
-  const Eigen::Vector3i p = se::keyops::decode(cell); 
+  const Eigen::Vector3i p = se::keyops::decode(cell);
   for(int i = 0; i < 8; ++i) {
     // std::cout << (unpack_morton(s[i] & ~SCALE_MASK)) << std::endl;
     const Eigen::Vector3i po = se::keyops::decode(se::parent(s[i], max_depth));
@@ -236,19 +233,19 @@ TEST(Octree, OctantOneNeighbours) {
   const unsigned size = std::pow(2, max_depth);
   Eigen::Matrix<int, 4, 6> N;
   Eigen::Vector3i pos;
-  
+
   // Inside cube
   //
   pos << 127, 56, 3;
-  se::one_neighbourhood(N, se::keyops::encode(pos.x(), pos.y(), pos.z(), 
+  se::one_neighbourhood(N, se::keyops::encode(pos.x(), pos.y(), pos.z(),
         level, max_depth), max_depth);
   ASSERT_TRUE((N.array() >= 0).all() && (N.array() < size).all());
 
-  
+
   // At edge cube
   //
   pos << size-1, 56, 3;
-  se::one_neighbourhood(N, se::keyops::encode(pos.x(), pos.y(), pos.z(), 
+  se::one_neighbourhood(N, se::keyops::encode(pos.x(), pos.y(), pos.z(),
         level, max_depth), max_depth);
   ASSERT_TRUE((N.array() >= 0).all() && (N.array() < size).all());
 }
@@ -257,7 +254,7 @@ TEST(Octree, BalanceTree) {
   const int max_depth = 8;
   const int level = 5;
 
-  se::Octree<testT> oct;
+  se::Octree<TestVoxelT> oct;
   oct.init(1 << max_depth, 5);
   Eigen::Vector3i vox(32, 208, 44);
   oct.insert(vox.x(), vox.y(), vox.z());

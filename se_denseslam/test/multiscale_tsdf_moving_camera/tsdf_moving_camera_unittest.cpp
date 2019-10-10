@@ -366,7 +366,7 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
             weight /= num_samples;
             data.y = ceil(weight);
           } else {
-            data = voxel_traits<MultiresSDF>::initValue();
+            data = MultiresSDF::initValue();
           }
           data.delta_y = 0;
           block->data(curr, curr_scale + 1, data);

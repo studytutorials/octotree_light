@@ -1,5 +1,5 @@
 /*
-    Copyright 2016 Emanuele Vespa, Imperial College London 
+    Copyright 2016 Emanuele Vespa, Imperial College London
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
 
@@ -23,7 +23,7 @@
     SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
     CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #ifndef INTERP_GATHER_H
@@ -40,24 +40,24 @@ namespace se {
  * Interpolation's point gather offsets
  */
 
-static const Eigen::Vector3i interp_offsets[8] = 
-  {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0}, 
+static const Eigen::Vector3i interp_offsets[8] =
+  {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
    {0, 0, 1}, {1, 0, 1}, {0, 1, 1}, {1, 1, 1}};
 
 template <typename FieldType, typename FieldSelector>
-inline void gather_local(const se::VoxelBlock<FieldType>* block, 
-    const Eigen::Vector3i& base, const int scale, const int stride, FieldSelector select, 
+inline void gather_local(const se::VoxelBlock<FieldType>* block,
+    const Eigen::Vector3i& base, const int scale, const int stride, FieldSelector select,
     float points[8]) {
 
   if(!block) {
-    points[0] = select(se::VoxelBlock<FieldType>::empty());
-    points[1] = select(se::VoxelBlock<FieldType>::empty());
-    points[2] = select(se::VoxelBlock<FieldType>::empty());
-    points[3] = select(se::VoxelBlock<FieldType>::empty());
-    points[4] = select(se::VoxelBlock<FieldType>::empty());
-    points[5] = select(se::VoxelBlock<FieldType>::empty());
-    points[6] = select(se::VoxelBlock<FieldType>::empty());
-    points[7] = select(se::VoxelBlock<FieldType>::empty());
+    points[0] = select(FieldType::empty());
+    points[1] = select(FieldType::empty());
+    points[2] = select(FieldType::empty());
+    points[3] = select(FieldType::empty());
+    points[4] = select(FieldType::empty());
+    points[5] = select(FieldType::empty());
+    points[6] = select(FieldType::empty());
+    points[7] = select(FieldType::empty());
     return;
   }
 
@@ -73,19 +73,19 @@ inline void gather_local(const se::VoxelBlock<FieldType>* block,
 }
 
 template <typename FieldType, typename FieldSelector>
-inline void gather_4(const se::VoxelBlock<FieldType>* block, 
-                     const Eigen::Vector3i& base, 
+inline void gather_4(const se::VoxelBlock<FieldType>* block,
+                     const Eigen::Vector3i& base,
                      const int scale,
-                     const int stride, 
-                     FieldSelector select, 
-                     const unsigned int offsets[4], 
+                     const int stride,
+                     FieldSelector select,
+                     const unsigned int offsets[4],
                      float points[8]) {
 
   if(!block) {
-    points[offsets[0]] = select(se::VoxelBlock<FieldType>::empty());
-    points[offsets[1]] = select(se::VoxelBlock<FieldType>::empty());
-    points[offsets[2]] = select(se::VoxelBlock<FieldType>::empty());
-    points[offsets[3]] = select(se::VoxelBlock<FieldType>::empty());
+    points[offsets[0]] = select(FieldType::empty());
+    points[offsets[1]] = select(FieldType::empty());
+    points[offsets[2]] = select(FieldType::empty());
+    points[offsets[3]] = select(FieldType::empty());
     return;
   }
 
@@ -97,17 +97,17 @@ inline void gather_4(const se::VoxelBlock<FieldType>* block,
 }
 
 template <typename FieldType, typename FieldSelector>
-inline void gather_2(const se::VoxelBlock<FieldType>* block, 
-                     const Eigen::Vector3i& base, 
+inline void gather_2(const se::VoxelBlock<FieldType>* block,
+                     const Eigen::Vector3i& base,
                      const int scale,
-                     const int stride, 
-                     FieldSelector select, 
-                     const unsigned int offsets[2], 
+                     const int stride,
+                     FieldSelector select,
+                     const unsigned int offsets[2],
                      float points[8]) {
 
   if(!block) {
-    points[offsets[0]] = select(se::VoxelBlock<FieldType>::empty());
-    points[offsets[1]] = select(se::VoxelBlock<FieldType>::empty());
+    points[offsets[0]] = select(FieldType::empty());
+    points[offsets[1]] = select(FieldType::empty());
     return;
   }
 
@@ -118,13 +118,13 @@ inline void gather_2(const se::VoxelBlock<FieldType>* block,
 
 template <typename FieldType, template<typename FieldT> class MapIndex,
          class FieldSelector>
-inline int gather_points(const MapIndex<FieldType>& fetcher, 
-    const Eigen::Vector3i& base, const int scale, 
+inline int gather_points(const MapIndex<FieldType>& fetcher,
+    const Eigen::Vector3i& base, const int scale,
     FieldSelector select, float points[8]) {
-  
-  const int stride = 1 << scale; 
+
+  const int stride = 1 << scale;
   unsigned int blockSize =  se::VoxelBlock<FieldType>::side;
-  unsigned int crossmask = (((base.x() & (blockSize - 1)) == blockSize - stride) << 2) | 
+  unsigned int crossmask = (((base.x() & (blockSize - 1)) == blockSize - stride) << 2) |
                            (((base.y() & (blockSize - 1)) == blockSize - stride) << 1) |
                             ((base.z() & (blockSize - 1)) == blockSize - stride);
 
@@ -149,7 +149,7 @@ inline int gather_points(const MapIndex<FieldType>& fetcher,
         gather_4(block, base, scale, stride, select, offs2, points);
       }
       break;
-    case 2: /* y crosses */ 
+    case 2: /* y crosses */
       {
         const unsigned int offs1[4] = {0, 1, 4, 5};
         const unsigned int offs2[4] = {2, 3, 6, 7};
@@ -162,7 +162,7 @@ inline int gather_points(const MapIndex<FieldType>& fetcher,
         gather_4(block, base, scale, stride, select, offs2, points);
       }
       break;
-    case 3: /* y, z cross */ 
+    case 3: /* y, z cross */
       {
         const unsigned int offs1[2] = {0, 1};
         const unsigned int offs2[2] = {2, 3};
@@ -185,7 +185,7 @@ inline int gather_points(const MapIndex<FieldType>& fetcher,
         gather_2(block, base, scale, stride, select, offs4, points);
       }
       break;
-    case 4: /* x crosses */ 
+    case 4: /* x crosses */
       {
         const unsigned int offs1[4] = {0, 2, 4, 6};
         const unsigned int offs2[4] = {1, 3, 5, 7};
@@ -198,7 +198,7 @@ inline int gather_points(const MapIndex<FieldType>& fetcher,
         gather_4(block, base, scale, stride, select, offs2, points);
       }
       break;
-    case 5: /* x,z cross */ 
+    case 5: /* x,z cross */
       {
         const unsigned int offs1[2] = {0, 2};
         const unsigned int offs2[2] = {1, 3};
@@ -221,7 +221,7 @@ inline int gather_points(const MapIndex<FieldType>& fetcher,
         gather_2(block, base, scale, stride, select, offs4, points);
       }
       break;
-    case 6: /* x,y cross */ 
+    case 6: /* x,y cross */
       {
         const unsigned int offs1[2] = {0, 4};
         const unsigned int offs2[2] = {1, 5};
@@ -260,8 +260,8 @@ inline int gather_points(const MapIndex<FieldType>& fetcher,
         for(int i = 0; i < 8; ++i) {
           auto block = fetcher.fetch(vox[i].x(), vox[i].y(), vox[i].z());
           if(block && block->current_scale() > scale) return block->current_scale();
-          points[i] = block ? select(block->data(vox[i], scale)) : 
-                              select(se::VoxelBlock<FieldType>::empty()); 
+          points[i] = block ? select(block->data(vox[i], scale)) :
+                              select(FieldType::empty());
         }
       }
       break;
@@ -269,29 +269,29 @@ inline int gather_points(const MapIndex<FieldType>& fetcher,
   return scale;
 }
 
-/*! \brief Fetch the field sample corresponding to the octant neighbour along the 
+/*! \brief Fetch the field sample corresponding to the octant neighbour along the
  * specified direction. If the search fails the second element of the returned
  * is set to false.
  * \param stack stack of ancestor nodes of octant
- * \param octant base octant. 
- * \param max_depth maximum depth of the tree. 
- * \param dir direction along which to fetch the neighbou. Only positive 
+ * \param octant base octant.
+ * \param max_depth maximum depth of the tree.
+ * \param dir direction along which to fetch the neighbou. Only positive
  * search directions are allowed along any axes.
  */
 template <typename Precision, typename FieldType, typename FieldSelector>
-static inline std::pair<Precision, Eigen::Vector3i> 
-fetch_neighbour_sample(Node<FieldType>* stack[], Node<FieldType>* octant, 
+static inline std::pair<Precision, Eigen::Vector3i>
+fetch_neighbour_sample(Node<FieldType>* stack[], Node<FieldType>* octant,
     const int max_depth, const int dir, FieldSelector select) {
  int level = se::keyops::level(octant->code_);
  while(level > 0) {
    int child_id = se::child_id(stack[level]->code_, max_depth);
-   int sibling = child_id ^ dir;  
+   int sibling = child_id ^ dir;
    std::cout << "parent code:" << se::keyops::decode(stack[level-1]->code_) << std::endl;
    if((sibling & dir) == dir) { // if sibling still in octant's family
      const int side = 1 << (max_depth - level);
      std::cout << "side: " << side << std::endl;
      const Eigen::Vector3i coords = se::keyops::decode(stack[level-1]->code_) +
-        side * Eigen::Vector3i((sibling & 1), (sibling & 2) >> 1, 
+        side * Eigen::Vector3i((sibling & 1), (sibling & 2) >> 1,
             (sibling & 4) >> 2);
      return {select(stack[level-1]->value_[sibling]), coords};
    }
@@ -300,22 +300,22 @@ fetch_neighbour_sample(Node<FieldType>* stack[], Node<FieldType>* octant,
  return {Precision(), Eigen::Vector3i::Constant(INVALID_SAMPLE)};
 }
 
-/*! \brief Fetch the neighbour of octant in the desired direction which is at 
+/*! \brief Fetch the neighbour of octant in the desired direction which is at
  * most refined as the starting octant.
  * \param stack stack of ancestor nodes of octant
- * \param octant base octant. 
- * \param max_depth maximum depth of the tree. 
- * \param dir direction along which to fetch the neighbou. Only positive 
+ * \param octant base octant.
+ * \param max_depth maximum depth of the tree.
+ * \param dir direction along which to fetch the neighbou. Only positive
  * search directions are allowed along any axes.
  */
 template <typename FieldType>
-static inline Node<FieldType> * 
-fetch_neighbour(Node<FieldType>* stack[], Node<FieldType>* octant, 
+static inline Node<FieldType> *
+fetch_neighbour(Node<FieldType>* stack[], Node<FieldType>* octant,
     const int max_depth, const int dir) {
  int level = se::keyops::level(octant->code_);
  while(level > 0) {
    int child_id = se::child_id(stack[level]->code_, max_depth);
-   int sibling = child_id ^ dir;  
+   int sibling = child_id ^ dir;
    if((sibling & dir) == dir) { // if sibling still in octant's family
      return stack[level-1]->child(sibling);
    }
@@ -325,15 +325,15 @@ fetch_neighbour(Node<FieldType>* stack[], Node<FieldType>* octant,
 }
 
 
-/*! \brief Fetch the finest octant containing (x,y,z) starting from root node. 
+/*! \brief Fetch the finest octant containing (x,y,z) starting from root node.
  * It is required that pos is contained withing the root node, i.e. pos is
  * within the interval [root.pos, root.pos + root.side].
- * \param stack stack of traversed nodes 
- * \param root Root node from where the search starts. 
- * \param pos integer position of searched octant 
+ * \param stack stack of traversed nodes
+ * \param root Root node from where the search starts.
+ * \param pos integer position of searched octant
  */
 template <typename T>
-static inline Node<T> * fetch(Node<T>* stack[], Node<T>* root, 
+static inline Node<T> * fetch(Node<T>* stack[], Node<T>* root,
     const int max_depth, const Eigen::Vector3i& pos) {
   unsigned edge = (1 << (max_depth - se::keyops::level(root->code_))) / 2;
   constexpr unsigned int blockSide = BLOCK_SIDE;
@@ -341,11 +341,11 @@ static inline Node<T> * fetch(Node<T>* stack[], Node<T>* root,
   int l = 0;
   for(; edge >= blockSide; ++l, edge = edge >> 1) {
     stack[l] = n;
-    auto next = n->child((pos.x() & edge) > 0u, (pos.y() & edge) > 0u, 
+    auto next = n->child((pos.x() & edge) > 0u, (pos.y() & edge) > 0u,
         (pos.z() & edge) > 0u);
     if(!next) break;
     n = next;
-  } 
+  }
   stack[l] = n;
   return n;
 }

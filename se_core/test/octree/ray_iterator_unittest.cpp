@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "octree.hpp"
@@ -33,15 +33,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "gtest/gtest.h"
 #include <vector>
 
-typedef float testT;
-
-template <>
-struct voxel_traits<testT> {
-  typedef float value_type;
-  static inline value_type empty(){ return 0.f; }
-  static inline value_type initValue(){ return 1.f; }
+struct TestVoxelT {
+  typedef float VoxelData;
+  static inline VoxelData empty(){ return 0.f; }
+  static inline VoxelData initValue(){ return 1.f; }
 };
-typedef se::Octree<testT> OctreeF;
+typedef se::Octree<TestVoxelT> OctreeT;
 
 class RayIteratorTest : public ::testing::Test {
   protected:
@@ -52,7 +49,7 @@ class RayIteratorTest : public ::testing::Test {
       dir_ = Eigen::Vector3f(0.5, 0.5, 0.5).normalized();
 
       // ensure stepsize is big enough to get distinct blocks
-      const float stepsize = 2 * (oct_.dim()/oct_.size() * OctreeF::blockSide);
+      const float stepsize = 2 * (oct_.dim()/oct_.size() * OctreeT::blockSide);
       const float voxelsize = oct_.dim()/oct_.size();
 
       const int num_blocks = 4;
@@ -68,20 +65,20 @@ class RayIteratorTest : public ::testing::Test {
 
       oct_.allocate(alloc_list_.data(), alloc_list_.size());
     }
-  OctreeF oct_;
+  OctreeT oct_;
   Eigen::Vector3f p_;
   Eigen::Vector3f dir_;
   std::vector<se::key_t> alloc_list_;
 };
 
 TEST_F(RayIteratorTest, FetchAlongRay) {
-  se::ray_iterator<testT> it(oct_, p_, dir_, 0.4, 4.0f); 
+  se::ray_iterator<TestVoxelT> it(oct_, p_, dir_, 0.4, 4.0f);
   int i = 0;
-  se::VoxelBlock<testT> * current;
+  se::VoxelBlock<TestVoxelT> * current;
   while(current = it.next()) {
     ASSERT_LT(i, alloc_list_.size());
     ASSERT_EQ(current->code_, alloc_list_[i]);
-    i++; 
+    i++;
   }
   ASSERT_EQ(i, alloc_list_.size());
 }

@@ -152,7 +152,7 @@ namespace meshing {
       ((y % blockSize == blockSize - 1) << 1) |
       ((z % blockSize) == blockSize - 1);
 
-    typename MapT<FieldType>::value_type points[8];
+    typename FieldType::VoxelData points[8];
     if(!local) gather_points(cached, points, x, y, z);
     else gather_points(volume, points, x, y, z);
 

@@ -31,7 +31,6 @@
 
 #include <iostream>
 #include <memory>
-#include <se/voxel_traits.hpp>
 #include <se/utils/memory_pool.hpp>
 #include <se/octree.hpp>
 #include <type_traits>
@@ -50,10 +49,6 @@ template <typename FieldType, template<typename> class DiscreteMapT>
 class VolumeTemplate {
 
   public:
-    typedef voxel_traits<FieldType> traits_type;
-    typedef typename traits_type::value_type value_type;
-    typedef FieldType field_type;
-
     VolumeTemplate(){};
     VolumeTemplate(unsigned int r, float d, DiscreteMapT<FieldType>* m) :
       _map_index(m) {
@@ -66,15 +61,15 @@ class VolumeTemplate {
       return p.cast<float>() * voxelSize;
     }
 
-    void set(const  Eigen::Vector3f& , const value_type& ) {}
+    void set(const  Eigen::Vector3f& , const typename FieldType::VoxelData& ) {}
 
-    value_type operator[](const Eigen::Vector3f& p) const {
+    typename FieldType::VoxelData operator[](const Eigen::Vector3f& p) const {
       const float inverseVoxelSize = _size/_extent;
       const Eigen::Vector3i scaled_pos = (p * inverseVoxelSize).cast<int>();
       return _map_index->get(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
     }
 
-    value_type get(const Eigen::Vector3f& p, const int scale = 0) const {
+    typename FieldType::VoxelData get(const Eigen::Vector3f& p, const int scale = 0) const {
       const float inverseVoxelSize = _size/_extent;
       const Eigen::Vector4i scaled_pos = (inverseVoxelSize * p.homogeneous()).cast<int>();
         return _map_index->get_fine(scaled_pos.x(),
@@ -83,7 +78,7 @@ class VolumeTemplate {
                                     scale);
     }
 
-    value_type operator[](const Eigen::Vector3i& p) const {
+    typename FieldType::VoxelData operator[](const Eigen::Vector3i& p) const {
       return _map_index->get(p.x(), p.y(), p.z());
     }
 
