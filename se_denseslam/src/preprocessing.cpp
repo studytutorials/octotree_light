@@ -203,14 +203,25 @@ void mm2metersKernel(se::Image<float>& out, const unsigned short* in,
     exit(1);
   }
 
+  assert(inputSize.x()%out.width() == 0 && inputSize.y()%out.height() == 0);
   int ratio = inputSize.x() / out.width();
-  int y;
+  int y_out;
 #pragma omp parallel for \
-  shared(out), private(y)
-  for (y = 0; y < out.height(); y++)
-    for (int x = 0; x < out.width(); x++) {
-      out[x + out.width() * y] = in[x * ratio + inputSize.x() * y * ratio]
-        / 1000.0f;
+    shared(out), private(y_out)
+  for (y_out = 0; y_out < out.height(); y_out++)
+    for (int x_out = 0; x_out < out.width(); x_out++) {
+      size_t n_valid = 0;
+      float pix_mean = 0;
+      for (size_t b = 0; b < ratio; b++)
+        for (size_t a = 0; a < ratio; a++) {
+          int y_in = y_out * ratio + b;
+          int x_in = x_out * ratio + a;
+          if (in[x_in + inputSize.x() * y_in] <= 0)
+            continue;
+          pix_mean += in[x_in + inputSize.x() * y_in];
+          n_valid++;
+        }
+      out[x_out + out.width() * y_out] = (n_valid > 0) ? pix_mean / (n_valid * 1000.0f) : 0;
     }
   TOCK("mm2metersKernel", outSize.x * outSize.y);
 }
