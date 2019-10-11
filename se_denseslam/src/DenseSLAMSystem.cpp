@@ -44,7 +44,6 @@
 #include <se/functors/for_each.hpp>
 #include <se/timings.h>
 #include <se/perfstats.h>
-#include "tracking.cpp"
 #include "rendering.cpp"
 #include "bfusion/mapping_impl.hpp"
 #include "kfusion/mapping_impl.hpp"
