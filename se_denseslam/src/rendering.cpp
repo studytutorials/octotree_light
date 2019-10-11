@@ -45,8 +45,9 @@
 #include <se/ray_iterator.hpp>
 
 /* Raycasting implementations */
-#include "bfusion/rendering_impl.hpp"
-#include "kfusion/rendering_impl.hpp"
+#include "se/bfusion/rendering_impl.hpp"
+#include "se/kfusion/rendering_impl.hpp"
+#include "se/multires/rendering_impl.hpp"
 
 
 
