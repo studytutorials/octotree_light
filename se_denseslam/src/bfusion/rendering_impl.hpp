@@ -29,6 +29,9 @@
  *
  * */
 
+#ifndef __BFUSION_RENDERING_IMPL_HPP
+#define __BFUSION_RENDERING_IMPL_HPP
+
 #include <se/utils/math_utils.h>
 #include <type_traits>
 
@@ -72,4 +75,6 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
   }
   return Eigen::Vector4f::Constant(0);
 }
+
+#endif
 

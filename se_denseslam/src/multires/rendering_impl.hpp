@@ -28,6 +28,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
+
+#ifndef __MULTIRESSDF_RENDERING_IMPL_HPP
+#define __MULTIRESSDF_RENDERING_IMPL_HPP
+
 #include <se/utils/math_utils.h>
 #include <type_traits>
 #include <se/volume_traits.hpp>
@@ -80,4 +84,6 @@ inline Eigen::Vector4f raycast(const Volume<MultiresSDF>&     volume,
   }
   return Eigen::Vector4f::Constant(-1.f);
 }
+
+#endif
 

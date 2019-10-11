@@ -28,6 +28,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
+#ifndef __KFUSION_RENDERING_IMPL_HPP
+#define __KFUSION_RENDERING_IMPL_HPP
+
 #include <se/utils/math_utils.h>
 #include <type_traits>
 
@@ -76,4 +79,6 @@ inline Eigen::Vector4f raycast(const Volume<SDF>&     volume,
   }
   return Eigen::Vector4f::Constant(-1.f);
 }
+
+#endif
 
