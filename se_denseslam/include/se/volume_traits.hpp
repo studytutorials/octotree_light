@@ -90,4 +90,11 @@ struct MultiresSDF {
   static inline VoxelData initValue() { return {1.f, 1.f, 0, 0}; }
 };
 
+/*
+ * Use the SE_FIELD_TYPE macro to define the DenseSLAMSystem instance. Its
+ * value should be the name of one of the structs defined above.
+ */
+typedef SE_FIELD_TYPE FieldType;
+
 #endif
+
