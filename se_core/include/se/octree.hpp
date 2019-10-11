@@ -69,8 +69,10 @@ class ray_iterator;
 template <typename T>
 class node_iterator;
 
-/*! \brief The main octree class. It's non-leaf nodes are of type Node and its
- * leaf nodes of type VoxelBlock.
+/*! \brief The main octree class.
+ * Its non-leaf nodes are of type Node and its leaf nodes of type VoxelBlock.
+ * For a minimal working example of the kind of struct needed as a template
+ * parameter see ExampleVoxelT.
  */
 template <typename T>
 class Octree
