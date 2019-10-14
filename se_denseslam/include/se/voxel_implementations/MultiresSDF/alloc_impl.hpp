@@ -34,7 +34,6 @@
 #include <se/node.hpp>
 #include <se/octree.hpp>
 #include <se/utils/morton_utils.hpp>
-#include <se/volume_traits.hpp>
 
 /*
  * \brief Given a depth map and camera matrix it computes the list of

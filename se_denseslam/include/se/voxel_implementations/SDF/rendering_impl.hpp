@@ -34,7 +34,7 @@
 #include <se/utils/math_utils.h>
 #include <type_traits>
 #include <se/continuous/volume_template.hpp>
-#include <se/volume_traits.hpp>
+#include "SDF.hpp"
 
 
 template <typename T>

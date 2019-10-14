@@ -47,7 +47,7 @@
 #include <se/config.h>
 #include <se/octree.hpp>
 #include <se/image/image.hpp>
-#include "volume_traits.hpp"
+#include "voxel_implementations/voxel_implementations.hpp"
 #include "continuous/volume_template.hpp"
 #include "preprocessing.hpp"
 #include "tracking.hpp"

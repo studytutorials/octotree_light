@@ -3,7 +3,6 @@
 #include <se/algorithms/balancing.hpp>
 #include <se/functors/axis_aligned_functor.hpp>
 #include <se/algorithms/filter.hpp>
-#include <se/volume_traits.hpp>
 #include <se/io/vtk-io.h>
 #include <se/io/ply_io.hpp>
 #include <sophus/se3.hpp>
@@ -15,6 +14,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include <stdio.h>
+#include "../../include/se/voxel_implementations/MultiresSDF/MultiresSDF.hpp"
 
 // Truncation distance and maximum weight
 #define MAX_DIST 2.f

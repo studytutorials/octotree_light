@@ -1,11 +1,11 @@
 #include <se/octant_ops.hpp>
 #include <se/octree.hpp>
-#include <se/volume_traits.hpp>
 #include <se/algorithms/balancing.hpp>
 #include <se/functors/axis_aligned_functor.hpp>
 #include <se/functors/for_each.hpp>
 #include <se/io/vtk-io.h>
 #include <se/io/ply_io.hpp>
+#include "../../include/se/voxel_implementations/MultiresSDF/MultiresSDF.hpp"
 #include "../../include/se/voxel_implementations/MultiresSDF/mapping_impl.hpp"
 #include <random>
 #include <functional>

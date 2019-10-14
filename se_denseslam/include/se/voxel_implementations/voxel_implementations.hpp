@@ -26,73 +26,19 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef VOLUME_H
-#define VOLUME_H
+#ifndef __VOXEL_IMPLEMENTATIONS
+#define __VOXEL_IMPLEMENTATIONS
+
+#include "SDF/SDF.hpp"
+#include "OFusion/OFusion.hpp"
+#include "MultiresSDF/MultiresSDF.hpp"
 
 
-
-/******************************************************************************
- *
- * KFusion Truncated Signed Distance Function voxel traits
- *
-****************************************************************************/
-
-struct SDF {
-  typedef struct {
-    float x;
-    float y;
-  } VoxelData;
-
-  static inline VoxelData empty()     { return {1.f, -1.f}; }
-  static inline VoxelData initValue() { return {1.f,  0.f}; }
-};
-
-/******************************************************************************
- *
- * Bayesian Fusion voxel traits and algorithm specificic defines
- *
-****************************************************************************/
-
-struct OFusion {
-  typedef struct {
-    float  x;
-    double y;
-  } VoxelData;
-
-  static inline VoxelData empty()     { return {0.f, 0.f}; }
-  static inline VoxelData initValue() { return {0.f, 0.f}; }
-};
-
-// Windowing parameters
-#define DELTA_T   1.f
-#define CAPITAL_T 4.f
-
-#define INTERP_THRESH 0.05f
-#define SURF_BOUNDARY 0.f
-#define TOP_CLAMP     1000.f
-#define BOTTOM_CLAMP  (-TOP_CLAMP)
-
-/******************************************************************************
- *
- * Multires TSDF voxel traits and algorithm specificic defines
- *
-****************************************************************************/
-
-struct MultiresSDF {
-  typedef struct {
-    float x;
-    float x_last;
-    int   y;
-    int   delta_y;
-  } VoxelData;
-
-  static inline VoxelData empty()     { return {1.f, 1.f, 0, 0}; }
-  static inline VoxelData initValue() { return {1.f, 1.f, 0, 0}; }
-};
 
 /*
  * Use the SE_FIELD_TYPE macro to define the DenseSLAMSystem instance. Its
- * value should be the name of one of the structs defined above.
+ * value should be the name of one of the structs defined in the included
+ * headers above.
  */
 typedef SE_FIELD_TYPE FieldType;
 

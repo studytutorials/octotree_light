@@ -33,9 +33,9 @@
 #include <se/node.hpp>
 #include <se/octree.hpp>
 #include <se/image/image.hpp>
-#include <se/volume_traits.hpp>
 #include <se/algorithms/filter.hpp>
 #include <se/functors/for_each.hpp>
+#include "MultiresSDF.hpp"
 
 namespace se {
   namespace multires {
