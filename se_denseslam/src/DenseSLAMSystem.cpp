@@ -44,12 +44,12 @@
 #include <se/functors/for_each.hpp>
 #include <se/timings.h>
 #include <se/perfstats.h>
-#include "se/bfusion/mapping_impl.hpp"
-#include "se/kfusion/mapping_impl.hpp"
-#include "se/multires/mapping_impl.hpp"
-#include "se/bfusion/alloc_impl.hpp"
-#include "se/kfusion/alloc_impl.hpp"
-#include "se/multires/alloc_impl.hpp"
+#include "se/voxel_implementations/OFusion/mapping_impl.hpp"
+#include "se/voxel_implementations/SDF/mapping_impl.hpp"
+#include "se/voxel_implementations/MultiresSDF/mapping_impl.hpp"
+#include "se/voxel_implementations/OFusion/alloc_impl.hpp"
+#include "se/voxel_implementations/SDF/alloc_impl.hpp"
+#include "se/voxel_implementations/MultiresSDF/alloc_impl.hpp"
 #include "se/rendering.hpp"
 
 

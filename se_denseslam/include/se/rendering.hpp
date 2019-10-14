@@ -48,9 +48,9 @@
 #include <se/ray_iterator.hpp>
 
 /* Raycasting implementations */
-#include "se/bfusion/rendering_impl.hpp"
-#include "se/kfusion/rendering_impl.hpp"
-#include "se/multires/rendering_impl.hpp"
+#include "se/voxel_implementations/OFusion/rendering_impl.hpp"
+#include "se/voxel_implementations/SDF/rendering_impl.hpp"
+#include "se/voxel_implementations/MultiresSDF/rendering_impl.hpp"
 
 
 
