@@ -115,9 +115,8 @@ void raycastKernel(const Volume<T>&            volume,
         if (surface_normal.norm() == 0.f) {
           normal[pos.x() + pos.y() * normal.width()] = Eigen::Vector3f(INVALID, 0.f, 0.f);
         } else {
-          // Invert normals if SDF
-          normal[pos.x() + pos.y() * normal.width()] =
-              (std::is_same<T, SDF>::value || std::is_same<T, MultiresSDF>::value)
+          // Invert normals for TSDF representations.
+          normal[pos.x() + pos.y() * normal.width()] = T::invert_normals
               ? (-1.f * surface_normal).normalized()
               : surface_normal.normalized();
         }
@@ -184,10 +183,8 @@ void renderVolumeKernel(const Volume<T>&                  volume,
           test = hit.head<3>();
           surface_normal = volume.grad(test, [](const auto& val){ return val.x; });
 
-          // Invert normals if SDF
-          surface_normal = (std::is_same<T, SDF>::value || std::is_same<T, MultiresSDF>::value)
-              ? -1.f * surface_normal
-              : surface_normal;
+          // Invert normals for TSDF representations.
+          surface_normal = T::invert_normals ? -1.f * surface_normal : surface_normal;
         } else {
           surface_normal = Eigen::Vector3f(INVALID, 0.f, 0.f);
         }

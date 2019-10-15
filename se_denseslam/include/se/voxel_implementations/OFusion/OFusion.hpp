@@ -47,6 +47,9 @@ struct OFusion {
 
 
 
+  /** No need to invert the normals when rendering an occupancy map. */
+  static constexpr bool invert_normals = false;
+
   /** The value of the time constant tau in equation (10) from \cite
    * VespaRAL18.
    */

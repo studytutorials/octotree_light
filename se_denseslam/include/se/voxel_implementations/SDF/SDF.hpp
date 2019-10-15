@@ -44,6 +44,11 @@ struct SDF {
     static inline VoxelData empty()     { return {1.f, -1.f}; }
     static inline VoxelData initValue() { return {1.f,  0.f}; }
   } VoxelType;
+
+
+
+  /** The normals must be inverted when rendering a TSDF map. */
+  static constexpr bool invert_normals = true;
 };
 
 #endif

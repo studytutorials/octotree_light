@@ -48,6 +48,11 @@ struct MultiresSDF {
     static inline VoxelData empty()     { return {1.f, 1.f, 0, 0}; }
     static inline VoxelData initValue() { return {1.f, 1.f, 0, 0}; }
   } VoxelType;
+
+
+
+  /** The normals must be inverted when rendering a TSDF map. */
+  static constexpr bool invert_normals = true;
 };
 
 #endif
