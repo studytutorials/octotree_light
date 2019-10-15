@@ -44,16 +44,29 @@ struct OFusion {
     static inline VoxelData empty()     { return {0.f, 0.f}; }
     static inline VoxelData initValue() { return {0.f, 0.f}; }
   } VoxelType;
+
+
+
+  /** The value of the time constant tau in equation (10) from \cite
+   * VespaRAL18.
+   */
+  static constexpr float tau = 4.f;
+
+  /** Stored occupancy probabilities in log-odds are clamped to never be greater
+   * than this value.
+   */
+  static constexpr float max_occupancy =  1000.f;
+
+  /** Stored occupancy probabilities in log-odds are clamped to never be lower
+   * than this value.
+   */
+  static constexpr float min_occupancy = -1000.f;
+
+  /** The surface is considered to be where the log-odds occupancy probability
+   * crosses this value.
+   */
+  static constexpr float surface_boundary = 0.f;
 };
-
-// Windowing parameters
-#define DELTA_T   1.f
-#define CAPITAL_T 4.f
-
-#define INTERP_THRESH 0.05f
-#define SURF_BOUNDARY 0.f
-#define TOP_CLAMP     1000.f
-#define BOTTOM_CLAMP  (-TOP_CLAMP)
 
 #endif
 

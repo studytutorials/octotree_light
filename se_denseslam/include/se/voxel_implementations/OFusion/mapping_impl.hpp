@@ -37,6 +37,7 @@
 #include <se/constant_parameters.h>
 #include <se/image/image.hpp>
 #include "bspline_lookup.cc"
+#include "OFusion.hpp"
 
 /**
  * Perform bilinear interpolation on a depth image. See
@@ -188,8 +189,9 @@ struct bfusion_update {
 
     // Update the occupancy probability
     const double delta_t = timestamp - data.y;
-    data.x = applyWindow(data.x, SURF_BOUNDARY, delta_t, CAPITAL_T);
-    data.x = se::math::clamp(updateLogs(data.x, sample), BOTTOM_CLAMP, TOP_CLAMP);
+    data.x = applyWindow(data.x, OFusion::surface_boundary, delta_t, OFusion::tau);
+    data.x = se::math::clamp(updateLogs(data.x, sample),
+        OFusion::min_occupancy, OFusion::max_occupancy);
     data.y = timestamp;
 
     handler.set(data);

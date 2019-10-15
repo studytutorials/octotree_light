@@ -61,20 +61,20 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
     int scale = 0;
 
     // if we are not already in it
-    if (f_t <= SURF_BOUNDARY) {
+    if (f_t <= OFusion::surface_boundary) {
       for (; t < tfar; t += stepsize) {
         const Eigen::Vector3f pos =  origin + direction * t;
         OFusion::VoxelType::VoxelData data = volume.get(pos);
         if (data.x > -100.f && data.y > 0.f) {
           f_tt = volume.interp(origin + direction * t, select_occupancy).first;
         }
-        if (f_tt > SURF_BOUNDARY)
+        if (f_tt > OFusion::surface_boundary)
           break;
         f_t = f_tt;
       }
-      if (f_tt > SURF_BOUNDARY) {
+      if (f_tt > OFusion::surface_boundary) {
         // got it, calculate accurate intersection
-        t = t - stepsize * (f_tt - SURF_BOUNDARY) / (f_tt - f_t);
+        t = t - stepsize * (f_tt - OFusion::surface_boundary) / (f_tt - f_t);
         Eigen::Vector4f res = (origin + direction * t).homogeneous();
         res.w() = scale;
         return res;
