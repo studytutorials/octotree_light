@@ -75,6 +75,24 @@ struct OFusion {
 
 
 
+  /** Compute the VoxelBlocks and Nodes that need to be allocated given the
+   * camera pose.
+   */
+  template <template <typename> class OctreeT, typename HashType>
+  static size_t buildAllocationList(
+      HashType*                    allocation_list,
+      size_t                       reserved,
+      OctreeT<OFusion::VoxelType>& map_index,
+      const Eigen::Matrix4f&       T_wc,
+      const Eigen::Matrix4f&       K,
+      const float*                 depth_map,
+      const Eigen::Vector2i&       image_size,
+      const unsigned int           volume_size,
+      const float                  volume_extent,
+      const float                  mu);
+
+
+
   /** Cast a ray and return the point where the surface was hit. */
   static inline Eigen::Vector4f raycast(
       const VolumeTemplate<OFusion, se::Octree>& volume,
@@ -89,6 +107,7 @@ struct OFusion {
 
 
 
+#include "se/voxel_implementations/OFusion/alloc_impl.hpp"
 #include "se/voxel_implementations/OFusion/rendering_impl.hpp"
 
 #endif

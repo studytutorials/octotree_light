@@ -47,9 +47,6 @@
 #include "se/voxel_implementations/OFusion/mapping_impl.hpp"
 #include "se/voxel_implementations/SDF/mapping_impl.hpp"
 #include "se/voxel_implementations/MultiresSDF/mapping_impl.hpp"
-#include "se/voxel_implementations/OFusion/alloc_impl.hpp"
-#include "se/voxel_implementations/SDF/alloc_impl.hpp"
-#include "se/voxel_implementations/MultiresSDF/alloc_impl.hpp"
 #include "se/rendering.hpp"
 
 
@@ -231,27 +228,18 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
     const Sophus::SE3f&    Tcw = Sophus::SE3f(pose_).inverse();
     const Eigen::Matrix4f& K   = getCameraMatrix(k);
-    const Eigen::Vector2i  framesize(computation_size_.x(), computation_size_.y());
-    unsigned int allocated = 0;
-    if (std::is_same<VoxelImpl, SDF>::value) {
-      allocated  = buildAllocationList(
-          allocation_list_.data(), allocation_list_.capacity(),
-          *volume_._map_index, pose_, K,
-          float_depth_.data(), computation_size_,
-          volume_._size, volume_._extent, mu);
-    } else if(std::is_same<VoxelImpl, OFusion>::value) {
-      allocated = buildOctantList(
-          allocation_list_.data(), allocation_list_.capacity(),
-          *volume_._map_index, pose_, K,
-          float_depth_.data(), computation_size_,
-          volume_._size, volume_._extent, mu);
-    } else if(std::is_same<VoxelImpl, MultiresSDF>::value) {
-      allocated  = buildAllocationList(
-          allocation_list_.data(), allocation_list_.capacity(),
-          *volume_._map_index, pose_, K,
-          float_depth_.data(), computation_size_,
-          volume_._size, volume_._extent, mu);
-    }
+    const Eigen::Vector2i framesize(computation_size_.x(), computation_size_.y());
+    const size_t allocated = VoxelImpl::buildAllocationList(
+        allocation_list_.data(),
+        allocation_list_.capacity(),
+        *volume_._map_index,
+        pose_,
+        getCameraMatrix(k),
+        float_depth_.data(),
+        computation_size_,
+        volume_._size,
+        volume_._extent,
+        mu);
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
 

@@ -29,8 +29,8 @@
  *
  * */
 
-#ifndef __SDF_ALLOC_IMPL_HPP
-#define __SDF_ALLOC_IMPL_HPP
+#ifndef __MULTIRESSDF_ALLOC_IMPL_HPP
+#define __MULTIRESSDF_ALLOC_IMPL_HPP
 
 #include <se/utils/math_utils.h>
 #include <se/node.hpp>
@@ -51,26 +51,28 @@
  * \param K camera intrinsics matrix
  * \param depth_map input depth map
  * \param image_size dimensions of depth_map
- * \param size discrete extent of the map, in number of voxels
+ * \param volume_size discrete extent of the map, in number of voxels
  * \param voxelSize spacing between two consegutive voxels, in metric space
  * \param band maximum extent of the allocating region, per ray
  */
-template <typename HashType>
-size_t buildAllocationList(HashType*                allocation_list,
-                           size_t                   reserved,
-                           se::Octree<MultiresSDF>& map_index,
-                           const Eigen::Matrix4f&   T_wc,
-                           const Eigen::Matrix4f&   K,
-                           const float*             depth_map,
-                           const Eigen::Vector2i&   image_size,
-                           const unsigned int       volume_size,
-                           const float              volume_extent,
-                           const float              mu) {
+template <template <typename> class OctreeT, typename HashType>
+size_t MultiresSDF::buildAllocationList(
+    HashType*                        allocation_list,
+    size_t                           reserved,
+    OctreeT<MultiresSDF::VoxelType>& map_index,
+    const Eigen::Matrix4f&           T_wc,
+    const Eigen::Matrix4f&           K,
+    const float*                     depth_map,
+    const Eigen::Vector2i&           image_size,
+    const unsigned int               volume_size,
+    const float                      volume_extent,
+    const float                      mu) {
 
   const float voxel_size =  volume_extent / volume_size;
   const float band = 2.f * mu;
   const float inverse_voxel_size = 1.f / voxel_size;
-  const unsigned block_scale = log2(size) - se::math::log2_const(se::VoxelBlock<MultiresSDF>::side);
+  const unsigned block_scale = log2(volume_size)
+      - se::math::log2_const(se::VoxelBlock<MultiresSDF::VoxelType>::side);
 
   Eigen::Matrix4f invK = K.inverse();
   const Eigen::Matrix4f kPose = T_wc * invK;
@@ -102,15 +104,15 @@ size_t buildAllocationList(HashType*                allocation_list,
       Eigen::Vector3f voxelPos = origin;
       for (int i = 0; i < numSteps; i++) {
         Eigen::Vector3f voxelScaled = (voxelPos * inverse_voxel_size).array().floor();
-        if ((voxelScaled.x() < size)
-            && (voxelScaled.y() < size)
-            && (voxelScaled.z() < size)
+        if ((voxelScaled.x() < volume_size)
+            && (voxelScaled.y() < volume_size)
+            && (voxelScaled.z() < volume_size)
             && (voxelScaled.x() >= 0)
             && (voxelScaled.y() >= 0)
             && (voxelScaled.z() >= 0)) {
           voxel = voxelScaled.cast<int>();
-          se::VoxelBlock<MultiresSDF> * n = map_index.fetch(voxel.x(),
-              voxel.y(), voxel.z());
+          se::VoxelBlock<MultiresSDF::VoxelType> * n
+              = map_index.fetch(voxel.x(), voxel.y(), voxel.z());
           if (!n) {
             HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
                 block_scale);

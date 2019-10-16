@@ -32,14 +32,17 @@
 
 #ifndef __OFUSION_ALLOC_IMPL_HPP
 #define __OFUSION_ALLOC_IMPL_HPP
+
 #include <se/utils/math_utils.h>
+#include <se/node.hpp>
 
 
 
 /* Compute step size based on distance travelled along the ray */
-static inline float compute_stepsize(const float dist_travelled,
-                                     const float band,
-                                     const float voxel_size) {
+static inline float ofusion_compute_stepsize(const float dist_travelled,
+                                             const float band,
+                                             const float voxel_size) {
+
   float new_stepsize;
   float half = band * 0.5f;
   if (dist_travelled < band) {
@@ -52,35 +55,39 @@ static inline float compute_stepsize(const float dist_travelled,
   return new_stepsize;
 }
 
+
+
 /* Compute octree level given a step size */
-static inline int step_to_depth(const float step,
-                                const int max_depth,
-                                const float voxel_size) {
+static inline int ofusion_step_to_depth(const float step,
+                                        const int   max_depth,
+                                        const float voxel_size) {
+
   return static_cast<int>(floorf(std::log2f(voxel_size/step)) + max_depth);
 }
 
-template <typename FieldType,
-          template <typename> class OctreeT,
-          typename HashType>
-size_t buildOctantList(HashType*              allocation_list,
-                       size_t                 reserved,
-                       OctreeT<FieldType>&    map_index,
-                       const Eigen::Matrix4f& T_wc,
-                       const Eigen::Matrix4f& K,
-                       const float*           depth_map,
-                       const Eigen::Vector2i& image_size,
-                       const unsigned int     volume_size,
-                       const float            volume_extent,
-                       const float            mu) {
+
+
+template <template <typename> class OctreeT, typename HashType>
+size_t OFusion::buildAllocationList(
+    HashType*                    allocation_list,
+    size_t                       reserved,
+    OctreeT<OFusion::VoxelType>& map_index,
+    const Eigen::Matrix4f&       T_wc,
+    const Eigen::Matrix4f&       K,
+    const float*                 depth_map,
+    const Eigen::Vector2i&       image_size,
+    const unsigned int           volume_size,
+    const float                  volume_extent,
+    const float                  mu) {
 
   const float voxel_size =  volume_extent / volume_size;
-  const float noise_factor = mu;
   const float inverse_voxel_size = 1.f / voxel_size;
   Eigen::Matrix4f inv_K = K.inverse();
   const Eigen::Matrix4f inv_P = T_wc * inv_K;
   const int size = map_index.size();
   const int max_depth = log2(size);
-  const int leaves_depth = max_depth - se::math::log2_const(OctreeT<FieldType>::blockSide);
+  const int leaves_depth = max_depth
+      - se::math::log2_const(OctreeT<OFusion::VoxelType>::blockSide);
 
 #ifdef _OPENMP
   std::atomic<unsigned int> voxel_count;
@@ -104,7 +111,7 @@ size_t buildOctantList(HashType*              allocation_list,
             (y + 0.5f) * depth, depth).homogeneous()).head<3>();
 
       Eigen::Vector3f direction = (camera_pos - world_vertex).normalized();
-      const float sigma = se::math::clamp(noise_factor * se::math::sq(depth), 2 * voxel_size, 0.05f);
+      const float sigma = se::math::clamp(mu * se::math::sq(depth), 2 * voxel_size, 0.05f);
       const float band = 2 * sigma;
       const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
       const float dist = (camera_pos - origin).norm();
@@ -132,12 +139,12 @@ size_t buildOctantList(HashType*              allocation_list,
               allocation_list[idx] = k;
             }
           } else if (tree_depth >= leaves_depth) {
-            static_cast<se::VoxelBlock<FieldType>*>(node_ptr)->active(true);
+            static_cast<se::VoxelBlock<OFusion::VoxelType>*>(node_ptr)->active(true);
           }
         }
 
-        stepsize = compute_stepsize(travelled, band, voxel_size);
-        tree_depth = step_to_depth(stepsize, max_depth, voxel_size);
+        stepsize = ofusion_compute_stepsize(travelled, band, voxel_size);
+        tree_depth = ofusion_step_to_depth(stepsize, max_depth, voxel_size);
 
         step = direction*stepsize;
         voxel_pos +=step;

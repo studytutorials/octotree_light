@@ -54,24 +54,24 @@
  * \param voxelSize spacing between two consegutive voxels, in metric space
  * \param band maximum extent of the allocating region, per ray
  */
-template <typename FieldType,
-          template <typename> class OctreeT,
-          typename HashType>
-size_t buildAllocationList(HashType*              allocation_list,
-                           size_t                 reserved,
-                           OctreeT<FieldType>&    map_index,
-                           const Eigen::Matrix4f& T_wc,
-                           const Eigen::Matrix4f& K,
-                           const float*           depth_map,
-                           const Eigen::Vector2i& image_size,
-                           const unsigned int     volume_size,
-                           const float            volume_extent,
-                           const float            mu) {
+template <template <typename> class OctreeT, typename HashType>
+size_t SDF::buildAllocationList(
+    HashType*                allocation_list,
+    size_t                   reserved,
+    OctreeT<SDF::VoxelType>& map_index,
+    const Eigen::Matrix4f&   T_wc,
+    const Eigen::Matrix4f&   K,
+    const float*             depth_map,
+    const Eigen::Vector2i&   image_size,
+    const unsigned int       volume_size,
+    const float              volume_extent,
+    const float              mu) {
 
   const float voxel_size =  volume_extent / volume_size;
   const float band = 2 * mu;
   const float inverseVoxelSize = 1 / voxel_size;
-  const unsigned block_scale = log2(volume_size) - se::math::log2_const(se::VoxelBlock<FieldType>::side);
+  const unsigned block_scale = log2(volume_size)
+      - se::math::log2_const(se::VoxelBlock<SDF::VoxelType>::side);
 
   Eigen::Matrix4f invK = K.inverse();
   const Eigen::Matrix4f kPose = T_wc * invK;
@@ -110,7 +110,7 @@ size_t buildAllocationList(HashType*              allocation_list,
             && (voxelScaled.y() >= 0)
             && (voxelScaled.z() >= 0)) {
           voxel = voxelScaled.cast<int>();
-          se::VoxelBlock<FieldType> * n = map_index.fetch(voxel.x(),
+          se::VoxelBlock<SDF::VoxelType> * n = map_index.fetch(voxel.x(),
               voxel.y(), voxel.z());
           if (!n) {
             HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
