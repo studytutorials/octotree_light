@@ -29,8 +29,8 @@
  *
  * */
 
-#ifndef BFUSION_MAPPING_HPP
-#define BFUSION_MAPPING_HPP
+#ifndef __OFUSION_MAPPING_IMPL_HPP
+#define __OFUSION_MAPPING_IMPL_HPP
 
 #include <se/node.hpp>
 #include <se/functors/projective_functor.hpp>
@@ -60,6 +60,8 @@ static inline float bspline_memoized(float t) {
   return value;
 }
 
+
+
 /**
  * Compute the occupancy probability along the ray from the camera. This
  * implements equation (6) from \cite VespaRAL18.
@@ -75,6 +77,8 @@ static inline float H(const float val, const float) {
   return Q_1 - Q_2 * 0.5f;
 }
 
+
+
 /**
  * Perform a log-odds update of the occupancy probability. This implements
  * equations (8) and (9) from \cite VespaRAL18.
@@ -82,6 +86,8 @@ static inline float H(const float val, const float) {
 static inline float updateLogs(const float prior, const float sample) {
   return (prior + log2(sample / (1.f - sample)));
 }
+
+
 
 /**
  * Weight the occupancy by the time since the last update, acting as a
@@ -96,24 +102,30 @@ static inline float applyWindow(const float occupancy,
   return occupancy * fraction;
 }
 
+
+
 /**
  * Struct to hold the data and perform the update of the map from a single
  * depth frame.
  */
 struct bfusion_update {
   const float* depth;
-  Eigen::Vector2i depthSize;
-  float noiseFactor;
+  Eigen::Vector2i depth_size;
+  float mu;
   float timestamp;
-  float voxelsize;
+  float voxel_size;
 
-  bfusion_update(const float*           d,
-                 const Eigen::Vector2i& framesize,
-                 float                  n,
-                 float                  t,
-                 float                  vs)
-    : depth(d), depthSize(framesize), noiseFactor(n),
-  timestamp(t), voxelsize(vs) {};
+
+
+  bfusion_update(const float*           depth,
+                 const Eigen::Vector2i& depth_size,
+                 float                  mu,
+                 float                  timestamp,
+                 float                  voxel_size)
+    : depth(depth), depth_size(depth_size), mu(mu),
+      timestamp(timestamp), voxel_size(voxel_size) {};
+
+
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
@@ -122,15 +134,15 @@ struct bfusion_update {
                   const Eigen::Vector2f& pixel) {
 
     const Eigen::Vector2i px = pixel.cast <int> ();
-    const float depthSample = depth[px.x() + depthSize.x()*px.y()];
+    const float depthSample = depth[px.x() + depth_size.x()*px.y()];
     // Return on invalid depth measurement
     if (depthSample <=  0)
       return;
 
     // Compute the occupancy probability for the current measurement.
     const float diff = (pos.z() - depthSample);
-    float sigma = se::math::clamp(noiseFactor * se::math::sq(pos.z()),
-        2*voxelsize, 0.05f);
+    float sigma = se::math::clamp(mu * se::math::sq(pos.z()),
+        2*voxel_size, 0.05f);
     float sample = H(diff/sigma, pos.z());
     if (sample == 0.5f)
       return;

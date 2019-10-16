@@ -65,6 +65,11 @@ struct SDF {
    */
   static constexpr bool invert_normals = true;
 
+  /**
+   * The maximum value of the weight factor SDF::VoxelType::VoxelData::y.
+   */
+  static constexpr int max_weight = 100;
+
 
 
   /**

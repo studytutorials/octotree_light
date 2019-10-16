@@ -215,20 +215,22 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned in
   return doRaycast;
 }
 
-bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integration_rate,
-    float mu, unsigned int frame) {
+bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
+                                  unsigned int           integration_rate,
+                                  float                  mu,
+                                  unsigned int           frame) {
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
-    float voxelsize =  volume_._extent/volume_._size;
-    int num_vox_per_pix = volume_._extent/((se::VoxelBlock<VoxelImpl::VoxelType>::side)*voxelsize);
-    size_t total = num_vox_per_pix * computation_size_.x() *
-      computation_size_.y();
+    const float voxelsize =  volume_._extent/volume_._size;
+    const int num_vox_per_pix = volume_._extent
+        / ((se::VoxelBlock<VoxelImpl::VoxelType>::side)*voxelsize);
+    const size_t total = num_vox_per_pix
+        * computation_size_.x() * computation_size_.y();
     allocation_list_.reserve(total);
 
-    const Sophus::SE3f&    Tcw = Sophus::SE3f(pose_).inverse();
-    const Eigen::Matrix4f& K   = getCameraMatrix(k);
-    const Eigen::Vector2i framesize(computation_size_.x(), computation_size_.y());
+    const Sophus::SE3f& T_cw = Sophus::SE3f(pose_).inverse();
+    const Eigen::Matrix4f& K = getCameraMatrix(k);
     const size_t allocated = VoxelImpl::buildAllocationList(
         allocation_list_.data(),
         allocation_list_.capacity(),
@@ -243,39 +245,46 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
 
-    std::string version;
-    if(std::is_same<VoxelImpl, SDF>::value) {
-      struct sdf_update funct(float_depth_.data(), framesize, mu, maxweight);
-      se::functor::projective_map(*volume_._map_index,
-          volume_._map_index->_offset,
-          Tcw,
-          K,
-          framesize,
-          funct);
-      version = "sdf";
-    } else if(std::is_same<VoxelImpl, OFusion>::value) {
+    const float timestamp = (1.f / 30.f) * frame;
+    if (std::is_same<VoxelImpl, SDF>::value) {
+      struct sdf_update funct(
+          float_depth_.data(),
+          computation_size_,
+          mu,
+          timestamp,
+          voxelsize);
 
-      float timestamp = (1.f/30.f)*frame;
-      struct bfusion_update funct(float_depth_.data(),
-          framesize,
-          mu, timestamp, voxelsize);
-
-      se::functor::projective_map(*volume_._map_index,
+      se::functor::projective_map(
+          *volume_._map_index,
           volume_._map_index->_offset,
-          Tcw,
+          T_cw,
           K,
-          Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
+          computation_size_,
           funct);
-      version = "ofusion";
-    } else if(std::is_same<VoxelImpl, MultiresSDF>::value) {
-      se::multires::integrate(*volume_._map_index, Tcw, K, voxelsize,
+    } else if (std::is_same<VoxelImpl, OFusion>::value) {
+      struct bfusion_update funct(
+          float_depth_.data(),
+          computation_size_,
+          mu,
+          timestamp,
+          voxelsize);
+
+      se::functor::projective_map(
+          *volume_._map_index,
+          volume_._map_index->_offset,
+          T_cw,
+          K,
+          computation_size_,
+          funct);
+    } else if (std::is_same<VoxelImpl, MultiresSDF>::value) {
+      se::multires::integrate(*volume_._map_index, T_cw, K, voxelsize,
           volume_._map_index->_offset, float_depth_, mu, maxweight, frame);
-      version = "multires";
     }
+
+    return true;
   } else {
     return false;
   }
-  return true;
 }
 
 void DenseSLAMSystem::dump_volume(std::string ) {

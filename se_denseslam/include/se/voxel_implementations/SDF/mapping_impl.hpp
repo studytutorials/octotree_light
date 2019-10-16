@@ -28,21 +28,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
-#ifndef KFUSION_MAPPING_HPP
-#define KFUSION_MAPPING_HPP
+
+#ifndef _SDF_MAPPING_IMPL_HPP
+#define _SDF_MAPPING_IMPL_HPP
+
 #include <se/node.hpp>
+#include "SDF.hpp"
+
+
 
 struct sdf_update {
   const float* depth;
-  Eigen::Vector2i depthSize;
+  Eigen::Vector2i depth_size;
   float mu;
-  int maxweight;
 
-  sdf_update(const float*           d,
-             const Eigen::Vector2i& framesize,
-             float                  m,
-             int                    mw)
-    : depth(d), depthSize(framesize), mu(m), maxweight(mw) {};
+
+
+  sdf_update(const float*           depth,
+             const Eigen::Vector2i& depth_size,
+             float                  mu,
+             float,
+             float)
+    : depth(depth), depth_size(depth_size), mu(mu) {};
+
+
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
@@ -51,7 +60,7 @@ struct sdf_update {
                   const Eigen::Vector2f& pixel) {
 
     const Eigen::Vector2i px = pixel.cast<int>();
-    const float depthSample = depth[px.x() + depthSize.x()*px.y()];
+    const float depthSample = depth[px.x() + depth_size.x()*px.y()];
     // Return on invalid depth measurement
     if (depthSample <=  0)
       return;
@@ -66,7 +75,7 @@ struct sdf_update {
           (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f),
           -1.f,
           1.f);
-      data.y = fminf(data.y + 1, maxweight);
+      data.y = fminf(data.y + 1, SDF::max_weight);
       handler.set(data);
     }
   }
