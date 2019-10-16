@@ -28,28 +28,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
-#ifndef __KFUSION_RENDERING_IMPL_HPP
-#define __KFUSION_RENDERING_IMPL_HPP
+
+#ifndef __SDF_RENDERING_IMPL_HPP
+#define __SDF_RENDERING_IMPL_HPP
 
 #include <se/utils/math_utils.h>
 #include <type_traits>
-#include <se/continuous/volume_template.hpp>
-#include "SDF.hpp"
-
-
-template <typename T>
-using Volume = VolumeTemplate<T, se::Octree>;
 
 
 
-inline Eigen::Vector4f raycast(const Volume<SDF>&     volume,
-                               const Eigen::Vector3f& origin,
-                               const Eigen::Vector3f& direction,
-                               const float            tnear,
-                               const float            tfar,
-                               const float            mu,
-                               const float            step,
-                               const float            largestep) {
+inline Eigen::Vector4f SDF::raycast(
+    const VolumeTemplate<SDF, se::Octree>& volume,
+    const Eigen::Vector3f&                 origin,
+    const Eigen::Vector3f&                 direction,
+    const float                            tnear,
+    const float                            tfar,
+    const float                            mu,
+    const float                            step,
+    const float                            largestep) {
 
   auto select_depth = [](const auto& val){ return val.x; };
   if (tnear < tfar) {

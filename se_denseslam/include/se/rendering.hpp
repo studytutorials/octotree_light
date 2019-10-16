@@ -49,9 +49,6 @@
 
 /* Raycasting implementations */
 #include "se/voxel_implementations/voxel_implementations.hpp"
-#include "se/voxel_implementations/OFusion/rendering_impl.hpp"
-#include "se/voxel_implementations/SDF/rendering_impl.hpp"
-#include "se/voxel_implementations/MultiresSDF/rendering_impl.hpp"
 
 
 
@@ -104,8 +101,8 @@ void raycastKernel(const Volume<T>&            volume,
       ray.next();
       const float t_min = ray.tcmin(); /* Get distance to the first intersected block */
       const Eigen::Vector4f hit = t_min > 0.f
-          ? raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, large_step)
-          : Eigen::Vector4f::Constant(0.f);
+          ? T::raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, large_step)
+          : Eigen::Vector4f::Zero();
       if (hit.w() >= 0.f) {
         vertex[x + y * vertex.width()] = hit.head<3>();
         Eigen::Vector3f surface_normal = volume.grad(hit.head<3>(),
@@ -177,8 +174,8 @@ void renderVolumeKernel(const Volume<T>&                  volume,
         ray.next();
         const float t_min = ray.tmin(); /* Get distance to the first intersected block */
         hit = t_min > 0.f
-            ? raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, large_step)
-            : Eigen::Vector4f::Constant(0.f);
+            ? T::raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, large_step)
+            : Eigen::Vector4f::Zero();
         if (hit.w() >= 0.f) {
           test = hit.head<3>();
           surface_normal = volume.grad(test, [](const auto& val){ return val.x; });

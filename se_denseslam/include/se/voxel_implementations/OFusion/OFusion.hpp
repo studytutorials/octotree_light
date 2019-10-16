@@ -29,6 +29,9 @@
 #ifndef __OFUSION_HPP
 #define __OFUSION_HPP
 
+#include <se/octree.hpp>
+#include <se/continuous/volume_template.hpp>
+
 
 
 /** Occupancy mapping voxel implementation. */
@@ -69,7 +72,24 @@ struct OFusion {
    * crosses this value.
    */
   static constexpr float surface_boundary = 0.f;
+
+
+
+  /** Cast a ray and return the point where the surface was hit. */
+  static inline Eigen::Vector4f raycast(
+      const VolumeTemplate<OFusion, se::Octree>& volume,
+      const Eigen::Vector3f&                     origin,
+      const Eigen::Vector3f&                     direction,
+      const float                                tnear,
+      const float                                tfar,
+      const float,
+      const float                                step,
+      const float);
 };
+
+
+
+#include "se/voxel_implementations/OFusion/rendering_impl.hpp"
 
 #endif
 

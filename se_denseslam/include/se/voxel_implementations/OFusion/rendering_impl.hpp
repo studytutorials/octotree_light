@@ -29,28 +29,23 @@
  *
  * */
 
-#ifndef __BFUSION_RENDERING_IMPL_HPP
-#define __BFUSION_RENDERING_IMPL_HPP
+#ifndef __OFUSION_RENDERING_IMPL_HPP
+#define __OFUSION_RENDERING_IMPL_HPP
 
 #include <se/utils/math_utils.h>
 #include <type_traits>
-#include <se/continuous/volume_template.hpp>
-#include "OFusion.hpp"
-
-
-template <typename T>
-using Volume = VolumeTemplate<T, se::Octree>;
 
 
 
-inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
-                               const Eigen::Vector3f& origin,
-                               const Eigen::Vector3f& direction,
-                               const float            tnear,
-                               const float            tfar,
-                               const float,
-                               const float            step,
-                               const float) {
+inline Eigen::Vector4f OFusion::raycast(
+    const VolumeTemplate<OFusion, se::Octree>& volume,
+    const Eigen::Vector3f&                     origin,
+    const Eigen::Vector3f&                     direction,
+    const float                                tnear,
+    const float                                tfar,
+    const float,
+    const float                                step,
+    const float) {
 
   auto select_occupancy = [](const auto& val){ return val.x; };
   if (tnear < tfar) {
@@ -81,7 +76,7 @@ inline Eigen::Vector4f raycast(const Volume<OFusion>& volume,
       }
     }
   }
-  return Eigen::Vector4f::Constant(0);
+  return Eigen::Vector4f::Zero();
 }
 
 #endif

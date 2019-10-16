@@ -30,6 +30,9 @@
 #ifndef __MULTIRESSDF_HPP
 #define __MULTIRESSDF_HPP
 
+#include <se/octree.hpp>
+#include <se/continuous/volume_template.hpp>
+
 
 
 /** Kinect Fusion Truncated Signed Distance Function voxel implementation for
@@ -53,7 +56,24 @@ struct MultiresSDF {
 
   /** The normals must be inverted when rendering a TSDF map. */
   static constexpr bool invert_normals = true;
+
+
+
+  /** Cast a ray and return the point where the surface was hit. */
+  static inline Eigen::Vector4f raycast(
+      const VolumeTemplate<MultiresSDF, se::Octree>& volume,
+      const Eigen::Vector3f&                         origin,
+      const Eigen::Vector3f&                         direction,
+      const float                                    tnear,
+      const float                                    tfar,
+      const float                                    mu,
+      const float                                    step,
+      const float                                    largestep);
 };
+
+
+
+#include "se/voxel_implementations/MultiresSDF/rendering_impl.hpp"
 
 #endif
 
