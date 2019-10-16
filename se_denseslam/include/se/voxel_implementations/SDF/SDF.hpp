@@ -34,14 +34,24 @@
 
 
 
-/** Kinect Fusion Truncated Signed Distance Function voxel implementation. */
+/**
+ * Kinect Fusion Truncated Signed Distance Function voxel implementation.
+ *
+ * \note This is an example of a minimal implementation of a VoxelImpl. It may
+ * contain additional constant parameters or static functions.
+ */
 struct SDF {
-  /** The voxel type used as the template parameter for se::Octree. */
+
+  /**
+   * The voxel type used as the template parameter for se::Octree.
+   */
   typedef struct {
-    /** The struct stored in each se::Octree voxel. */
+    /**
+     * The struct stored in each se::Octree voxel.
+     */
     typedef struct {
-      float x; /** The value of the TSDF. */
-      float y; /** The number of measurements integrated in the voxel. */
+      float x; /**< The value of the TSDF. */
+      float y; /**< The number of measurements integrated in the voxel. */
     } VoxelData;
 
     static inline VoxelData empty()     { return {1.f, -1.f}; }
@@ -50,12 +60,15 @@ struct SDF {
 
 
 
-  /** The normals must be inverted when rendering a TSDF map. */
+  /**
+   * The normals must be inverted when rendering a TSDF map.
+   */
   static constexpr bool invert_normals = true;
 
 
 
-  /** Compute the VoxelBlocks and Nodes that need to be allocated given the
+  /**
+   * Compute the VoxelBlocks and Nodes that need to be allocated given the
    * camera pose.
    */
   template <template <typename> class OctreeT, typename HashType>
@@ -73,7 +86,9 @@ struct SDF {
 
 
 
-  /** Cast a ray and return the point where the surface was hit. */
+  /**
+   * Cast a ray and return the point where the surface was hit.
+   */
   static inline Eigen::Vector4f raycast(
       const VolumeTemplate<SDF, se::Octree>& volume,
       const Eigen::Vector3f&                 origin,

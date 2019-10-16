@@ -38,11 +38,16 @@
 /** Kinect Fusion Truncated Signed Distance Function voxel implementation for
  * integration at multipe scales. */
 struct MultiresSDF {
-  /** The voxel type used as the template parameter for se::Octree. */
+
+  /**
+   * The voxel type used as the template parameter for se::Octree.
+   */
   typedef struct {
-    /** The struct stored in each se::Octree voxel. */
+    /**
+     * The struct stored in each se::Octree voxel.
+     */
     typedef struct {
-      float x; /** The value of the TSDF. */
+      float x; /**< The value of the TSDF. */
       float x_last;
       int   y;
       int   delta_y;
@@ -54,12 +59,15 @@ struct MultiresSDF {
 
 
 
-  /** The normals must be inverted when rendering a TSDF map. */
+  /**
+   * The normals must be inverted when rendering a TSDF map.
+   */
   static constexpr bool invert_normals = true;
 
 
 
-  /** Compute the VoxelBlocks and Nodes that need to be allocated given the
+  /**
+   * Compute the VoxelBlocks and Nodes that need to be allocated given the
    * camera pose.
    */
   template <template <typename> class OctreeT, typename HashType>
@@ -77,7 +85,9 @@ struct MultiresSDF {
 
 
 
-  /** Cast a ray and return the point where the surface was hit. */
+  /**
+   * Cast a ray and return the point where the surface was hit.
+   */
   static inline Eigen::Vector4f raycast(
       const VolumeTemplate<MultiresSDF, se::Octree>& volume,
       const Eigen::Vector3f&                         origin,

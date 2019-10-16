@@ -34,14 +34,16 @@
 
 
 
-/** An example voxel type used as the template parameter for se::Octree.
- * This is a minimal working example. There is no point in creating an instance
- * of this struct, it should only be passed as a template parameter to
- * se::Octree.
+/**
+ * An example voxel type used as the template parameter for se::Octree. This is
+ * a minimal working example. There is no point in creating an instance of this
+ * struct, it should only be passed as a template parameter to se::Octree.
  */
 struct ExampleVoxelT {
-  /** The declaration of the struct stored in each octree voxel.
-   * It may contain additional members if desired.
+  /**
+   * The declaration of the struct stored in each octree voxel. It may contain
+   * additional members if desired.
+   *
    * \warning The struct name must always be `VoxelData`.
    */
   typedef struct {
@@ -50,7 +52,9 @@ struct ExampleVoxelT {
 
 
 
-  /** Returns the value stored in newly created voxels.
+  /**
+   * Returns the value stored in newly created voxels.
+   *
    * \warning This function declaration is required and the function name must
    * always be `initValue`.
    */
@@ -58,7 +62,9 @@ struct ExampleVoxelT {
 
 
 
-  /** Returns a value corresponding to invalid voxels.
+  /**
+   * Returns a value corresponding to invalid voxels.
+   *
    * \warning This function declaration is required and the function name must
    * always be `empty`.
    */

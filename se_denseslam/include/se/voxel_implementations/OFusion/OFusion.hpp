@@ -34,14 +34,21 @@
 
 
 
-/** Occupancy mapping voxel implementation. */
+/**
+ * Occupancy mapping voxel implementation.
+ */
 struct OFusion {
-  /** The voxel type used as the template parameter for se::Octree. */
+
+  /**
+   * The voxel type used as the template parameter for se::Octree.
+   */
   typedef struct {
-    /** The struct stored in each se::Octree voxel. */
+    /**
+     * The struct stored in each se::Octree voxel.
+     */
     typedef struct  {
-      float  x; /** The occupancy value in log-odds. */
-      double y; /** The timestamp of the last update. */
+      float  x; /**< The occupancy value in log-odds. */
+      double y; /**< The timestamp of the last update. */
     } VoxelData;
 
     static inline VoxelData empty()     { return {0.f, 0.f}; }
@@ -50,32 +57,39 @@ struct OFusion {
 
 
 
-  /** No need to invert the normals when rendering an occupancy map. */
+  /**
+   * No need to invert the normals when rendering an occupancy map.
+   */
   static constexpr bool invert_normals = false;
 
-  /** The value of the time constant tau in equation (10) from \cite
+  /**
+   * The value of the time constant tau in equation (10) from \cite
    * VespaRAL18.
    */
   static constexpr float tau = 4.f;
 
-  /** Stored occupancy probabilities in log-odds are clamped to never be greater
+  /**
+   * Stored occupancy probabilities in log-odds are clamped to never be greater
    * than this value.
    */
   static constexpr float max_occupancy =  1000.f;
 
-  /** Stored occupancy probabilities in log-odds are clamped to never be lower
+  /**
+   * Stored occupancy probabilities in log-odds are clamped to never be lower
    * than this value.
    */
   static constexpr float min_occupancy = -1000.f;
 
-  /** The surface is considered to be where the log-odds occupancy probability
+  /**
+   * The surface is considered to be where the log-odds occupancy probability
    * crosses this value.
    */
   static constexpr float surface_boundary = 0.f;
 
 
 
-  /** Compute the VoxelBlocks and Nodes that need to be allocated given the
+  /**
+   * Compute the VoxelBlocks and Nodes that need to be allocated given the
    * camera pose.
    */
   template <template <typename> class OctreeT, typename HashType>
@@ -93,7 +107,9 @@ struct OFusion {
 
 
 
-  /** Cast a ray and return the point where the surface was hit. */
+  /**
+   * Cast a ray and return the point where the surface was hit.
+   */
   static inline Eigen::Vector4f raycast(
       const VolumeTemplate<OFusion, se::Octree>& volume,
       const Eigen::Vector3f&                     origin,
