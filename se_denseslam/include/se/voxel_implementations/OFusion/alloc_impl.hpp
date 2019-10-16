@@ -76,14 +76,13 @@ size_t OFusion::buildAllocationList(
     const Eigen::Matrix4f&       K,
     const float*                 depth_map,
     const Eigen::Vector2i&       image_size,
-    const unsigned int           volume_size,
-    const float                  volume_extent,
     const float                  mu) {
 
-  const float voxel_size = volume_extent / volume_size;
+  const float voxel_size = map_index.dim() / map_index.size();
   const float inverse_voxel_size = 1.f / voxel_size;
   const Eigen::Matrix4f inv_K = K.inverse();
   const Eigen::Matrix4f inv_P = T_wc * inv_K;
+  const int volume_size = map_index.size();
   const int max_depth = log2(volume_size);
   const int leaf_depth = max_depth
       - se::math::log2_const(OctreeT<OFusion::VoxelType>::blockSide);

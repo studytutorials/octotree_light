@@ -102,8 +102,6 @@ struct OFusion {
       const Eigen::Matrix4f&       K,
       const float*                 depth_map,
       const Eigen::Vector2i&       image_size,
-      const unsigned int           volume_size,
-      const float                  volume_extent,
       const float                  mu);
 
 

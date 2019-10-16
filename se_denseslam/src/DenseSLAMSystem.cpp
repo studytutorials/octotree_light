@@ -236,8 +236,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
         getCameraMatrix(k),
         float_depth_.data(),
         computation_size_,
-        volume_._size,
-        volume_._extent,
         mu);
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
