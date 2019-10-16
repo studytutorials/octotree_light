@@ -233,38 +233,24 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
     const Eigen::Matrix4f& K   = getCameraMatrix(k);
     const Eigen::Vector2i  framesize(computation_size_.x(), computation_size_.y());
     unsigned int allocated = 0;
-    if(std::is_same<VoxelImpl, SDF>::value) {
-     allocated  = buildAllocationList(allocation_list_.data(),
-                                      allocation_list_.capacity(),
-                                      *volume_._map_index, pose_,
-                                      K,
-                                      float_depth_.data(),
-                                      computation_size_,
-                                      volume_._size,
-                                      voxelsize, 2*mu);
+    if (std::is_same<VoxelImpl, SDF>::value) {
+      allocated  = buildAllocationList(
+          allocation_list_.data(), allocation_list_.capacity(),
+          *volume_._map_index, pose_, K,
+          float_depth_.data(), computation_size_,
+          volume_._size, volume_._extent, mu);
     } else if(std::is_same<VoxelImpl, OFusion>::value) {
-     allocated = buildOctantList(allocation_list_.data(),
-                                 allocation_list_.capacity(),
-                                 *volume_._map_index,
-                                 pose_,
-                                 K,
-                                 float_depth_.data(),
-                                 computation_size_,
-                                 voxelsize,
-                                 compute_stepsize,
-                                 step_to_depth,
-                                 6*mu);
+      allocated = buildOctantList(
+          allocation_list_.data(), allocation_list_.capacity(),
+          *volume_._map_index, pose_, K,
+          float_depth_.data(), computation_size_,
+          volume_._size, volume_._extent, mu);
     } else if(std::is_same<VoxelImpl, MultiresSDF>::value) {
-     allocated  = buildAllocationList(allocation_list_.data(),
-                                      allocation_list_.capacity(),
-                                      *volume_._map_index,
-                                      pose_,
-                                      getCameraMatrix(k),
-                                      float_depth_.data(),
-                                      computation_size_,
-                                      volume_._size,
-                                      voxelsize,
-                                      2*mu);
+      allocated  = buildAllocationList(
+          allocation_list_.data(), allocation_list_.capacity(),
+          *volume_._map_index, pose_, K,
+          float_depth_.data(), computation_size_,
+          volume_._size, volume_._extent, mu);
     }
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);

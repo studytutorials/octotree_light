@@ -29,9 +29,12 @@
  *
  *
  * */
-#ifndef BFUSION_ALLOC_H
-#define BFUSION_ALLOC_H
+
+#ifndef __OFUSION_ALLOC_IMPL_HPP
+#define __OFUSION_ALLOC_IMPL_HPP
 #include <se/utils/math_utils.h>
+
+
 
 /* Compute step size based on distance travelled along the ray */
 static inline float compute_stepsize(const float dist_travelled,
@@ -58,8 +61,7 @@ static inline int step_to_depth(const float step,
 
 template <typename FieldType,
           template <typename> class OctreeT,
-          typename HashType,
-          typename StepF, typename DepthF>
+          typename HashType>
 size_t buildOctantList(HashType*              allocation_list,
                        size_t                 reserved,
                        OctreeT<FieldType>&    map_index,
@@ -67,12 +69,13 @@ size_t buildOctantList(HashType*              allocation_list,
                        const Eigen::Matrix4f& K,
                        const float*           depth_map,
                        const Eigen::Vector2i& image_size,
-                       const float            voxel_size,
-                       StepF                  compute_stepsize,
-                       DepthF                 step_to_depth,
-                       const float            noise_factor) {
+                       const unsigned int     volume_size,
+                       const float            volume_extent,
+                       const float            mu) {
 
-  const float inverse_voxel_size = 1.f/voxel_size;
+  const float voxel_size =  volume_extent / volume_size;
+  const float noise_factor = mu;
+  const float inverse_voxel_size = 1.f / voxel_size;
   Eigen::Matrix4f inv_K = K.inverse();
   const Eigen::Matrix4f inv_P = T_wc * inv_K;
   const int size = map_index.size();
@@ -143,4 +146,6 @@ size_t buildOctantList(HashType*              allocation_list,
   }
   return (size_t) voxel_count >= reserved ? reserved : (size_t) voxel_count;
 }
+
 #endif
+

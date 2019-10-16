@@ -28,46 +28,52 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
-#ifndef SDF_ALLOC_H
-#define SDF_ALLOC_H
+
+#ifndef __SDF_ALLOC_IMPL_HPP
+#define __SDF_ALLOC_IMPL_HPP
+
 #include <se/utils/math_utils.h>
 #include <se/node.hpp>
 #include <se/octree.hpp>
 #include <se/utils/morton_utils.hpp>
 
+
+
 /*
  * \brief Given a depth map and camera matrix it computes the list of
  * voxels intersected but not allocated by the rays around the measurement m in
  * a region comprised between m +/- band.
- * \param allocationList output list of keys corresponding to voxel blocks to
+ * \param allocation_list output list of keys corresponding to voxel blocks to
  * be allocated
- * \param reserved allocated size of allocationList
+ * \param reserved allocated size of allocation_list
  * \param map_index indexing structure used to index voxel blocks
- * \param pose camera extrinsics matrix
+ * \param T_wc camera extrinsics matrix
  * \param K camera intrinsics matrix
- * \param depthmap input depth map
- * \param imageSize dimensions of depthmap
+ * \param depth_map input depth map
+ * \param image_size dimensions of depth_map
  * \param size discrete extent of the map, in number of voxels
  * \param voxelSize spacing between two consegutive voxels, in metric space
  * \param band maximum extent of the allocating region, per ray
  */
 template <typename HashType>
-unsigned int buildAllocationList(HashType*              allocationList,
-                                 size_t                 reserved,
-                                 se::Octree<MultiresSDF>&    map_index,
-                                 const Eigen::Matrix4f& pose,
-                                 const Eigen::Matrix4f& K,
-                                 const float*           depthmap,
-                                 const Eigen::Vector2i& imageSize,
-                                 const unsigned int     size,
-                                 const float            voxelSize,
-                                 const float            band) {
+size_t buildAllocationList(HashType*                allocation_list,
+                           size_t                   reserved,
+                           se::Octree<MultiresSDF>& map_index,
+                           const Eigen::Matrix4f&   T_wc,
+                           const Eigen::Matrix4f&   K,
+                           const float*             depth_map,
+                           const Eigen::Vector2i&   image_size,
+                           const unsigned int       volume_size,
+                           const float              volume_extent,
+                           const float              mu) {
 
-  const float inverseVoxelSize = 1/voxelSize;
+  const float voxel_size =  volume_extent / volume_size;
+  const float band = 2.f * mu;
+  const float inverse_voxel_size = 1.f / voxel_size;
   const unsigned block_scale = log2(size) - se::math::log2_const(se::VoxelBlock<MultiresSDF>::side);
 
   Eigen::Matrix4f invK = K.inverse();
-  const Eigen::Matrix4f kPose = pose * invK;
+  const Eigen::Matrix4f kPose = T_wc * invK;
 
 
 #ifdef _OPENMP
@@ -76,15 +82,15 @@ unsigned int buildAllocationList(HashType*              allocationList,
   unsigned int voxelCount;
 #endif
 
-  const Eigen::Vector3f camera = pose.topRightCorner<3, 1>();
-  const int numSteps = ceil(band*inverseVoxelSize);
+  const Eigen::Vector3f camera = T_wc.topRightCorner<3, 1>();
+  const int numSteps = ceil(band*inverse_voxel_size);
   voxelCount = 0;
 #pragma omp parallel for
-  for (int y = 0; y < imageSize.y(); ++y) {
-    for (int x = 0; x < imageSize.x(); ++x) {
-      if(depthmap[x + y*imageSize.x()] == 0)
+  for (int y = 0; y < image_size.y(); ++y) {
+    for (int x = 0; x < image_size.x(); ++x) {
+      if(depth_map[x + y*image_size.x()] == 0)
         continue;
-      const float depth = depthmap[x + y*imageSize.x()];
+      const float depth = depth_map[x + y*image_size.x()];
       Eigen::Vector3f worldVertex = (kPose * Eigen::Vector3f((x + 0.5f) * depth,
             (y + 0.5f) * depth, depth).homogeneous()).head<3>();
 
@@ -95,7 +101,7 @@ unsigned int buildAllocationList(HashType*              allocationList,
       Eigen::Vector3i voxel;
       Eigen::Vector3f voxelPos = origin;
       for (int i = 0; i < numSteps; i++) {
-        Eigen::Vector3f voxelScaled = (voxelPos * inverseVoxelSize).array().floor();
+        Eigen::Vector3f voxelScaled = (voxelPos * inverse_voxel_size).array().floor();
         if ((voxelScaled.x() < size)
             && (voxelScaled.y() < size)
             && (voxelScaled.z() < size)
@@ -110,7 +116,7 @@ unsigned int buildAllocationList(HashType*              allocationList,
                 block_scale);
             unsigned int idx = voxelCount++;
             if(idx < reserved) {
-              allocationList[idx] = k;
+              allocation_list[idx] = k;
             } else {
               break;
             }
@@ -122,7 +128,7 @@ unsigned int buildAllocationList(HashType*              allocationList,
       }
     }
   }
-  const unsigned int written = voxelCount;
+  const size_t written = voxelCount;
   return written >= reserved ? reserved : written;
 }
 
