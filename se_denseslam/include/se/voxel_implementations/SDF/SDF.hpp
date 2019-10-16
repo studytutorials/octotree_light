@@ -37,9 +37,6 @@
 
 /**
  * Kinect Fusion Truncated Signed Distance Function voxel implementation.
- *
- * \note This is an example of a minimal implementation of a VoxelImpl. It may
- * contain additional constant parameters or static functions.
  */
 struct SDF {
 
