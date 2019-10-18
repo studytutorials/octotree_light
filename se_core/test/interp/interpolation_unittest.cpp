@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include <cmath>
@@ -50,7 +50,7 @@ float test_fun(float x, float y, float z) {
   return se::math::sq(z) + std::sin(2*x + y);
 }
 
-float sphere_dist(const Eigen::Vector3f& p, const Eigen::Vector3f& C, 
+float sphere_dist(const Eigen::Vector3f& p, const Eigen::Vector3f& C,
     const float radius) {
   const Eigen::Vector3f dir = (C - p).normalized();
   const Eigen::Vector3f vox_o = p - C;
@@ -102,8 +102,8 @@ class InterpolationTest : public ::testing::Test {
         std::stringstream f;
         f << "./sphere-interp.vtk";
         save3DSlice(oct_, Eigen::Vector3i(0, oct_.size()/2, 0),
-            Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()), 
-            [](const float& val) { return val; }, f.str().c_str());
+            Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()),
+            [](const float& val) { return val; }, oct_.block_depth, f.str().c_str());
       }
 
       // balance and print.
@@ -114,8 +114,8 @@ class InterpolationTest : public ::testing::Test {
         std::stringstream f;
         f << "./sphere-interp-balanced.vtk";
         save3DSlice(oct_, Eigen::Vector3i(0, oct_.size()/2, 0),
-            Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()), 
-            [](const float& val) { return val; }, f.str().c_str());
+            Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()),
+            [](const float& val) { return val; }, oct_.block_depth, f.str().c_str());
       }
 
     }
@@ -133,14 +133,14 @@ TEST_F(InterpolationTest, IDWInterp) {
 }
 
 // TEST_F(InterpolationTest, InterpAtPoints) {
-// 
+//
 //   auto test = [this](auto& handler, const Eigen::Vector3i& v) {
 //     auto data = handler.get();
 //     float interpolated = oct_.interp(make_float3(v(0), v(1), v(2)), [](const auto& val){ return val(0); });
 //     ASSERT_EQ(data(0), interpolated);
-//   }; 
-// 
-//   se::functor::axis_aligned<testT, Octree, decltype(test)> 
+//   };
+//
+//   se::functor::axis_aligned<testT, Octree, decltype(test)>
 //     funct_test(oct_, test);
 //   funct_test.apply();
 // }

@@ -285,7 +285,7 @@ void renderVolumeKernel(const Volume<T>& volume,
   TOCK("renderVolumeKernel", depthSize.x * depthSize.y);
 }
 
-static inline void printNormals(const se::Image<Eigen::Vector3f> in, const unsigned int xdim,
+static inline void printNormals(const se::Image<Eigen::Vector3f>& in, const unsigned int xdim,
                  const unsigned int ydim, const char* filename) {
   unsigned char* image = new unsigned char [xdim * ydim * 4];
   for(unsigned int y = 0; y < ydim; ++y)
@@ -302,8 +302,8 @@ static inline void printNormals(const se::Image<Eigen::Vector3f> in, const unsig
 
 // Find ALL the intersection along a ray till the farPlane.
 template <typename T>
-void raycast_full(const Volume<T>& volume, 
-    std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f>>& points, 
+void raycast_full(const Volume<T>& volume,
+    std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f>>& points,
     const Eigen::Vector3f& origin, const Eigen::Vector3f& direction,
     const float farPlane, const float step, const float largestep) {
 

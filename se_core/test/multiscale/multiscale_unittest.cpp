@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "octree.hpp"
@@ -106,7 +106,7 @@ TEST_F(MultiscaleTest, Iterator) {
 
 TEST_F(MultiscaleTest, ChildrenMaskTest) {
   const Eigen::Vector3i blocks[10] = {{56, 12, 254}, {87, 32, 423}, {128, 128, 128},
-    {136, 128, 128}, {128, 136, 128}, {136, 136, 128}, 
+    {136, 128, 128}, {128, 136, 128}, {136, 136, 128},
     {128, 128, 136}, {136, 128, 136}, {128, 136, 136}, {136, 136, 136}};
   se::key_t alloc_list[10];
   for(int i = 0; i < 10; ++i) {
@@ -123,12 +123,12 @@ TEST_F(MultiscaleTest, ChildrenMaskTest) {
         ASSERT_TRUE(n->children_mask_ & (1 << c));
       }
     }
-  } 
+  }
 }
 
 TEST_F(MultiscaleTest, OctantAlloc) {
   const Eigen::Vector3i blocks[10] = {{56, 12, 254}, {87, 32, 423}, {128, 128, 128},
-    {136, 128, 128}, {128, 136, 128}, {136, 136, 128}, 
+    {136, 128, 128}, {128, 136, 128}, {136, 136, 128},
     {128, 128, 136}, {136, 128, 136}, {128, 136, 136}, {136, 136, 136}};
   se::key_t alloc_list[10];
   for(int i = 0; i < 10; ++i) {
@@ -164,9 +164,9 @@ TEST_F(MultiscaleTest, MultipleInsert) {
   std::random_device rd;  //Will be used to obtain a seed for the random number engine
   std::mt19937 gen(1); //Standard mersenne_twister_engine seeded with rd()
   std::uniform_int_distribution<> dis(0, 1023);
-  
+
   int num_tested = 0;
-  for(int i = 1, edge = tree.size()/2; i <= leaves_level; ++i, edge = edge/2) { 
+  for(int i = 1, edge = tree.size()/2; i <= leaves_level; ++i, edge = edge/2) {
     for(int j = 0; j < 20; ++j) {
       Eigen::Vector3i vox(dis(gen), dis(gen), dis(gen));
       se::Node<testT> * n = tree.insert(vox(0), vox(1), vox(2), i);
@@ -200,7 +200,7 @@ TEST(MultiscaleBlock, ReadWrite) {
   std::mt19937 gen(1); //Standard mersenne_twister_engine seeded with rd()
   std::uniform_int_distribution<> dis(0, 1023);
   std::vector<Eigen::Vector3i, Eigen::aligned_allocator<Eigen::Vector3i>> voxels;
-  
+
   const int n = 50;
   for(int j = 0; j < n; ++j) {
     voxels.push_back(Eigen::Vector3i(dis(gen), dis(gen), dis(gen)));
@@ -214,8 +214,8 @@ TEST(MultiscaleBlock, ReadWrite) {
           const Eigen::Vector3i pos_up = (pos/2) * 2;
           const Eigen::Vector3i pos_up2 = (pos/4) * 4;
           n->data(pos, pos);
-          n->data<1>(pos, pos_up);
-          n->data<2>(pos, pos_up2);
+          n->data(pos, 1, pos_up);
+          n->data(pos, 2, pos_up2);
         }
       }
     }
@@ -232,8 +232,8 @@ TEST(MultiscaleBlock, ReadWrite) {
           const Eigen::Vector3i pos_up = (pos/2) * 2;
           const Eigen::Vector3i pos_up2 = (pos/4) * 4;
           ASSERT_TRUE(n->data(pos).cwiseEqual(pos).all());
-          ASSERT_TRUE(n->data<1>(pos).cwiseEqual(pos_up).all());
-          ASSERT_TRUE(n->data<2>(pos).cwiseEqual(pos_up2).all());
+          ASSERT_TRUE(n->data(pos, 1).cwiseEqual(pos_up).all());
+          ASSERT_TRUE(n->data(pos, 2).cwiseEqual(pos_up2).all());
         }
       }
     }

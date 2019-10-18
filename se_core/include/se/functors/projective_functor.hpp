@@ -51,7 +51,7 @@ namespace functor {
                          const Sophus::SE3f& Tcw,
                          const Eigen::Matrix4f& K,
                          const Eigen::Vector3f& offset,
-                         const Eigen::Vector2i framesize) :
+                         const Eigen::Vector2i& framesize) :
         _map(map), _function(f), _Tcw(Tcw), _K(K), _offset(offset),
         _frame_size(framesize) {
       }
@@ -191,7 +191,7 @@ namespace functor {
             typename UpdateF>
   void projective_map(MapT<FieldType>& map, const Eigen::Vector3f& offset,
       const Sophus::SE3f& Tcw, const Eigen::Matrix4f& K,
-      const Eigen::Vector2i framesize, UpdateF funct) {
+      const Eigen::Vector2i& framesize, UpdateF funct) {
 
     projective_functor<FieldType, MapT, UpdateF>
       it(map, funct, Tcw, K, offset, framesize);
@@ -203,7 +203,7 @@ namespace functor {
   template <typename FieldType, template <typename FieldT> class MapT,
             typename UpdateF>
   void projective_map(MapT<FieldType>& map, const Sophus::SE3f& Tcw,
-          const Eigen::Matrix4f& K, const Eigen::Vector2i framesize,
+          const Eigen::Matrix4f& K, const Eigen::Vector2i& framesize,
           UpdateF funct) {
 
     projective_functor<FieldType, MapT, UpdateF>

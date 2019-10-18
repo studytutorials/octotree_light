@@ -86,7 +86,7 @@ void save3DSlice(const MapType& in, const Eigen::Vector3i& lower,
   for(int z = lower.z(); z < upper.z(); z += stride)
     for(int y = lower.y(); y < upper.y(); y += stride)
       for(int x = lower.x(); x < upper.x(); x += stride) {
-        float data = in.get_fine(x, y, z, scale).x;
+        const auto data = select(in.get_fine(x, y, z, scale));
         scalars << data  << std::endl;
       }
 

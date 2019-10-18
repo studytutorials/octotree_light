@@ -45,7 +45,7 @@ public:
   camera_parameter() {};
 
   camera_parameter(float pixel_size_mm, float focal_length_mm,
-      Eigen::Vector2i image_size, Eigen::Matrix4f Twc)
+      const Eigen::Vector2i& image_size, const Eigen::Matrix4f& Twc)
     : pixel_size_mm_(pixel_size_mm), focal_length_mm_(focal_length_mm),
     image_size_(image_size), Twc_(Twc) {
     focal_length_pix_ = focal_length_mm/pixel_size_mm;
@@ -55,15 +55,15 @@ public:
           0                , 0                , 0               , 1;
   };
 
-  float pixel_size_mm() {return pixel_size_mm_;}
-  float focal_length_mm() {return focal_length_mm_;}
-  float focal_length_pix() {return focal_length_pix_;}
+  float pixel_size_mm() const {return pixel_size_mm_;}
+  float focal_length_mm() const {return focal_length_mm_;}
+  float focal_length_pix() const {return focal_length_pix_;}
   void setPose(Eigen::Matrix4f Twc) {Twc_ = Twc;}
-  Eigen::Vector2i imageSize() {return image_size_;}
-  Eigen::Matrix4f Twc() {return Twc_;}
-  Eigen::Vector3f twc() {return Twc_.topRightCorner(3,1);}
-  Eigen::Matrix3f Rwc() {return Twc_.topLeftCorner(3,3);};
-  Eigen::Matrix4f K() {return K_;}
+  Eigen::Vector2i imageSize() const {return image_size_;}
+  Eigen::Matrix4f Twc() const {return Twc_;}
+  Eigen::Vector3f twc() const {return Twc_.topRightCorner(3,1);}
+  Eigen::Matrix3f Rwc() const {return Twc_.topLeftCorner(3,3);};
+  Eigen::Matrix4f K() const {return K_;}
 
 private:
   float pixel_size_mm_; // [mm]
@@ -76,7 +76,7 @@ private:
 
 struct ray {
 public:
-  ray(camera_parameter& camera_parameter)
+  ray(const camera_parameter& camera_parameter)
       : direction_(Eigen::Vector3f(-1.f,-1.f,-1.f)),
         origin_(camera_parameter.twc()),
         Rwc_(camera_parameter.Rwc()),
@@ -91,8 +91,8 @@ public:
     direction_ = Rwc_*direction_;
   };
 
-  Eigen::Vector3f origin() {return  origin_;}
-  Eigen::Vector3f direction() {return direction_;}
+  Eigen::Vector3f origin() const {return  origin_;}
+  Eigen::Vector3f direction() const {return direction_;}
 
 private:
   float focal_length_pix_;
@@ -103,16 +103,16 @@ private:
 };
 
 struct obstacle {
-  virtual float intersect(ray& ray) = 0;
+  virtual float intersect(const ray& ray) = 0;
 };
 
 struct sphere_obstacle : obstacle {
 public:
   sphere_obstacle() {};
-  sphere_obstacle(Eigen::Vector3f center, float radius)
+  sphere_obstacle(const Eigen::Vector3f& center, const float radius)
   : center_(center), radius_(radius) {};
 
-  sphere_obstacle(camera_parameter camera_parameter, Eigen::Vector2f center_angle,
+  sphere_obstacle(const camera_parameter& camera_parameter, const Eigen::Vector2f& center_angle,
   float center_distance, float radius)
   : radius_(radius) {
       Eigen::Matrix3f Rwc = camera_parameter.Rwc();
@@ -124,7 +124,7 @@ public:
       center_ = Rwc*dist + twc;
   };
 
-  float intersect(ray& ray) {
+  float intersect(const ray& ray) {
     float dist(SENSOR_LIMIT);
     Eigen::Vector3f oc = ray.origin() - center_;
     float a = ray.direction().dot(ray.direction());
@@ -150,19 +150,19 @@ private:
 struct box_obstacle : obstacle {
 public:
   box_obstacle() {};
-  box_obstacle(Eigen::Vector3f center, float depth, float width, float height)
+  box_obstacle(const Eigen::Vector3f& center, float depth, float width, float height)
   : center_(center), dim_(Eigen::Vector3f(depth, width, height)) {
     min_corner_ = center - Eigen::Vector3f(depth, width, height);
     max_corner_ = center + Eigen::Vector3f(depth, width, height);
   };
 
-  box_obstacle(Eigen::Vector3f center, Eigen::Vector3f dim)
+  box_obstacle(const Eigen::Vector3f& center, const Eigen::Vector3f& dim)
   : center_(center), dim_(dim) {
     min_corner_ = center - dim/2;
     max_corner_ = center + dim/2;
   };
 
-  float intersect(ray& ray) {
+  float intersect(const ray& ray) {
     float dist(SENSOR_LIMIT);
     /*
     Fast Ray-Box Intersection
@@ -242,10 +242,10 @@ private:
 struct generate_depth_image {
 public:
   generate_depth_image() {};
-  generate_depth_image(float* depth_image, std::vector<obstacle*> obstacles)
+  generate_depth_image(float* depth_image, const std::vector<obstacle*>& obstacles)
       : depth_image_(depth_image), obstacles_(obstacles) {};
 
-  void operator()(camera_parameter camera_parameter) {
+  void operator()(const camera_parameter& camera_parameter) {
     float focal_length_pix = camera_parameter.focal_length_pix();
     ray ray(camera_parameter);
     int image_width = camera_parameter.imageSize().x();
@@ -281,7 +281,7 @@ private:
 
 };
 
-inline float compute_scale(const Eigen::Vector3f& vox, 
+inline float compute_scale(const Eigen::Vector3f& vox,
                     const Eigen::Vector3f& twc,
                     const float scaled_pix,
                     const float voxelsize) {
@@ -375,8 +375,8 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
 }
 
 template <typename T>
-void foreach(float voxelsize, std::vector<se::VoxelBlock<T>*> active_list,
-             camera_parameter camera_parameter, float* depth_image) {
+void foreach(float voxelsize, const std::vector<se::VoxelBlock<T>*>& active_list,
+             const camera_parameter& camera_parameter, float* depth_image) {
   const int n = active_list.size();
   for(int i = 0; i < n; ++i) {
     se::VoxelBlock<T>* block = active_list[i];
@@ -440,7 +440,7 @@ void foreach(float voxelsize, std::vector<se::VoxelBlock<T>*> active_list,
 }
 
 template <typename T>
-std::vector<se::VoxelBlock<MultiresSDF>*> buildActiveList(se::Octree<T>& map, camera_parameter camera_parameter, float voxel_size) {
+std::vector<se::VoxelBlock<MultiresSDF>*> buildActiveList(se::Octree<T>& map, const camera_parameter& camera_parameter, float voxel_size) {
   const se::MemoryPool<se::VoxelBlock<MultiresSDF> >& block_array =
       map.getBlockBuffer();
   for(unsigned int i = 0; i < block_array.size(); ++i) {
@@ -530,7 +530,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereTranslation) {
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
                 Eigen::Vector3i(oct_.size(), oct_.size(), oct_.size()/2 + 1),
-                [](const auto& val) { return val.x; }, f.str().c_str());
+                [](const auto& val) { return val.x; }, oct_.block_depth, f.str().c_str());
   }
 
   for (std::vector<obstacle*>::iterator sphere = spheres.begin(); sphere != spheres.end(); ++sphere) {
@@ -579,7 +579,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereRotation) {
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
                 Eigen::Vector3i(oct_.size(), oct_.size(), oct_.size()/2 + 1),
-                [](const auto& val) { return val.x; }, f.str().c_str());
+                [](const auto& val) { return val.x; }, oct_.block_depth, f.str().c_str());
   }
 
   for (std::vector<obstacle*>::iterator sphere = spheres.begin(); sphere != spheres.end(); ++sphere) {
@@ -620,7 +620,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, BoxTranslation) {
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
                 Eigen::Vector3i(oct_.size(), oct_.size(), oct_.size()/2 + 1),
-                [](const auto& val) { return val.x; }, f.str().c_str());
+                [](const auto& val) { return val.x; }, oct_.block_depth, f.str().c_str());
   }
 
   for (std::vector<obstacle*>::iterator box = boxes.begin(); box != boxes.end(); ++box) {
@@ -661,7 +661,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereBoxTranslation) {
     save3DSlice(oct_,
                 Eigen::Vector3i(0, 0, oct_.size()/2),
                 Eigen::Vector3i(oct_.size(), oct_.size(), oct_.size()/2 + 1),
-                [](const auto& val) { return val.x; }, f.str().c_str());
+                [](const auto& val) { return val.x; }, oct_.block_depth, f.str().c_str());
   }
 
   for (std::vector<obstacle*>::iterator obstacle = obstacles.begin(); obstacle != obstacles.end(); ++obstacle) {

@@ -11,25 +11,25 @@
 #include <functional>
 #include <gtest/gtest.h>
 
-float sphere_dist(const Eigen::Vector3f& p, const Eigen::Vector3f& C, 
+float sphere_dist(const Eigen::Vector3f& p, const Eigen::Vector3f& C,
     const float radius) {
   const float dist = (p - C).norm();
   return dist - radius;
 }
 
-float sphere_dist_noisy(const Eigen::Vector3f& p, const Eigen::Vector3f& C, 
+float sphere_dist_noisy(const Eigen::Vector3f& p, const Eigen::Vector3f& C,
     const float radius) {
-  static std::mt19937 gen{1}; 
+  static std::mt19937 gen{1};
   std::normal_distribution<> d(0, 2);
   const float dist = (p - C).norm();
   return (dist - radius) + d(gen);
 }
 
 template <typename T>
-void update_block (se::VoxelBlock<T>* block, 
+void update_block (se::VoxelBlock<T>* block,
                     const Eigen::Vector3f& center,
                     const float radius,
-                    const int scale) {       
+                    const int scale) {
   const Eigen::Vector3i base = block->coordinates();
   const int side = se::VoxelBlock<T>::side;
   const int stride = 1 << scale;
@@ -39,7 +39,7 @@ void update_block (se::VoxelBlock<T>* block,
         const Eigen::Vector3i vox = base + Eigen::Vector3i(x, y, z);
         auto data = block->data(vox, scale);
         const float sample = sphere_dist_noisy(
-            vox.cast<float>() + float(stride) * Eigen::Vector3f::Constant(0.5f), 
+            vox.cast<float>() + float(stride) * Eigen::Vector3f::Constant(0.5f),
             center, radius);
         data.delta_y++;
         data.x = (data.x * data.y + sample)/(data.y + 1);
@@ -97,11 +97,11 @@ TEST_F(MultiscaleESDFMovingSphereTest, Fusion) {
       std::stringstream f;
       f << "./out/sphere-interp-" << i << ".vtk";
       save3DSlice(oct_, Eigen::Vector3i(0, oct_.size()/2, 0),
-          Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()), 
-          [](const auto& val) { return val.x; }, f.str().c_str());
+          Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()),
+          [](const auto& val) { return val.x; }, oct_.block_depth, f.str().c_str());
     }
   }
-  
+
   // update captured lambda parameters
   center += Eigen::Vector3f::Constant(10.f);
   scale = 2;
@@ -115,8 +115,8 @@ TEST_F(MultiscaleESDFMovingSphereTest, Fusion) {
       std::stringstream f;
       f << "./out/sphere-interp-" << i << ".vtk";
       save3DSlice(oct_, Eigen::Vector3i(0, oct_.size()/2, 0),
-          Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()), 
-          [](const auto& val) { return val.x; }, f.str().c_str());
+          Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()),
+          [](const auto& val) { return val.x; }, oct_.block_depth, f.str().c_str());
     }
   }
   se::print_octree("./out/test-sphere.ply", oct_);
