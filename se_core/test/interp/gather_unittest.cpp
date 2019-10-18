@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "octree.hpp"
@@ -48,7 +48,7 @@ class GatherTest : public ::testing::Test {
     virtual void SetUp() {
       oct_.init(512, 5);
       const Eigen::Vector3i blocks[10] = {{56, 12, 254}, {87, 32, 423}, {128, 128, 128},
-      {136, 128, 128}, {128, 136, 128}, {136, 136, 128}, 
+      {136, 128, 128}, {128, 136, 128}, {136, 136, 128},
       {128, 128, 136}, {136, 128, 136}, {128, 136, 136}, {136, 136, 136}};
       se::key_t alloc_list[10];
       for(int i = 0; i < 10; ++i) {
@@ -79,12 +79,12 @@ TEST_F(GatherTest, ZCrosses) {
   float points[8];
   const unsigned blockSize = se::VoxelBlock<testT>::side;
   const Eigen::Vector3i base = {132, 128, 135};
-  unsigned int crossmask = ((base(0) % blockSize) == blockSize - 1 << 2) | 
+  unsigned int crossmask = ((base(0) % blockSize) == blockSize - 1 << 2) |
                            ((base(1) % blockSize) == blockSize - 1 << 1) |
                             (base(2) % blockSize) == blockSize - 1;
   ASSERT_EQ(crossmask, 1);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  se::internal::gather_points(oct_, base, 1, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, 0, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -95,12 +95,12 @@ TEST_F(GatherTest, YCrosses) {
   float points[8];
   const unsigned blockSize = se::VoxelBlock<testT>::side;
   const Eigen::Vector3i base = {132, 135, 132};
-  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) | 
+  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) |
                            ((base(1) % blockSize == blockSize - 1) << 1) |
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 2);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  se::internal::gather_points(oct_, base, 1, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, 0, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -111,12 +111,12 @@ TEST_F(GatherTest, XCrosses) {
   float points[8];
   const unsigned blockSize = se::VoxelBlock<testT>::side;
   const Eigen::Vector3i base = {135, 132, 132};
-  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) | 
+  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) |
                            ((base(1) % blockSize == blockSize - 1) << 1) |
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 4);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  se::internal::gather_points(oct_, base, 1, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, 0, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -127,12 +127,12 @@ TEST_F(GatherTest, YZCross) {
   float points[8];
   const unsigned blockSize = se::VoxelBlock<testT>::side;
   const Eigen::Vector3i base = {129, 135, 135};
-  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) | 
+  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) |
                            ((base(1) % blockSize == blockSize - 1) << 1) |
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 3);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  se::internal::gather_points(oct_, base, 1, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, 0, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -143,12 +143,12 @@ TEST_F(GatherTest, XZCross) {
   float points[8];
   const unsigned blockSize = se::VoxelBlock<testT>::side;
   const Eigen::Vector3i base = {135, 131, 135};
-  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) | 
+  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) |
                            ((base(1) % blockSize == blockSize - 1) << 1) |
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 5);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  se::internal::gather_points(oct_, base, 1, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, 0, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -159,12 +159,12 @@ TEST_F(GatherTest, XYCross) {
   float points[8];
   const unsigned blockSize = se::VoxelBlock<testT>::side;
   const Eigen::Vector3i base = {135, 135, 138};
-  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) | 
+  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) |
                            ((base(1) % blockSize == blockSize - 1) << 1) |
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 6);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  se::internal::gather_points(oct_, base, 1, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, 0, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -175,12 +175,12 @@ TEST_F(GatherTest, AllCross) {
   float points[8];
   const unsigned blockSize = se::VoxelBlock<testT>::side;
   const Eigen::Vector3i base = {135, 135, 135};
-  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) | 
+  unsigned int crossmask = ((base(0) % blockSize == blockSize - 1) << 2) |
                            ((base(1) % blockSize == blockSize - 1) << 1) |
                             ((base(2) % blockSize) == blockSize - 1);
   ASSERT_EQ(crossmask, 7);
   se::VoxelBlock<testT> * block = oct_.fetch(base(0), base(1), base(2));
-  se::internal::gather_points(oct_, base, 1, [](const auto& val){ return val; }, points);
+  se::internal::gather_points(oct_, base, 0, [](const auto& val){ return val; }, points);
 
   for(int i = 0; i < 8; ++i) {
     EXPECT_EQ(points[i], voxel_traits<testT>::initValue());
@@ -190,7 +190,7 @@ TEST_F(GatherTest, AllCross) {
 TEST_F(GatherTest, FetchWithStack) {
   se::Node<testT>* stack[CAST_STACK_DEPTH] = {nullptr};
   int max_depth = se::math::log2_const(oct_.size());
-  se::internal::fetch(stack, oct_.root(), max_depth, 
+  se::internal::fetch(stack, oct_.root(), max_depth,
       Eigen::Vector3i(128, 136, 128));
   auto res = oct_.fetch(128, 136, 128);
   int l = 0;
@@ -201,7 +201,7 @@ TEST_F(GatherTest, FetchWithStack) {
 }
 
 TEST_F(GatherTest, FetchNeighbourhood) {
-  Eigen::Vector3i pos0(128,   0, 0); // (1, 0, 0) 
+  Eigen::Vector3i pos0(128,   0, 0); // (1, 0, 0)
   Eigen::Vector3i pos1(0,   128, 0); // (0, 1, 0)
   Eigen::Vector3i pos2(128, 128, 0); // (1, 1, 0)
   Eigen::Vector3i base(64,   64, 0);
@@ -222,7 +222,7 @@ TEST_F(GatherTest, FetchNeighbourhood) {
   ASSERT_TRUE(se::keyops::decode(n3->code_) == pos2);
 
   std::fill(std::begin(stack), std::end(stack), nullptr);
-  base_ptr = se::internal::fetch(stack, oct_.root(), max_depth, pos0); 
+  base_ptr = se::internal::fetch(stack, oct_.root(), max_depth, pos0);
   auto failed = se::internal::fetch_neighbour(stack, base_ptr, max_depth, 1);
   ASSERT_TRUE(failed == nullptr);
 }
