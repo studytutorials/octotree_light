@@ -38,7 +38,11 @@ endif()
 set(SUPEREIGHT_FIELD_TYPES SDF OFusion MultiresSDF)
 
 # The source files to compile
-set(se_src "./src/preprocessing.cpp" "./src/tracking.cpp" "./src/DenseSLAMSystem.cpp")
+set(se_src
+  "./src/preprocessing.cpp"
+  "./src/tracking.cpp"
+  "./src/rendering.cpp"
+  "./src/DenseSLAMSystem.cpp")
 
 # Iterate over each SE_FIELD_TYPE and compile the se-denseslam library for it.
 foreach(field_type ${SUPEREIGHT_FIELD_TYPES})
