@@ -37,6 +37,9 @@ endif()
 # appending it to this list is enough to compile se-denseslam using it.
 set(SUPEREIGHT_FIELD_TYPES SDF OFusion MultiresSDF)
 
+# The source files to compile
+set(se_src "./src/preprocessing.cpp" "./src/DenseSLAMSystem.cpp")
+
 # Iterate over each SE_FIELD_TYPE and compile the se-denseslam library for it.
 foreach(field_type ${SUPEREIGHT_FIELD_TYPES})
   # Convert the field type name to lowercase for use in filenames.
@@ -50,7 +53,7 @@ foreach(field_type ${SUPEREIGHT_FIELD_TYPES})
 
   # Add the static library.
   add_library(${lib_name} STATIC
-    ./src/DenseSLAMSystem.cpp)
+    ${se_src})
   target_include_directories(${lib_name} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>

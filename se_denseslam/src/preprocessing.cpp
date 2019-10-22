@@ -34,9 +34,7 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <se/timings.h>
-#include <se/utils/math_utils.h>
-#include <se/image/image.hpp>
+#include <se/preprocessing.hpp>
 
 
 
@@ -129,6 +127,12 @@ void vertex2depthKernel(se::Image<float>&                 depth,
 }
 
 
+
+// Explicit template instantiation
+template void vertex2normalKernel<true>(se::Image<Eigen::Vector3f>&       out,
+                                        const se::Image<Eigen::Vector3f>& in);
+template void vertex2normalKernel<false>(se::Image<Eigen::Vector3f>&       out,
+                                         const se::Image<Eigen::Vector3f>& in);
 
 template <bool NegY>
 void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
