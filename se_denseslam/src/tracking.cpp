@@ -257,10 +257,9 @@ void trackKernel(TrackData*                        output,
   const Eigen::Vector2i  in_size( in_vertex.width(),  in_vertex.height());
   const Eigen::Vector2i ref_size(ref_vertex.width(), ref_vertex.height());
 
-  int pixely, pixelx;
-#pragma omp parallel for shared(output), private(pixel,pixelx,pixely)
-  for (pixely = 0; pixely < in_size.y(); pixely++) {
-    for (pixelx = 0; pixelx < in_size.x(); pixelx++) {
+#pragma omp parallel for
+  for (int pixely = 0; pixely < in_size.y(); pixely++) {
+    for (int pixelx = 0; pixelx < in_size.x(); pixelx++) {
       pixel.x() = pixelx;
       pixel.y() = pixely;
 

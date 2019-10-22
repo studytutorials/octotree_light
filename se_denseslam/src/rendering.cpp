@@ -82,9 +82,8 @@ void raycastKernel(const Volume<T>&            volume,
                    const float                 large_step) {
 
   TICK();
-  int y;
-#pragma omp parallel for shared(normal, vertex), private(y)
-  for (y = 0; y < vertex.height(); y++) {
+#pragma omp parallel for
+  for (int y = 0; y < vertex.height(); y++) {
 #pragma omp simd
     for (int x = 0; x < vertex.width(); x++) {
       const Eigen::Vector2i pos(x, y);
@@ -133,9 +132,8 @@ void renderDepthKernel(unsigned char*         out,
 
   const float range_scale = 1.f / (far_plane - near_plane);
 
-  int y;
-#pragma omp parallel for shared(out), private(y)
-  for (y = 0; y < depth_size.y(); y++) {
+#pragma omp parallel for
+  for (int y = 0; y < depth_size.y(); y++) {
     const int row_offset = y * depth_size.x();
     for (int x = 0; x < depth_size.x(); x++) {
 
@@ -174,9 +172,8 @@ void renderTrackKernel(unsigned char*         out,
 
   TICK();
 
-  int y;
-#pragma omp parallel for shared(out), private(y)
-  for (y = 0; y < out_size.y(); y++)
+#pragma omp parallel for
+  for (int y = 0; y < out_size.y(); y++)
     for (int x = 0; x < out_size.x(); x++) {
       const int pos = x + out_size.x() * y;
       const int idx = pos * 4;
@@ -247,9 +244,8 @@ void renderVolumeKernel(const Volume<T>&                  volume,
                         const se::Image<Eigen::Vector3f>& normal) {
 
   TICK();
-  int y;
-#pragma omp parallel for shared(out), private(y)
-  for (y = 0; y < depth_size.y(); y++) {
+#pragma omp parallel for
+  for (int y = 0; y < depth_size.y(); y++) {
     for (int x = 0; x < depth_size.x(); x++) {
       Eigen::Vector4f hit;
       Eigen::Vector3f test, surface_normal;

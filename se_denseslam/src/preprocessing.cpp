@@ -54,10 +54,9 @@ void bilateralFilterKernel(se::Image<float>&         out,
   TICK()
   const int width = in.width();
   const int height = in.height();
-  int y;
   const float e_d_squared_2 = e_d * e_d * 2.f;
-#pragma omp parallel for shared(out),private(y)
-  for (y = 0; y < height; y++) {
+#pragma omp parallel for
+  for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
       const unsigned int pos = x + y * width;
       if (in[pos] == 0) {
@@ -98,10 +97,9 @@ void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
                         const Eigen::Matrix4f&      inv_K) {
 
   TICK();
-  int x, y;
-#pragma omp parallel for shared(vertex), private(x, y)
-  for (y = 0; y < depth.height(); y++) {
-    for (x = 0; x < depth.width(); x++) {
+#pragma omp parallel for
+  for (int y = 0; y < depth.height(); y++) {
+    for (int x = 0; x < depth.width(); x++) {
 
       if (depth[x + y * depth.width()] > 0) {
         vertex[x + y * depth.width()] = (depth[x + y * depth.width()]
@@ -121,10 +119,9 @@ void vertex2depthKernel(se::Image<float>&                 depth,
                         const Eigen::Matrix4f&            T_cw) {
 
   TICK();
-  int x, y;
-#pragma omp parallel for shared(vertex), private(x, y)
-  for (y = 0; y < depth.height(); y++) {
-    for (x = 0; x < depth.width(); x++) {
+#pragma omp parallel for
+  for (int y = 0; y < depth.height(); y++) {
+    for (int x = 0; x < depth.width(); x++) {
       depth(x, y) = (T_cw * vertex(x, y).homogeneous()).z();
     }
   }
@@ -138,12 +135,11 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
                          const se::Image<Eigen::Vector3f>& in) {
 
   TICK();
-  int x, y;
   const int width = in.width();
   const int height = in.height();
-#pragma omp parallel for shared(out), private(x,y)
-  for (y = 0; y < height; y++) {
-    for (x = 0; x < width; x++) {
+#pragma omp parallel for
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
       const Eigen::Vector3f center = in[x + width * y];
       if (center.z() == 0.f) {
         out[x + y * width].x() = INVALID;
@@ -226,9 +222,8 @@ void halfSampleRobustImageKernel(se::Image<float>&       out,
   }
 
   TICK();
-  int y;
-#pragma omp parallel for shared(out), private(y)
-  for (y = 0; y < out.height(); y++) {
+#pragma omp parallel for
+  for (int y = 0; y < out.height(); y++) {
     for (int x = 0; x < out.width(); x++) {
       const Eigen::Vector2i pixel = Eigen::Vector2i(x, y);
       const Eigen::Vector2i center_pixel = 2 * pixel;
