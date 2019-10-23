@@ -28,14 +28,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * */
-#ifndef MULTIRES_MAPPING_HPP
-#define MULTIRES_MAPPING_HPP
+
+#ifndef __MULTIRES_MAPPING_IMPL_HPP
+#define __MULTIRES_MAPPING_IMPL_HPP
+
 #include <se/node.hpp>
 #include <se/octree.hpp>
 #include <se/image/image.hpp>
 #include <se/algorithms/filter.hpp>
 #include <se/functors/for_each.hpp>
 #include "MultiresSDF.hpp"
+
+
 
 namespace se {
   namespace multires {
@@ -468,7 +472,7 @@ void integrate(se::Octree<T>& , const Sophus::SE3f& , const
     se::Image<float>& , float , int, const unsigned) {
 }
 
-template <>void integrate(se::Octree<MultiresSDF::VoxelType>& map, const Sophus::SE3f& Tcw, const
+static void integrate(se::Octree<MultiresSDF::VoxelType>& map, const Sophus::SE3f& Tcw, const
     Eigen::Matrix4f& K, float voxelsize, const Eigen::Vector3f& offset, const
     se::Image<float>& depth, float mu, int maxweight, const unsigned frame) {
       // Filter visible blocks
@@ -506,4 +510,22 @@ template <>void integrate(se::Octree<MultiresSDF::VoxelType>& map, const Sophus:
  }
 }
 }
+
+
+
+inline void MultiresSDF::integrate(se::Octree<MultiresSDF::VoxelType>& map,
+                                   const Sophus::SE3f&                 T_cw,
+                                   const Eigen::Matrix4f&              K,
+                                   const se::Image<float>&             depth,
+                                   const float                         mu,
+                                   const unsigned                      frame) {
+
+  const Eigen::Vector2i depth_size (depth.width(), depth.height());
+  const float voxel_size =  map.dim() / map.size();
+
+  se::multires::integrate(map, T_cw, K, voxel_size,
+      map._offset, depth, mu, MultiresSDF::max_weight, frame);
+}
+
+
 #endif

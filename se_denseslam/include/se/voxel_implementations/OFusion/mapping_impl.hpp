@@ -161,4 +161,23 @@ struct bfusion_update {
   }
 
 };
+
+
+
+void inline OFusion::integrate(se::Octree<OFusion::VoxelType>& map,
+                               const Sophus::SE3f&             T_cw,
+                               const Eigen::Matrix4f&          K,
+                               const se::Image<float>&         depth,
+                               const float                     mu,
+                               const unsigned                  frame) {
+
+  const Eigen::Vector2i depth_size (depth.width(), depth.height());
+  const float timestamp = (1.f / 30.f) * frame;
+  const float voxel_size =  map.dim() / map.size();
+
+  struct bfusion_update funct(depth.data(), depth_size, mu, timestamp, voxel_size);
+
+  se::functor::projective_map(map, map._offset, T_cw, K, depth_size, funct);
+}
+
 #endif

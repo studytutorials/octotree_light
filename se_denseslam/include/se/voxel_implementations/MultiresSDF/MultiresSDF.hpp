@@ -31,6 +31,7 @@
 #define __MULTIRESSDF_HPP
 
 #include <se/octree.hpp>
+#include <se/image/image.hpp>
 #include <se/continuous/volume_template.hpp>
 
 
@@ -64,6 +65,11 @@ struct MultiresSDF {
    */
   static constexpr bool invert_normals = true;
 
+  /**
+   * The maximum value of the weight factor SDF::VoxelType::VoxelData::y.
+   */
+  static constexpr int max_weight = 100;
+
 
 
   /**
@@ -86,6 +92,18 @@ struct MultiresSDF {
 
 
   /**
+   * Integrate a depth image into the map.
+   */
+  static inline void integrate(se::Octree<MultiresSDF::VoxelType>& map,
+                               const Sophus::SE3f&                 T_cw,
+                               const Eigen::Matrix4f&              K,
+                               const se::Image<float>&             depth,
+                               const float                         mu,
+                               const unsigned                      frame);
+
+
+
+  /**
    * Cast a ray and return the point where the surface was hit.
    */
   static inline Eigen::Vector4f raycast(
@@ -103,6 +121,7 @@ struct MultiresSDF {
 
 #include "se/voxel_implementations/MultiresSDF/alloc_impl.hpp"
 #include "se/voxel_implementations/MultiresSDF/rendering_impl.hpp"
+#include "se/voxel_implementations/MultiresSDF/mapping_impl.hpp"
 
 #endif
 

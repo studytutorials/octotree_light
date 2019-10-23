@@ -32,7 +32,9 @@
 #ifndef _SDF_MAPPING_IMPL_HPP
 #define _SDF_MAPPING_IMPL_HPP
 
+#include <se/octree.hpp>
 #include <se/node.hpp>
+#include <se/functors/projective_functor.hpp>
 #include "SDF.hpp"
 
 
@@ -46,9 +48,7 @@ struct sdf_update {
 
   sdf_update(const float*           depth,
              const Eigen::Vector2i& depth_size,
-             float                  mu,
-             float,
-             float)
+             float                  mu)
     : depth(depth), depth_size(depth_size), mu(mu) {};
 
 
@@ -81,4 +81,21 @@ struct sdf_update {
   }
 };
 
+
+
+inline void SDF::integrate(se::Octree<SDF::VoxelType>& map,
+                           const Sophus::SE3f&         T_cw,
+                           const Eigen::Matrix4f&      K,
+                           const se::Image<float>&     depth,
+                           const float                 mu,
+                           const unsigned) {
+
+  const Eigen::Vector2i depth_size (depth.width(), depth.height());
+
+  struct sdf_update funct(depth.data(), depth_size, mu);
+
+  se::functor::projective_map(map, map._offset, T_cw, K, depth_size, funct);
+}
+
 #endif
+

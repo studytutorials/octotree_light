@@ -30,6 +30,7 @@
 #define __SDF_HPP
 
 #include <se/octree.hpp>
+#include <se/image/image.hpp>
 #include <se/continuous/volume_template.hpp>
 
 
@@ -92,6 +93,18 @@ struct SDF {
 
 
   /**
+   * Integrate a depth image into the map.
+   */
+  static inline void integrate(se::Octree<SDF::VoxelType>& map,
+                               const Sophus::SE3f&         T_cw,
+                               const Eigen::Matrix4f&      K,
+                               const se::Image<float>&     depth,
+                               const float                 mu,
+                               const unsigned              frame);
+
+
+
+  /**
    * Cast a ray and return the point where the surface was hit.
    */
   static inline Eigen::Vector4f raycast(
@@ -109,6 +122,7 @@ struct SDF {
 
 #include "se/voxel_implementations/SDF/alloc_impl.hpp"
 #include "se/voxel_implementations/SDF/rendering_impl.hpp"
+#include "se/voxel_implementations/SDF/mapping_impl.hpp"
 
 #endif
 

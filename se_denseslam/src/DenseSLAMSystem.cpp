@@ -44,9 +44,6 @@
 #include <se/functors/for_each.hpp>
 #include <se/timings.h>
 #include <se/perfstats.h>
-#include "se/voxel_implementations/OFusion/mapping_impl.hpp"
-#include "se/voxel_implementations/SDF/mapping_impl.hpp"
-#include "se/voxel_implementations/MultiresSDF/mapping_impl.hpp"
 #include "se/rendering.hpp"
 
 
@@ -245,42 +242,13 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
 
     volume_._map_index->allocate(allocation_list_.data(), allocated);
 
-    const float timestamp = (1.f / 30.f) * frame;
-    if (std::is_same<VoxelImpl, SDF>::value) {
-      struct sdf_update funct(
-          float_depth_.data(),
-          computation_size_,
-          mu,
-          timestamp,
-          voxelsize);
-
-      se::functor::projective_map(
-          *volume_._map_index,
-          volume_._map_index->_offset,
-          T_cw,
-          K,
-          computation_size_,
-          funct);
-    } else if (std::is_same<VoxelImpl, OFusion>::value) {
-      struct bfusion_update funct(
-          float_depth_.data(),
-          computation_size_,
-          mu,
-          timestamp,
-          voxelsize);
-
-      se::functor::projective_map(
-          *volume_._map_index,
-          volume_._map_index->_offset,
-          T_cw,
-          K,
-          computation_size_,
-          funct);
-    } else if (std::is_same<VoxelImpl, MultiresSDF>::value) {
-      se::multires::integrate(*volume_._map_index, T_cw, K, voxelsize,
-          volume_._map_index->_offset, float_depth_, mu, maxweight, frame);
-    }
-
+    VoxelImpl::integrate(
+        *volume_._map_index,
+        T_cw,
+        K,
+        float_depth_,
+        mu,
+        frame);
     return true;
   } else {
     return false;
