@@ -29,23 +29,23 @@
  *
  * */
 
-#ifndef __MULTIRESSDF_RENDERING_IMPL_HPP
-#define __MULTIRESSDF_RENDERING_IMPL_HPP
+#ifndef __MULTIRESTSDF_RENDERING_IMPL_HPP
+#define __MULTIRESTSDF_RENDERING_IMPL_HPP
 
 #include <se/utils/math_utils.h>
 #include <type_traits>
 
 
 
-inline Eigen::Vector4f MultiresSDF::raycast(
-    const VolumeTemplate<MultiresSDF, se::Octree>& volume,
-    const Eigen::Vector3f&                         origin,
-    const Eigen::Vector3f&                         direction,
-    const float                                    tnear,
-    const float                                    tfar,
-    const float                                    mu,
-    const float                                    step,
-    const float                                    large_step) {
+inline Eigen::Vector4f MultiresTSDF::raycast(
+    const VolumeTemplate<MultiresTSDF, se::Octree>& volume,
+    const Eigen::Vector3f&                          origin,
+    const Eigen::Vector3f&                          direction,
+    const float                                     tnear,
+    const float                                     tfar,
+    const float                                     mu,
+    const float                                     step,
+    const float                                     large_step) {
 
   auto select_depth = [](const auto& val){ return val.x; };
   if (tnear < tfar) {

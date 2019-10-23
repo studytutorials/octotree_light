@@ -29,8 +29,8 @@
  *
  * */
 
-#ifndef __SDF_ALLOC_IMPL_HPP
-#define __SDF_ALLOC_IMPL_HPP
+#ifndef __TSDF_ALLOC_IMPL_HPP
+#define __TSDF_ALLOC_IMPL_HPP
 
 #include <se/utils/math_utils.h>
 #include <se/node.hpp>
@@ -55,15 +55,15 @@
  * \param band maximum extent of the allocating region, per ray
  */
 template <template <typename> class OctreeT, typename HashType>
-size_t SDF::buildAllocationList(
-    HashType*                allocation_list,
-    size_t                   reserved,
-    OctreeT<SDF::VoxelType>& map_index,
-    const Eigen::Matrix4f&   T_wc,
-    const Eigen::Matrix4f&   K,
-    const float*             depth_map,
-    const Eigen::Vector2i&   image_size,
-    const float              mu) {
+size_t TSDF::buildAllocationList(
+    HashType*                 allocation_list,
+    size_t                    reserved,
+    OctreeT<TSDF::VoxelType>& map_index,
+    const Eigen::Matrix4f&    T_wc,
+    const Eigen::Matrix4f&    K,
+    const float*              depth_map,
+    const Eigen::Vector2i&    image_size,
+    const float               mu) {
 
   const float voxel_size = map_index.dim() / map_index.size();
   const float inverse_voxel_size = 1.f / voxel_size;
@@ -72,7 +72,7 @@ size_t SDF::buildAllocationList(
   const int volume_size = map_index.size();
   const int max_depth = log2(volume_size);
   const unsigned leaf_depth = max_depth
-      - se::math::log2_const(se::VoxelBlock<SDF::VoxelType>::side);
+      - se::math::log2_const(se::VoxelBlock<TSDF::VoxelType>::side);
   const float band = 2.f * mu;
 
 
@@ -112,7 +112,7 @@ size_t SDF::buildAllocationList(
             && (voxel_scaled.y() >= 0)
             && (voxel_scaled.z() >= 0)) {
           const Eigen::Vector3i voxel = voxel_scaled.cast<int>();
-          se::VoxelBlock<SDF::VoxelType> * node_ptr = map_index.fetch(
+          se::VoxelBlock<TSDF::VoxelType> * node_ptr = map_index.fetch(
               voxel.x(), voxel.y(), voxel.z());
           if (node_ptr == nullptr) {
             const HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),

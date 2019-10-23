@@ -289,7 +289,7 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(),
       [](auto block) {
-        if(std::is_same<VoxelImpl, MultiresSDF>::value) {
+        if(std::is_same<VoxelImpl, MultiresTSDF>::value) {
           block->current_scale(block->min_scale());
         } else {
           block->current_scale(0);

@@ -26,9 +26,8 @@
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-#ifndef __MULTIRESSDF_HPP
-#define __MULTIRESSDF_HPP
+#ifndef __TSDF_HPP
+#define __TSDF_HPP
 
 #include <se/octree.hpp>
 #include <se/image/image.hpp>
@@ -36,9 +35,10 @@
 
 
 
-/** Kinect Fusion Truncated Signed Distance Function voxel implementation for
- * integration at multipe scales. */
-struct MultiresSDF {
+/**
+ * Kinect Fusion Truncated Signed Distance Function voxel implementation.
+ */
+struct TSDF {
 
   /**
    * The voxel type used as the template parameter for se::Octree.
@@ -49,13 +49,11 @@ struct MultiresSDF {
      */
     typedef struct {
       float x; /**< The value of the TSDF. */
-      float x_last;
-      int   y;
-      int   delta_y;
+      float y; /**< The number of measurements integrated in the voxel. */
     } VoxelData;
 
-    static inline VoxelData empty()     { return {1.f, 1.f, 0, 0}; }
-    static inline VoxelData initValue() { return {1.f, 1.f, 0, 0}; }
+    static inline VoxelData empty()     { return {1.f, -1.f}; }
+    static inline VoxelData initValue() { return {1.f,  0.f}; }
   } VoxelType;
 
 
@@ -66,9 +64,9 @@ struct MultiresSDF {
   static constexpr bool invert_normals = true;
 
   /**
-   * The maximum value of the weight factor SDF::VoxelType::VoxelData::y.
+   * The maximum value of the weight factor TSDF::VoxelType::VoxelData::y.
    */
-  static constexpr int max_weight = 100;
+  static constexpr float max_weight = 100.f;
 
 
 
@@ -78,26 +76,26 @@ struct MultiresSDF {
    */
   template <template <typename> class OctreeT, typename HashType>
   static size_t buildAllocationList(
-      HashType*                        allocation_list,
-      size_t                           reserved,
-      OctreeT<MultiresSDF::VoxelType>& map_index,
-      const Eigen::Matrix4f&           T_wc,
-      const Eigen::Matrix4f&           K,
-      const float*                     depth_map,
-      const Eigen::Vector2i&           image_size,
-      const float                      mu);
+      HashType*                 allocation_list,
+      size_t                    reserved,
+      OctreeT<TSDF::VoxelType>& map_index,
+      const Eigen::Matrix4f&    T_wc,
+      const Eigen::Matrix4f&    K,
+      const float*              depth_map,
+      const Eigen::Vector2i&    image_size,
+      const float               mu);
 
 
 
   /**
    * Integrate a depth image into the map.
    */
-  static inline void integrate(se::Octree<MultiresSDF::VoxelType>& map,
-                               const Sophus::SE3f&                 T_cw,
-                               const Eigen::Matrix4f&              K,
-                               const se::Image<float>&             depth,
-                               const float                         mu,
-                               const unsigned                      frame);
+  static inline void integrate(se::Octree<TSDF::VoxelType>& map,
+                               const Sophus::SE3f&          T_cw,
+                               const Eigen::Matrix4f&       K,
+                               const se::Image<float>&      depth,
+                               const float                  mu,
+                               const unsigned               frame);
 
 
 
@@ -105,21 +103,21 @@ struct MultiresSDF {
    * Cast a ray and return the point where the surface was hit.
    */
   static inline Eigen::Vector4f raycast(
-      const VolumeTemplate<MultiresSDF, se::Octree>& volume,
-      const Eigen::Vector3f&                         origin,
-      const Eigen::Vector3f&                         direction,
-      const float                                    tnear,
-      const float                                    tfar,
-      const float                                    mu,
-      const float                                    step,
-      const float                                    largestep);
+      const VolumeTemplate<TSDF, se::Octree>& volume,
+      const Eigen::Vector3f&                  origin,
+      const Eigen::Vector3f&                  direction,
+      const float                             tnear,
+      const float                             tfar,
+      const float                             mu,
+      const float                             step,
+      const float                             largestep);
 };
 
 
 
-#include "se/voxel_implementations/MultiresSDF/alloc_impl.hpp"
-#include "se/voxel_implementations/MultiresSDF/rendering_impl.hpp"
-#include "se/voxel_implementations/MultiresSDF/mapping_impl.hpp"
+#include "se/voxel_implementations/TSDF/alloc_impl.hpp"
+#include "se/voxel_implementations/TSDF/rendering_impl.hpp"
+#include "se/voxel_implementations/TSDF/mapping_impl.hpp"
 
 #endif
 

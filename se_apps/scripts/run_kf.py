@@ -1,8 +1,8 @@
 #!/usr/bin/python2
-from _run import * 
+from _run import *
 from systemsettings import *
 from datasets import *
-import numpy as np 
+import numpy as np
 
 TUM_RGB_FR1 = [TUM_RGB_FR1_XYZ, TUM_RGB_FR1_FLOOR, TUM_RGB_FR1_PLANT, TUM_RGB_FR1_DESK]
 TUM_RGB_FR2 = [TUM_RGB_FR2_DESK]
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # for sequence in ICL + TUM_RGB_FR1 + TUM_RGB_FR2 + TUM_RGB_FR3:
     for sequence in [ICL_NUIM_LIV_2, TUM_RGB_FR3_DESK]:
         for resol in [512]:
-            for version in ['sdf']:
+            for version in ['tsdf']:
                 kernel_data = []
                 mu = 0.1
                 algorithm.impl = version
@@ -59,7 +59,7 @@ if __name__ == "__main__":
                 'computation'))
         for k, d in run_results.iteritems():
             data = d['data']
-            f.write('{:>10}\t{:>10.4f}\t{:>10.4f}\t{:>10.4f}\t{:>10.4f}\t{:>10.4f}\t{:>10.4f}\n'.format(d['sequence'], 
+            f.write('{:>10}\t{:>10.4f}\t{:>10.4f}\t{:>10.4f}\t{:>10.4f}\t{:>10.4f}\t{:>10.4f}\n'.format(d['sequence'],
                         float(d['noise_factor']),
                         float(d['ate_mean']),
                         float(data['preprocessing']['mean']),

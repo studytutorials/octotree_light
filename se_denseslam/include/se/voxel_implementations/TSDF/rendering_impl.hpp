@@ -29,23 +29,23 @@
  *
  * */
 
-#ifndef __SDF_RENDERING_IMPL_HPP
-#define __SDF_RENDERING_IMPL_HPP
+#ifndef __TSDF_RENDERING_IMPL_HPP
+#define __TSDF_RENDERING_IMPL_HPP
 
 #include <se/utils/math_utils.h>
 #include <type_traits>
 
 
 
-inline Eigen::Vector4f SDF::raycast(
-    const VolumeTemplate<SDF, se::Octree>& volume,
-    const Eigen::Vector3f&                 origin,
-    const Eigen::Vector3f&                 direction,
-    const float                            tnear,
-    const float                            tfar,
-    const float                            mu,
-    const float                            step,
-    const float                            large_step) {
+inline Eigen::Vector4f TSDF::raycast(
+    const VolumeTemplate<TSDF, se::Octree>& volume,
+    const Eigen::Vector3f&                  origin,
+    const Eigen::Vector3f&                  direction,
+    const float                             tnear,
+    const float                             tfar,
+    const float                             mu,
+    const float                             step,
+    const float                             large_step) {
 
   auto select_depth = [](const auto& val){ return val.x; };
   if (tnear < tfar) {
@@ -57,7 +57,7 @@ inline Eigen::Vector4f SDF::raycast(
     float f_tt = 0;
     if (f_t > 0) { // ups, if we were already in it, then don't render anything here
       for (; t < tfar; t += step_size) {
-        SDF::VoxelType::VoxelData data = volume.get(position);
+        TSDF::VoxelType::VoxelData data = volume.get(position);
         if (data.y == 0) {
           step_size = large_step;
           position += step_size * direction;

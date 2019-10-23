@@ -36,7 +36,7 @@ endif()
 # se_denseslam/include/se/voxel_implementations/*/*.hpp. When adding a new
 # field type appending it to this list is enough to compile se-denseslam using
 # it.
-set(SUPEREIGHT_FIELD_TYPES SDF OFusion MultiresSDF)
+set(SUPEREIGHT_FIELD_TYPES TSDF OFusion MultiresTSDF)
 
 # The source files to compile
 set(se_src

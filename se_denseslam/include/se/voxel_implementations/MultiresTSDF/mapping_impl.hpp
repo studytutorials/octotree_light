@@ -29,15 +29,15 @@
  *
  * */
 
-#ifndef __MULTIRES_MAPPING_IMPL_HPP
-#define __MULTIRES_MAPPING_IMPL_HPP
+#ifndef __MULTIRESTSDF_MAPPING_IMPL_HPP
+#define __MULTIRESTSDF_MAPPING_IMPL_HPP
 
 #include <se/node.hpp>
 #include <se/octree.hpp>
 #include <se/image/image.hpp>
 #include <se/algorithms/filter.hpp>
 #include <se/functors/for_each.hpp>
-#include "MultiresSDF.hpp"
+#include "MultiresTSDF.hpp"
 
 
 
@@ -165,18 +165,18 @@ void propagate_up(se::Node<T>* node, const int max_depth,
 }
 
 template <typename FieldSelector>
-float interp(const se::Octree<MultiresSDF::VoxelType>& octree,
-             const se::VoxelBlock<MultiresSDF::VoxelType>* block,
+float interp(const se::Octree<MultiresTSDF::VoxelType>& octree,
+             const se::VoxelBlock<MultiresTSDF::VoxelType>* block,
              const Eigen::Vector3i& vox,
              const int scale,
              FieldSelector select,
              bool& valid) {
 
   // Compute base point in parent block
-  const int side   = se::VoxelBlock<MultiresSDF::VoxelType>::side >> (scale + 1);
+  const int side   = se::VoxelBlock<MultiresTSDF::VoxelType>::side >> (scale + 1);
   const int stride = 1 << (scale + 1);
 
-  const Eigen::Vector3f& offset = se::Octree<MultiresSDF::VoxelType>::_offset;
+  const Eigen::Vector3f& offset = se::Octree<MultiresTSDF::VoxelType>::_offset;
   Eigen::Vector3i base = stride * (vox.cast<float>()/stride - offset).cast<int>().cwiseMax(Eigen::Vector3i::Constant(0));
   base = (base.array() == side - 1).select(base - Eigen::Vector3i::Constant(1), base);
 
@@ -190,7 +190,7 @@ float interp(const se::Octree<MultiresSDF::VoxelType>& octree,
   for(int i = 0; i < 8; ++i) {
     if(weights[i] == 0) {
       valid = false;
-      return select(MultiresSDF::VoxelType::initValue());
+      return select(MultiresTSDF::VoxelType::initValue());
     }
   }
   valid = true;
@@ -349,9 +349,9 @@ void propagate_update(const se::Octree<T>& map,
                 * std::sqrt( 1 + se::math::sq(pos.x() / pos.z())
                     + se::math::sq(pos.y() / pos.z()));
               if (diff > -mu) {
-                const float sdf = fminf(1.f, diff/mu);
+                const float tsdf = fminf(1.f, diff/mu);
                 curr.x = se::math::clamp(
-                    (static_cast<float>(curr.y) * curr.x + sdf) / (static_cast<float>(curr.y) + 1.f),
+                    (static_cast<float>(curr.y) * curr.x + tsdf) / (static_cast<float>(curr.y) + 1.f),
                     -1.f, 1.f);
                 curr.y = fminf(curr.y + 1, maxweight);
                 curr.delta_y++;
@@ -370,7 +370,7 @@ void propagate_update(const se::Octree<T>& map,
 
 struct multires_block_update {
   multires_block_update(
-                  const se::Octree<MultiresSDF::VoxelType>& octree,
+                  const se::Octree<MultiresTSDF::VoxelType>& octree,
                   const Sophus::SE3f& T,
                   const Eigen::Matrix4f& calib,
                   const float vsize,
@@ -387,7 +387,7 @@ struct multires_block_update {
                   mu(m),
                   maxweight(mw) {}
 
-  const se::Octree<MultiresSDF::VoxelType>& map;
+  const se::Octree<MultiresTSDF::VoxelType>& map;
   const Sophus::SE3f& Tcw;
   const Eigen::Matrix4f& K;
   float voxel_size;
@@ -396,11 +396,11 @@ struct multires_block_update {
   float mu;
   int maxweight;
 
-  void operator()(se::VoxelBlock<MultiresSDF::VoxelType>* block) {
+  void operator()(se::VoxelBlock<MultiresTSDF::VoxelType>* block) {
 
     const float scaled_pix = (K.inverse() *
         (Eigen::Vector3f(1, 0 ,1) - Eigen::Vector3f(0, 0, 1)).homogeneous()).x();
-    constexpr int side = se::VoxelBlock<MultiresSDF::VoxelType>::side;
+    constexpr int side = se::VoxelBlock<MultiresTSDF::VoxelType>::side;
     const Eigen::Vector3i base = block->coordinates();
     const int last_scale = block->current_scale();
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
@@ -445,10 +445,10 @@ struct multires_block_update {
             * std::sqrt( 1 + se::math::sq(pos.x() / pos.z())
                 + se::math::sq(pos.y() / pos.z()));
           if (diff > -mu) {
-            const float sdf = fminf(1.f, diff/mu);
+            const float tsdf = fminf(1.f, diff/mu);
             auto data = block->data(pix, scale);
             data.x = se::math::clamp(
-                (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f),
+                (static_cast<float>(data.y) * data.x + tsdf) / (static_cast<float>(data.y) + 1.f),
                 -1.f, 1.f);
             data.y = fminf(data.y + 1, maxweight);
             data.delta_y++;
@@ -472,25 +472,25 @@ void integrate(se::Octree<T>& , const Sophus::SE3f& , const
     se::Image<float>& , float , int, const unsigned) {
 }
 
-static void integrate(se::Octree<MultiresSDF::VoxelType>& map, const Sophus::SE3f& Tcw, const
+static void integrate(se::Octree<MultiresTSDF::VoxelType>& map, const Sophus::SE3f& Tcw, const
     Eigen::Matrix4f& K, float voxelsize, const Eigen::Vector3f& offset, const
     se::Image<float>& depth, float mu, int maxweight, const unsigned frame) {
       // Filter visible blocks
       using namespace std::placeholders;
-      std::vector<se::VoxelBlock<MultiresSDF::VoxelType>*> active_list;
+      std::vector<se::VoxelBlock<MultiresTSDF::VoxelType>*> active_list;
       auto& block_array = map.getBlockBuffer();
-      auto is_active_predicate = [](const se::VoxelBlock<MultiresSDF::VoxelType>* b) {
+      auto is_active_predicate = [](const se::VoxelBlock<MultiresTSDF::VoxelType>* b) {
         return b->active();
       };
       const Eigen::Vector2i framesize(depth.width(), depth.height());
       const Eigen::Matrix4f Pcw = K*Tcw.matrix();
       auto in_frustum_predicate =
-        std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresSDF::VoxelType>>, _1,
+        std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresTSDF::VoxelType>>, _1,
             voxelsize, Pcw, framesize);
       se::algorithms::filter(active_list, block_array, is_active_predicate,
           in_frustum_predicate);
 
-      std::deque<Node<MultiresSDF::VoxelType>*> prop_list;
+      std::deque<Node<MultiresTSDF::VoxelType>*> prop_list;
       std::mutex deque_mutex;
       struct multires_block_update funct(map, Tcw, K, voxelsize,
           offset, depth, mu, maxweight);
@@ -501,7 +501,7 @@ static void integrate(se::Octree<MultiresSDF::VoxelType>& map, const Sophus::SE3
       }
 
       while(!prop_list.empty()) {
-        Node<MultiresSDF::VoxelType>* n = prop_list.front();
+        Node<MultiresTSDF::VoxelType>* n = prop_list.front();
         prop_list.pop_front();
         if(n->timestamp() == frame) continue;
         propagate_up(n, map.max_depth, frame);
@@ -513,18 +513,18 @@ static void integrate(se::Octree<MultiresSDF::VoxelType>& map, const Sophus::SE3
 
 
 
-inline void MultiresSDF::integrate(se::Octree<MultiresSDF::VoxelType>& map,
-                                   const Sophus::SE3f&                 T_cw,
-                                   const Eigen::Matrix4f&              K,
-                                   const se::Image<float>&             depth,
-                                   const float                         mu,
-                                   const unsigned                      frame) {
+inline void MultiresTSDF::integrate(se::Octree<MultiresTSDF::VoxelType>& map,
+                                    const Sophus::SE3f&                  T_cw,
+                                    const Eigen::Matrix4f&               K,
+                                    const se::Image<float>&              depth,
+                                    const float                          mu,
+                                    const unsigned                       frame) {
 
   const Eigen::Vector2i depth_size (depth.width(), depth.height());
   const float voxel_size =  map.dim() / map.size();
 
   se::multires::integrate(map, T_cw, K, voxel_size,
-      map._offset, depth, mu, MultiresSDF::max_weight, frame);
+      map._offset, depth, mu, MultiresTSDF::max_weight, frame);
 }
 
 

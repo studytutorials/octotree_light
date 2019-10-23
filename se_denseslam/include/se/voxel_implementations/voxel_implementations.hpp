@@ -29,9 +29,9 @@
 #ifndef __VOXEL_IMPLEMENTATIONS
 #define __VOXEL_IMPLEMENTATIONS
 
-#include "SDF/SDF.hpp"
+#include "TSDF/TSDF.hpp"
 #include "OFusion/OFusion.hpp"
-#include "MultiresSDF/MultiresSDF.hpp"
+#include "MultiresTSDF/MultiresTSDF.hpp"
 
 
 

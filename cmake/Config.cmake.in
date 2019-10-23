@@ -30,11 +30,11 @@
 #   add_executable(example1 example1.cpp)
 #   target_link_libraries(example1 ${SUPEREIGHT_CORE_LIBS})
 #
-# Example 2: Using the dense SLAM pipeline with SDF field type. The contents of
-# SUPEREIGHT_DENSESLAM_LIBS are: se-denseslam-sdf;se-denseslam-ofusion
+# Example 2: Using the dense SLAM pipeline with TSDF field type. The contents
+# of SUPEREIGHT_DENSESLAM_LIBS are: se-denseslam-tsdf;se-denseslam-ofusion
 #   find_package(supereight)
 #   add_executable(example2 example2.cpp)
-#   target_link_libraries(example2 ${SUPEREIGHT_CORE_LIBS} se-denseslam-sdf)
+#   target_link_libraries(example2 ${SUPEREIGHT_CORE_LIBS} se-denseslam-tsdf)
 
 @PACKAGE_INIT@
 

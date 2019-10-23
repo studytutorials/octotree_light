@@ -29,8 +29,8 @@
  *
  * */
 
-#ifndef __MULTIRESSDF_ALLOC_IMPL_HPP
-#define __MULTIRESSDF_ALLOC_IMPL_HPP
+#ifndef __MULTIRESTSDF_ALLOC_IMPL_HPP
+#define __MULTIRESTSDF_ALLOC_IMPL_HPP
 
 #include <se/utils/math_utils.h>
 #include <se/node.hpp>
@@ -56,15 +56,15 @@
  * \param band maximum extent of the allocating region, per ray
  */
 template <template <typename> class OctreeT, typename HashType>
-size_t MultiresSDF::buildAllocationList(
-    HashType*                        allocation_list,
-    size_t                           reserved,
-    OctreeT<MultiresSDF::VoxelType>& map_index,
-    const Eigen::Matrix4f&           T_wc,
-    const Eigen::Matrix4f&           K,
-    const float*                     depth_map,
-    const Eigen::Vector2i&           image_size,
-    const float                      mu) {
+size_t MultiresTSDF::buildAllocationList(
+    HashType*                         allocation_list,
+    size_t                            reserved,
+    OctreeT<MultiresTSDF::VoxelType>& map_index,
+    const Eigen::Matrix4f&            T_wc,
+    const Eigen::Matrix4f&            K,
+    const float*                      depth_map,
+    const Eigen::Vector2i&            image_size,
+    const float                       mu) {
 
   const float voxel_size = map_index.dim() / map_index.size();
   const float inverse_voxel_size = 1.f / voxel_size;
@@ -73,7 +73,7 @@ size_t MultiresSDF::buildAllocationList(
   const int volume_size = map_index.size();
   const int max_depth = log2(volume_size);
   const unsigned leaf_depth = max_depth
-      - se::math::log2_const(se::VoxelBlock<SDF::VoxelType>::side);
+      - se::math::log2_const(se::VoxelBlock<MultiresTSDF::VoxelType>::side);
   const float band = 2.f * mu;
 
 
@@ -113,7 +113,7 @@ size_t MultiresSDF::buildAllocationList(
             && (voxel_scaled.y() >= 0)
             && (voxel_scaled.z() >= 0)) {
           const Eigen::Vector3i voxel = voxel_scaled.cast<int>();
-          se::VoxelBlock<MultiresSDF::VoxelType> * node_ptr = map_index.fetch(
+          se::VoxelBlock<MultiresTSDF::VoxelType> * node_ptr = map_index.fetch(
               voxel.x(), voxel.y(), voxel.z());
           if (node_ptr == nullptr) {
             const HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),

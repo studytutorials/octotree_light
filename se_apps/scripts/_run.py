@@ -267,7 +267,7 @@ class KinectFusion(SLAMAlgorithm):
         self.camera = ''
         self.quat = None
 
-        self.impl = 'sdf'
+        self.impl = 'tsdf'
         self.dump_volume = ''
         #self.ate_remove_offset = True
         #self.ate_align = True
