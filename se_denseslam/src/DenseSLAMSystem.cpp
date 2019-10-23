@@ -298,26 +298,6 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
           volume_._map_index->_offset, float_depth_, mu, maxweight, frame);
       version = "multires";
     }
-
-    // if(frame > 160 && frame < 200) {
-    //   int slice_height = int(2.1f*discrete_vol_ptr_->size()/discrete_vol_ptr_->dim());
-    //   std::stringstream f;
-    //   f << "./slices/integration_" << version << "_" << std::setfill('0') << std::setw(4) <<  frame << ".vtk";
-    //   save3DSlice(*volume_._map_index,
-    //       Eigen::Vector3i(0, slice_height, 0),
-    //       Eigen::Vector3i(volume_._map_index->size(), slice_height + 1,volume_._map_index->size() ),
-    //       [](const auto& val) { return val.x; }, f.str().c_str());
-    //   f.str("");
-    //   f.clear();
-    // }
-
-    // if(frame % 30 == 0) {
-    //   std::stringstream f;
-    //   f << "./slices/octree_" << frame << ".ply";
-    //   se::print_octree(f.str().c_str(), *volume_._map_index);
-    //   f.str("");
-    //   f.clear();
-    // }
   } else {
     return false;
   }

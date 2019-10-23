@@ -39,56 +39,7 @@
 #include "bspline_lookup.cc"
 #include "OFusion.hpp"
 
-/**
- * Perform bilinear interpolation on a depth image. See
- * https://en.wikipedia.org/wiki/Bilinear_interpolation for more details.
- *
- * \param[in] depth The depth image to interpolate.
- * \param[in] proj The coordinates on the image at which the interpolation
- * should be computed.
- * \return The value of the interpolated depth at proj.
- */
-float interpDepth(const se::Image<float>& depth, const Eigen::Vector2f& proj) {
-  // https://en.wikipedia.org/wiki/Bilinear_interpolation
 
-  // Pixels version
-  const float x1 = (floorf(proj.x()));
-  const float y1 = (floorf(proj.y() + 1));
-  const float x2 = (floorf(proj.x() + 1));
-  const float y2 = (floorf(proj.y()));
-
-  const float d11 = depth(int(x1), int(y1));
-  const float d12 = depth(int(x1), int(y2));
-  const float d21 = depth(int(x2), int(y1));
-  const float d22 = depth(int(x2), int(y2));
-
-  if ( d11 == 0.f || d12 == 0.f || d21 == 0.f || d22 == 0.f )
-    return 0.f;
-
-  const float f11 = 1.f / d11;
-  const float f12 = 1.f / d12;
-  const float f21 = 1.f / d21;
-  const float f22 = 1.f / d22;
-
-  // Filtering version
-  const float d =  1.f /
-                    ( (   f11 * (x2 - proj.x()) * (y2 - proj.y())
-                        + f21 * (proj.x() - x1) * (y2 - proj.y())
-                        + f12 * (x2 - proj.x()) * (proj.y() - y1)
-                        + f22 * (proj.x() - x1) * (proj.y() - y1)
-                      ) / ((x2 - x1) * (y2 - y1))
-                    );
-
-  static const float interp_thresh = 0.05f;
-  if (fabs(d - d11) < interp_thresh
-      && fabs(d - d12) < interp_thresh
-      && fabs(d - d21) < interp_thresh
-      && fabs(d - d22) < interp_thresh) {
-    return d;
-  } else {
-    return depth(int(proj.x() + 0.5f), int(proj.y() + 0.5f));
-  }
-}
 
 /**
  * Compute the value of the q_cdf spline using a lookup table. This implements
