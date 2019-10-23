@@ -31,20 +31,19 @@
 
 
 
-/******************************************************************************
- *
- * Bayesian Fusion voxel traits and algorithm specificic defines
- *
-****************************************************************************/
-
+/** Occupancy mapping voxel implementation. */
 struct OFusion {
+  /** The voxel type used as the template parameter for se::Octree. */
   typedef struct {
-    float  x;
-    double y;
-  } VoxelData;
+    /** The struct stored in each se::Octree voxel. */
+    typedef struct  {
+      float  x; /** The occupancy value in log-odds. */
+      double y; /** The timestamp of the last update. */
+    } VoxelData;
 
-  static inline VoxelData empty()     { return {0.f, 0.f}; }
-  static inline VoxelData initValue() { return {0.f, 0.f}; }
+    static inline VoxelData empty()     { return {0.f, 0.f}; }
+    static inline VoxelData initValue() { return {0.f, 0.f}; }
+  } VoxelType;
 };
 
 // Windowing parameters

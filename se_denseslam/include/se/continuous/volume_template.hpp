@@ -49,8 +49,11 @@ template <typename FieldType, template<typename> class DiscreteMapT>
 class VolumeTemplate {
 
   public:
+    typedef typename FieldType::VoxelType VoxelType;
+    typedef typename FieldType::VoxelType::VoxelData VoxelData;
+
     VolumeTemplate(){};
-    VolumeTemplate(unsigned int r, float d, DiscreteMapT<FieldType>* m) :
+    VolumeTemplate(unsigned int r, float d, DiscreteMapT<VoxelType>* m) :
       _map_index(m) {
         _size = r;
         _extent = d;
@@ -61,15 +64,15 @@ class VolumeTemplate {
       return p.cast<float>() * voxelSize;
     }
 
-    void set(const  Eigen::Vector3f& , const typename FieldType::VoxelData& ) {}
+    void set(const  Eigen::Vector3f& , const VoxelData& ) {}
 
-    typename FieldType::VoxelData operator[](const Eigen::Vector3f& p) const {
+    VoxelData operator[](const Eigen::Vector3f& p) const {
       const float inverseVoxelSize = _size/_extent;
       const Eigen::Vector3i scaled_pos = (p * inverseVoxelSize).cast<int>();
       return _map_index->get(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
     }
 
-    typename FieldType::VoxelData get(const Eigen::Vector3f& p, const int scale = 0) const {
+    VoxelData get(const Eigen::Vector3f& p, const int scale = 0) const {
       const float inverseVoxelSize = _size/_extent;
       const Eigen::Vector4i scaled_pos = (inverseVoxelSize * p.homogeneous()).cast<int>();
         return _map_index->get_fine(scaled_pos.x(),
@@ -78,7 +81,7 @@ class VolumeTemplate {
                                     scale);
     }
 
-    typename FieldType::VoxelData operator[](const Eigen::Vector3i& p) const {
+    VoxelData operator[](const Eigen::Vector3i& p) const {
       return _map_index->get(p.x(), p.y(), p.z());
     }
 
@@ -135,7 +138,7 @@ class VolumeTemplate {
     unsigned int _size;
     float _extent;
     std::vector<se::key_t> _allocationList;
-    DiscreteMapT<FieldType> * _map_index;
+    DiscreteMapT<VoxelType> * _map_index;
 
   private:
 

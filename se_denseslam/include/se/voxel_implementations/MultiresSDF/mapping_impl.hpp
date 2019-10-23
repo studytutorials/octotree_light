@@ -161,18 +161,18 @@ void propagate_up(se::Node<T>* node, const int max_depth,
 }
 
 template <typename FieldSelector>
-float interp(const se::Octree<MultiresSDF>& octree,
-             const se::VoxelBlock<MultiresSDF>* block,
+float interp(const se::Octree<MultiresSDF::VoxelType>& octree,
+             const se::VoxelBlock<MultiresSDF::VoxelType>* block,
              const Eigen::Vector3i& vox,
              const int scale,
              FieldSelector select,
              bool& valid) {
 
   // Compute base point in parent block
-  const int side   = se::VoxelBlock<MultiresSDF>::side >> (scale + 1);
+  const int side   = se::VoxelBlock<MultiresSDF::VoxelType>::side >> (scale + 1);
   const int stride = 1 << (scale + 1);
 
-  const Eigen::Vector3f& offset = se::Octree<MultiresSDF>::_offset;
+  const Eigen::Vector3f& offset = se::Octree<MultiresSDF::VoxelType>::_offset;
   Eigen::Vector3i base = stride * (vox.cast<float>()/stride - offset).cast<int>().cwiseMax(Eigen::Vector3i::Constant(0));
   base = (base.array() == side - 1).select(base - Eigen::Vector3i::Constant(1), base);
 
@@ -186,7 +186,7 @@ float interp(const se::Octree<MultiresSDF>& octree,
   for(int i = 0; i < 8; ++i) {
     if(weights[i] == 0) {
       valid = false;
-      return select(MultiresSDF::initValue());
+      return select(MultiresSDF::VoxelType::initValue());
     }
   }
   valid = true;
@@ -366,7 +366,7 @@ void propagate_update(const se::Octree<T>& map,
 
 struct multires_block_update {
   multires_block_update(
-                  const se::Octree<MultiresSDF>& octree,
+                  const se::Octree<MultiresSDF::VoxelType>& octree,
                   const Sophus::SE3f& T,
                   const Eigen::Matrix4f& calib,
                   const float vsize,
@@ -383,7 +383,7 @@ struct multires_block_update {
                   mu(m),
                   maxweight(mw) {}
 
-  const se::Octree<MultiresSDF>& map;
+  const se::Octree<MultiresSDF::VoxelType>& map;
   const Sophus::SE3f& Tcw;
   const Eigen::Matrix4f& K;
   float voxel_size;
@@ -392,11 +392,11 @@ struct multires_block_update {
   float mu;
   int maxweight;
 
-  void operator()(se::VoxelBlock<MultiresSDF>* block) {
+  void operator()(se::VoxelBlock<MultiresSDF::VoxelType>* block) {
 
     const float scaled_pix = (K.inverse() *
         (Eigen::Vector3f(1, 0 ,1) - Eigen::Vector3f(0, 0, 1)).homogeneous()).x();
-    constexpr int side = se::VoxelBlock<MultiresSDF>::side;
+    constexpr int side = se::VoxelBlock<MultiresSDF::VoxelType>::side;
     const Eigen::Vector3i base = block->coordinates();
     const int last_scale = block->current_scale();
     int scale = compute_scale((base + Eigen::Vector3i::Constant(side/2)).cast<float>(),
@@ -468,25 +468,25 @@ void integrate(se::Octree<T>& , const Sophus::SE3f& , const
     se::Image<float>& , float , int, const unsigned) {
 }
 
-template <>void integrate(se::Octree<MultiresSDF>& map, const Sophus::SE3f& Tcw, const
+template <>void integrate(se::Octree<MultiresSDF::VoxelType>& map, const Sophus::SE3f& Tcw, const
     Eigen::Matrix4f& K, float voxelsize, const Eigen::Vector3f& offset, const
     se::Image<float>& depth, float mu, int maxweight, const unsigned frame) {
       // Filter visible blocks
       using namespace std::placeholders;
-      std::vector<se::VoxelBlock<MultiresSDF>*> active_list;
+      std::vector<se::VoxelBlock<MultiresSDF::VoxelType>*> active_list;
       auto& block_array = map.getBlockBuffer();
-      auto is_active_predicate = [](const se::VoxelBlock<MultiresSDF>* b) {
+      auto is_active_predicate = [](const se::VoxelBlock<MultiresSDF::VoxelType>* b) {
         return b->active();
       };
       const Eigen::Vector2i framesize(depth.width(), depth.height());
       const Eigen::Matrix4f Pcw = K*Tcw.matrix();
       auto in_frustum_predicate =
-        std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresSDF>>, _1,
+        std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresSDF::VoxelType>>, _1,
             voxelsize, Pcw, framesize);
       se::algorithms::filter(active_list, block_array, is_active_predicate,
           in_frustum_predicate);
 
-      std::deque<Node<MultiresSDF>*> prop_list;
+      std::deque<Node<MultiresSDF::VoxelType>*> prop_list;
       std::mutex deque_mutex;
       struct multires_block_update funct(map, Tcw, K, voxelsize,
           offset, depth, mu, maxweight);
@@ -497,7 +497,7 @@ template <>void integrate(se::Octree<MultiresSDF>& map, const Sophus::SE3f& Tcw,
       }
 
       while(!prop_list.empty()) {
-        Node<MultiresSDF>* n = prop_list.front();
+        Node<MultiresSDF::VoxelType>* n = prop_list.front();
         prop_list.pop_front();
         if(n->timestamp() == frame) continue;
         propagate_up(n, map.max_depth, frame);

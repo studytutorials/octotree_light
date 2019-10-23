@@ -366,7 +366,7 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
             weight /= num_samples;
             data.y = ceil(weight);
           } else {
-            data = MultiresSDF::initValue();
+            data = MultiresSDF::VoxelType::initValue();
           }
           data.delta_y = 0;
           block->data(curr, curr_scale + 1, data);
@@ -440,8 +440,8 @@ void foreach(float voxelsize, const std::vector<se::VoxelBlock<T>*>& active_list
 }
 
 template <typename T>
-std::vector<se::VoxelBlock<MultiresSDF>*> buildActiveList(se::Octree<T>& map, const camera_parameter& camera_parameter, float voxel_size) {
-  const se::MemoryPool<se::VoxelBlock<MultiresSDF> >& block_array =
+std::vector<se::VoxelBlock<MultiresSDF::VoxelType>*> buildActiveList(se::Octree<T>& map, const camera_parameter& camera_parameter, float voxel_size) {
+  const se::MemoryPool<se::VoxelBlock<MultiresSDF::VoxelType> >& block_array =
       map.getBlockBuffer();
   for(unsigned int i = 0; i < block_array.size(); ++i) {
     block_array[i]->active(false);
@@ -450,9 +450,9 @@ std::vector<se::VoxelBlock<MultiresSDF>*> buildActiveList(se::Octree<T>& map, co
   const Eigen::Matrix4f K = camera_parameter.K();
   const Eigen::Matrix4f Twc = camera_parameter.Twc();
   const Eigen::Matrix4f Tcw = (camera_parameter.Twc()).inverse();
-  std::vector<se::VoxelBlock<MultiresSDF>*> active_list;
+  std::vector<se::VoxelBlock<MultiresSDF::VoxelType>*> active_list;
   auto in_frustum_predicate =
-      std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresSDF>>, std::placeholders::_1,
+      std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresSDF::VoxelType>>, std::placeholders::_1,
                 voxel_size, K*Tcw, camera_parameter.imageSize());
   se::algorithms::filter(active_list, block_array, in_frustum_predicate);
   return active_list;
@@ -469,7 +469,7 @@ protected:
     Eigen::Matrix4f camera_pose = Eigen::Matrix4f::Identity();
     camera_parameter_ = camera_parameter(0.006, 1.95, image_size, camera_pose);
 
-    const int side = se::VoxelBlock<MultiresSDF>::side;
+    const int side = se::VoxelBlock<MultiresSDF::VoxelType>::side;
     for(int z = side/2; z < size_; z += side) {
       for(int y = side/2; y < size_; y += side) {
         for(int x = side/2; x < size_; x += side) {
@@ -488,12 +488,12 @@ protected:
   float* depth_image_;
   camera_parameter camera_parameter_;
 
-  typedef se::Octree<MultiresSDF> OctreeT;
+  typedef se::Octree<MultiresSDF::VoxelType> OctreeT;
   OctreeT oct_;
   int size_;
   float voxel_size_;
   float dim_;
-  std::vector<se::VoxelBlock<MultiresSDF>*> active_list_;
+  std::vector<se::VoxelBlock<MultiresSDF::VoxelType>*> active_list_;
   generate_depth_image generate_depth_image_;
 
 private:

@@ -48,6 +48,7 @@
 #include <se/ray_iterator.hpp>
 
 /* Raycasting implementations */
+#include "se/voxel_implementations/voxel_implementations.hpp"
 #include "se/voxel_implementations/OFusion/rendering_impl.hpp"
 #include "se/voxel_implementations/SDF/rendering_impl.hpp"
 #include "se/voxel_implementations/MultiresSDF/rendering_impl.hpp"
@@ -99,7 +100,7 @@ void raycastKernel(const Volume<T>&            volume,
       const Eigen::Vector3f dir =
           (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
       const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
-      se::ray_iterator<T> ray(*volume._map_index, transl, dir, near_plane, far_plane);
+      se::ray_iterator<typename T::VoxelType> ray(*volume._map_index, transl, dir, near_plane, far_plane);
       ray.next();
       const float t_min = ray.tcmin(); /* Get distance to the first intersected block */
       const Eigen::Vector4f hit = t_min > 0.f
@@ -173,7 +174,7 @@ void renderVolumeKernel(const Volume<T>&                  volume,
         const Eigen::Vector3f dir =
             (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
         const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
-        se::ray_iterator<T> ray(*volume._map_index, transl, dir, near_plane, far_plane);
+        se::ray_iterator<typename T::VoxelType> ray(*volume._map_index, transl, dir, near_plane, far_plane);
         ray.next();
         const float t_min = ray.tmin(); /* Get distance to the first intersected block */
         hit = t_min > 0.f

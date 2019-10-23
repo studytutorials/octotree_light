@@ -123,7 +123,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
 
     // ********* END : Generate the gaussian *************
 
-    discrete_vol_ptr_ = std::make_shared<se::Octree<FieldType> >();
+    discrete_vol_ptr_ = std::make_shared<se::Octree<FieldType::VoxelType> >();
     discrete_vol_ptr_->init(volume_resolution_.x(), volume_dimension_.x());
     volume_ = Volume<FieldType>(volume_resolution_.x(), volume_dimension_.x(),
         discrete_vol_ptr_.get());
@@ -224,7 +224,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
     float voxelsize =  volume_._extent/volume_._size;
-    int num_vox_per_pix = volume_._extent/((se::VoxelBlock<FieldType>::side)*voxelsize);
+    int num_vox_per_pix = volume_._extent/((se::VoxelBlock<FieldType::VoxelType>::side)*voxelsize);
     size_t total = num_vox_per_pix * computation_size_.x() *
       computation_size_.y();
     allocation_list_.reserve(total);
@@ -400,11 +400,11 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
     std::cout << "saving triangle mesh to file :" << filename  << std::endl;
 
     std::vector<Triangle> mesh;
-    auto inside = [](const FieldType::VoxelData& val) {
+    auto inside = [](const FieldType::VoxelType::VoxelData& val) {
       return val.x < 0.f;
     };
 
-    auto select = [](const FieldType::VoxelData& val) {
+    auto select = [](const FieldType::VoxelType::VoxelData& val) {
       return val.x;
     };
 

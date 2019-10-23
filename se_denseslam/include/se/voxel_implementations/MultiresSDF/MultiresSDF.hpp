@@ -32,22 +32,22 @@
 
 
 
-/******************************************************************************
- *
- * Multires TSDF voxel traits and algorithm specificic defines
- *
-****************************************************************************/
-
+/** Kinect Fusion Truncated Signed Distance Function voxel implementation for
+ * integration at multipe scales. */
 struct MultiresSDF {
+  /** The voxel type used as the template parameter for se::Octree. */
   typedef struct {
-    float x;
-    float x_last;
-    int   y;
-    int   delta_y;
-  } VoxelData;
+    /** The struct stored in each se::Octree voxel. */
+    typedef struct {
+      float x; /** The value of the TSDF. */
+      float x_last;
+      int   y;
+      int   delta_y;
+    } VoxelData;
 
-  static inline VoxelData empty()     { return {1.f, 1.f, 0, 0}; }
-  static inline VoxelData initValue() { return {1.f, 1.f, 0, 0}; }
+    static inline VoxelData empty()     { return {1.f, 1.f, 0, 0}; }
+    static inline VoxelData initValue() { return {1.f, 1.f, 0, 0}; }
+  } VoxelType;
 };
 
 #endif

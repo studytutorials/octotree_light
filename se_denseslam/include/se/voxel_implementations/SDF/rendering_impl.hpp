@@ -61,7 +61,7 @@ inline Eigen::Vector4f raycast(const Volume<SDF>&     volume,
     float f_tt = 0;
     if (f_t > 0) { // ups, if we were already in it, then don't render anything here
       for (; t < tfar; t += stepsize) {
-        SDF::VoxelData data = volume.get(position);
+        SDF::VoxelType::VoxelData data = volume.get(position);
         if (data.y == 0) {
           stepsize = largestep;
           position += stepsize*direction;

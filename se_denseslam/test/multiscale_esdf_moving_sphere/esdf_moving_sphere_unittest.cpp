@@ -73,7 +73,7 @@ class MultiscaleESDFMovingSphereTest : public ::testing::Test {
       oct_.allocate(alloc_list.data(), alloc_list.size());
     }
 
-  typedef se::Octree<MultiresSDF> OctreeT;
+  typedef se::Octree<MultiresSDF::VoxelType> OctreeT;
   OctreeT oct_;
   int center_;
   int radius_;
@@ -84,13 +84,13 @@ TEST_F(MultiscaleESDFMovingSphereTest, Fusion) {
   Eigen::Vector3f center = Eigen::Vector3f::Constant(center_);
   int scale = 0;
   float radius = this->radius_;
-  auto update_op = [&center, &scale, radius](se::VoxelBlock<MultiresSDF>* b) {
+  auto update_op = [&center, &scale, radius](se::VoxelBlock<MultiresSDF::VoxelType>* b) {
     update_block(b, center, radius, scale);
   };
 
   for(int i = 0; i < 5; ++i) {
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), update_op);
-    auto op = [](se::VoxelBlock<MultiresSDF>* b) { se::multires::propagate_up(b, 0); };
+    auto op = [](se::VoxelBlock<MultiresSDF::VoxelType>* b) { se::multires::propagate_up(b, 0); };
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), op);
 
     {
@@ -108,7 +108,7 @@ TEST_F(MultiscaleESDFMovingSphereTest, Fusion) {
   for(int i = 5; i < 10; ++i) {
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), update_op);
     auto& oct_ref = oct_;
-    auto op = [&oct_ref, scale](se::VoxelBlock<MultiresSDF>* b) { se::multires::propagate_down(oct_ref, b, scale, 0); };
+    auto op = [&oct_ref, scale](se::VoxelBlock<MultiresSDF::VoxelType>* b) { se::multires::propagate_down(oct_ref, b, scale, 0); };
     se::functor::internal::parallel_for_each(oct_.getBlockBuffer(), op);
 
     {

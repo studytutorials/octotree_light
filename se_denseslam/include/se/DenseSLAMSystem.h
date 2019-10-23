@@ -81,7 +81,7 @@ class DenseSLAMSystem {
     se::Image<Eigen::Vector3f> normal_;
 
     std::vector<se::key_t> allocation_list_;
-    std::shared_ptr<se::Octree<FieldType> > discrete_vol_ptr_;
+    std::shared_ptr<se::Octree<FieldType::VoxelType> > discrete_vol_ptr_;
     Volume<FieldType> volume_;
 
     // intra-frame
@@ -298,7 +298,7 @@ class DenseSLAMSystem {
     /*
      * TODO Document this.
      */
-    void getMap(std::shared_ptr<se::Octree<FieldType> >& out) {
+    void getMap(std::shared_ptr<se::Octree<FieldType::VoxelType> >& out) {
       out = discrete_vol_ptr_;
     }
 
