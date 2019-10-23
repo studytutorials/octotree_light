@@ -31,10 +31,11 @@ endif()
 
 
 
-# List of SE_FIELD_TYPE macro values. The elements of this list shuld coincide
-# with the names of the structs defined in
-# se_denseslam/include/se/volume_traits.cpp. When adding a new field type
-# appending it to this list is enough to compile se-denseslam using it.
+# List of SE_VOXEL_IMPLEMENTATION macro values. The elements of this list
+# should coincide with the names of the structs defined in
+# se_denseslam/include/se/voxel_implementations/*/*.hpp. When adding a new
+# field type appending it to this list is enough to compile se-denseslam using
+# it.
 set(SUPEREIGHT_FIELD_TYPES SDF OFusion MultiresSDF)
 
 # The source files to compile
@@ -44,13 +45,14 @@ set(se_src
   "./src/rendering.cpp"
   "./src/DenseSLAMSystem.cpp")
 
-# Iterate over each SE_FIELD_TYPE and compile the se-denseslam library for it.
+# Iterate over each SE_VOXEL_IMPLEMENTATION and compile the se-denseslam
+# library for it.
 foreach(field_type ${SUPEREIGHT_FIELD_TYPES})
   # Convert the field type name to lowercase for use in filenames.
   string(TOLOWER ${field_type} field_type_lc)
 
-  # Prepare the preprocessor SE_FIELD_TYPE macro.
-  set(field_type_macro SE_FIELD_TYPE=${field_type})
+  # Prepare the preprocessor SE_VOXEL_IMPLEMENTATION macro.
+  set(field_type_macro SE_VOXEL_IMPLEMENTATION=${field_type})
 
   # Prepare the library name.
   set(lib_name "${PROJECT_NAME}-${field_type_lc}")

@@ -176,7 +176,7 @@ int main(int argc, char ** argv) {
 		timings[0] = std::chrono::steady_clock::now();
 	}
 
-    std::shared_ptr<se::Octree<FieldType::VoxelType> > map_ptr;
+    std::shared_ptr<se::Octree<VoxelImpl::VoxelType> > map_ptr;
     pipeline.getMap(map_ptr);
     map_ptr->save("test.bin");
 

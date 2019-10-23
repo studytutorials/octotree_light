@@ -123,9 +123,9 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
 
     // ********* END : Generate the gaussian *************
 
-    discrete_vol_ptr_ = std::make_shared<se::Octree<FieldType::VoxelType> >();
+    discrete_vol_ptr_ = std::make_shared<se::Octree<VoxelImpl::VoxelType> >();
     discrete_vol_ptr_->init(volume_resolution_.x(), volume_dimension_.x());
-    volume_ = Volume<FieldType>(volume_resolution_.x(), volume_dimension_.x(),
+    volume_ = Volume<VoxelImpl>(volume_resolution_.x(), volume_dimension_.x(),
         discrete_vol_ptr_.get());
 }
 
@@ -224,7 +224,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
     float voxelsize =  volume_._extent/volume_._size;
-    int num_vox_per_pix = volume_._extent/((se::VoxelBlock<FieldType::VoxelType>::side)*voxelsize);
+    int num_vox_per_pix = volume_._extent/((se::VoxelBlock<VoxelImpl::VoxelType>::side)*voxelsize);
     size_t total = num_vox_per_pix * computation_size_.x() *
       computation_size_.y();
     allocation_list_.reserve(total);
@@ -233,7 +233,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
     const Eigen::Matrix4f& K   = getCameraMatrix(k);
     const Eigen::Vector2i  framesize(computation_size_.x(), computation_size_.y());
     unsigned int allocated = 0;
-    if(std::is_same<FieldType, SDF>::value) {
+    if(std::is_same<VoxelImpl, SDF>::value) {
      allocated  = buildAllocationList(allocation_list_.data(),
                                       allocation_list_.capacity(),
                                       *volume_._map_index, pose_,
@@ -242,7 +242,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
                                       computation_size_,
                                       volume_._size,
                                       voxelsize, 2*mu);
-    } else if(std::is_same<FieldType, OFusion>::value) {
+    } else if(std::is_same<VoxelImpl, OFusion>::value) {
      allocated = buildOctantList(allocation_list_.data(),
                                  allocation_list_.capacity(),
                                  *volume_._map_index,
@@ -254,7 +254,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
                                  compute_stepsize,
                                  step_to_depth,
                                  6*mu);
-    } else if(std::is_same<FieldType, MultiresSDF>::value) {
+    } else if(std::is_same<VoxelImpl, MultiresSDF>::value) {
      allocated  = buildAllocationList(allocation_list_.data(),
                                       allocation_list_.capacity(),
                                       *volume_._map_index,
@@ -270,7 +270,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
     volume_._map_index->allocate(allocation_list_.data(), allocated);
 
     std::string version;
-    if(std::is_same<FieldType, SDF>::value) {
+    if(std::is_same<VoxelImpl, SDF>::value) {
       struct sdf_update funct(float_depth_.data(), framesize, mu, maxweight);
       se::functor::projective_map(*volume_._map_index,
           volume_._map_index->_offset,
@@ -279,7 +279,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
           framesize,
           funct);
       version = "sdf";
-    } else if(std::is_same<FieldType, OFusion>::value) {
+    } else if(std::is_same<VoxelImpl, OFusion>::value) {
 
       float timestamp = (1.f/30.f)*frame;
       struct bfusion_update funct(float_depth_.data(),
@@ -293,7 +293,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k, unsigned int integra
           Eigen::Vector2i(computation_size_.x(), computation_size_.y()),
           funct);
       version = "ofusion";
-    } else if(std::is_same<FieldType, MultiresSDF>::value) {
+    } else if(std::is_same<VoxelImpl, MultiresSDF>::value) {
       se::multires::integrate(*volume_._map_index, Tcw, K, voxelsize,
           volume_._map_index->_offset, float_depth_, mu, maxweight, frame);
       version = "multires";
@@ -360,7 +360,7 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(),
       [](auto block) {
-        if(std::is_same<FieldType, MultiresSDF>::value) {
+        if(std::is_same<VoxelImpl, MultiresSDF>::value) {
           block->current_scale(block->min_scale());
         } else {
           block->current_scale(0);
@@ -400,11 +400,11 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
     std::cout << "saving triangle mesh to file :" << filename  << std::endl;
 
     std::vector<Triangle> mesh;
-    auto inside = [](const FieldType::VoxelType::VoxelData& val) {
+    auto inside = [](const VoxelImpl::VoxelType::VoxelData& val) {
       return val.x < 0.f;
     };
 
-    auto select = [](const FieldType::VoxelType::VoxelData& val) {
+    auto select = [](const VoxelImpl::VoxelType::VoxelData& val) {
       return val.x;
     };
 

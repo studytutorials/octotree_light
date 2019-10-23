@@ -45,12 +45,12 @@ class Void {};
  * Sparse, dynamically allocated storage accessed through the
  * appropriate indexer (octree/hash table).
  * */
-template <typename FieldType, template<typename> class DiscreteMapT>
+template <typename VoxelImpl, template<typename> class DiscreteMapT>
 class VolumeTemplate {
 
   public:
-    typedef typename FieldType::VoxelType VoxelType;
-    typedef typename FieldType::VoxelType::VoxelData VoxelData;
+    typedef typename VoxelImpl::VoxelType VoxelType;
+    typedef typename VoxelImpl::VoxelType::VoxelData VoxelData;
 
     VolumeTemplate(){};
     VolumeTemplate(unsigned int r, float d, DiscreteMapT<VoxelType>* m) :

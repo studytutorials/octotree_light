@@ -36,11 +36,11 @@
 
 
 /*
- * Use the SE_FIELD_TYPE macro to define the DenseSLAMSystem instance. Its
- * value should be the name of one of the structs defined in the included
- * headers above.
+ * Use the SE_VOXEL_IMPLEMENTATION macro to define the DenseSLAMSystem
+ * instance. Its value should be the name of one of the structs defined in the
+ * included headers above.
  */
-typedef SE_FIELD_TYPE FieldType;
+typedef SE_VOXEL_IMPLEMENTATION VoxelImpl;
 
 #endif
 

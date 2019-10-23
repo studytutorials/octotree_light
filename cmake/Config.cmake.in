@@ -10,17 +10,18 @@
 #     The libraries compiled from se-denseslam. Link against ONE of them if you
 #     want to use the supereight dense SLAM pipeline. Each one corresponds to
 #     the se-denseslam pipeline compiled for a different value of the
-#     SE_FIELD_TYPE macro. When linking against one of these libraries the
-#     value of the SE_FIELD_TYPE macro is set automatically.
+#     SE_VOXEL_IMPLEMENTATION macro. When linking against one of these
+#     libraries the value of the SE_VOXEL_IMPLEMENTATION macro is set
+#     automatically.
 #
 #     WARNING: Only one of the libraries in SUPEREIGHT_DENSESLAM_LIBS should be
 #     linked against in a single executable since each one sets the
-#     SE_FIELD_TYPE macro to a different value.
+#     SE_VOXEL_IMPLEMENTATION macro to a different value.
 #
 #   SUPEREIGHT_FIELD_TYPES
-#     The respective values of the SE_FIELD_TYPE macro for the libraries in
-#     SUPEREIGHT_DENSESLAM_LIBS. There is usually no need to manually define
-#     this macro.
+#     The respective values of the SE_VOXEL_IMPLEMENTATION macro for the
+#     libraries in SUPEREIGHT_DENSESLAM_LIBS. There is usually no need to
+#     manually define this macro.
 #
 #
 #
