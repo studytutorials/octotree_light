@@ -32,6 +32,8 @@
 #ifndef __OFUSION_MAPPING_IMPL_HPP
 #define __OFUSION_MAPPING_IMPL_HPP
 
+#include <algorithm>
+
 #include <se/node.hpp>
 #include <se/functors/projective_functor.hpp>
 #include <se/constant_parameters.h>
@@ -48,13 +50,14 @@
  * \param[in] t Where to compute the value of the spline at.
  * \return The value of the spline.
  */
-static inline float bspline_memoized(float t) {
+static inline float ofusion_bspline_memoized(float t) {
   float value = 0.f;
-  constexpr float inverseRange = 1/6.f;
+  constexpr float inverseRange = 1.f / 6.f;
   if (t >= -3.0f && t <= 3.0f) {
-    unsigned int idx = ((t + 3.f)*inverseRange)*(bspline_num_samples - 1) + 0.5f;
+    const unsigned int idx
+        = ((t + 3.f) * inverseRange) * (bspline_num_samples - 1) + 0.5f;
     return bspline_lookup[idx];
-  } else if(t > 3) {
+  } else if (t > 3.f) {
     value = 1.f;
   }
   return value;
@@ -71,9 +74,9 @@ static inline float bspline_memoized(float t) {
  * \param[in]
  * \return The occupancy probability.
  */
-static inline float H(const float val, const float) {
-  const float Q_1 = bspline_memoized(val);
-  const float Q_2 = bspline_memoized(val - 3);
+static inline float ofusion_H(const float val, const float) {
+  const float Q_1 = ofusion_bspline_memoized(val);
+  const float Q_2 = ofusion_bspline_memoized(val - 3);
   return Q_1 - Q_2 * 0.5f;
 }
 
@@ -83,7 +86,8 @@ static inline float H(const float val, const float) {
  * Perform a log-odds update of the occupancy probability. This implements
  * equations (8) and (9) from \cite VespaRAL18.
  */
-static inline float updateLogs(const float prior, const float sample) {
+static inline float ofusion_update_logs(const float prior,
+                                        const float sample) {
   return (prior + log2(sample / (1.f - sample)));
 }
 
@@ -93,10 +97,10 @@ static inline float updateLogs(const float prior, const float sample) {
  * Weight the occupancy by the time since the last update, acting as a
  * forgetting factor. This implements equation (10) from \cite VespaRAL18.
  */
-static inline float applyWindow(const float occupancy,
-                                const float,
-                                const float delta_t,
-                                const float tau) {
+static inline float ofusion_apply_window(const float occupancy,
+                                         const float,
+                                         const float delta_t,
+                                         const float tau) {
   float fraction = 1.f / (1.f + (delta_t / tau));
   fraction = std::max(0.5f, fraction);
   return occupancy * fraction;
@@ -134,27 +138,27 @@ struct bfusion_update {
                   const Eigen::Vector2f& pixel) {
 
     const Eigen::Vector2i px = pixel.cast <int> ();
-    const float depthSample = depth[px.x() + depth_size.x()*px.y()];
-    // Return on invalid depth measurement
-    if (depthSample <=  0)
+    const float depth_sample = depth[px.x() + depth_size.x() * px.y()];
+    // Return on invalid depth measurement.
+    if (depth_sample <= 0.f)
       return;
 
     // Compute the occupancy probability for the current measurement.
-    const float diff = (pos.z() - depthSample);
-    float sigma = se::math::clamp(mu * se::math::sq(pos.z()),
-        2*voxel_size, 0.05f);
-    float sample = H(diff/sigma, pos.z());
+    const float diff = (pos.z() - depth_sample);
+    const float sigma = se::math::clamp(mu * se::math::sq(pos.z()),
+        2 * voxel_size, 0.05f);
+    float sample = ofusion_H(diff / sigma, pos.z());
     if (sample == 0.5f)
       return;
     sample = se::math::clamp(sample, 0.03f, 0.97f);
 
     auto data = handler.get();
 
-    // Update the occupancy probability
+    // Update the occupancy probability.
     const double delta_t = timestamp - data.y;
-    data.x = applyWindow(data.x, OFusion::surface_boundary, delta_t, OFusion::tau);
-    data.x = se::math::clamp(updateLogs(data.x, sample),
-        OFusion::min_occupancy, OFusion::max_occupancy);
+    data.x = ofusion_apply_window(data.x, OFusion::surface_boundary, delta_t, OFusion::tau);
+    data.x = ofusion_update_logs(data.x, sample);
+    data.x = se::math::clamp(data.x, OFusion::min_occupancy, OFusion::max_occupancy);
     data.y = timestamp;
 
     handler.set(data);
@@ -181,3 +185,4 @@ void inline OFusion::integrate(se::Octree<OFusion::VoxelType>& map,
 }
 
 #endif
+

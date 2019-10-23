@@ -67,69 +67,72 @@ size_t SDF::buildAllocationList(
     const float              volume_extent,
     const float              mu) {
 
-  const float voxel_size =  volume_extent / volume_size;
-  const float band = 2 * mu;
-  const float inverseVoxelSize = 1 / voxel_size;
-  const unsigned block_scale = log2(volume_size)
+  const float voxel_size = volume_extent / volume_size;
+  const float inverse_voxel_size = 1 / voxel_size;
+  const Eigen::Matrix4f inv_K = K.inverse();
+  const Eigen::Matrix4f inv_P = T_wc * inv_K;
+  const int max_depth = log2(volume_size);
+  const unsigned leaf_depth = max_depth
       - se::math::log2_const(se::VoxelBlock<SDF::VoxelType>::side);
+  const float band = 2 * mu;
 
-  Eigen::Matrix4f invK = K.inverse();
-  const Eigen::Matrix4f kPose = T_wc * invK;
 
 
 #ifdef _OPENMP
-  std::atomic<unsigned int> voxelCount;
+  std::atomic<unsigned int> voxel_count;
 #else
-  unsigned int voxelCount;
+  unsigned int voxel_count;
 #endif
 
-  const Eigen::Vector3f camera = T_wc.topRightCorner<3, 1>();
-  const int numSteps = ceil(band*inverseVoxelSize);
-  voxelCount = 0;
+  const Eigen::Vector3f camera_pos = T_wc.topRightCorner<3, 1>();
+  const int num_steps = ceil(band * inverse_voxel_size);
+  voxel_count = 0;
 #pragma omp parallel for
   for (int y = 0; y < image_size.y(); ++y) {
     for (int x = 0; x < image_size.x(); ++x) {
-      if(depth_map[x + y*image_size.x()] == 0)
+      if (depth_map[x + y*image_size.x()] == 0.f)
         continue;
-      const float depth = depth_map[x + y*image_size.x()];
-      Eigen::Vector3f worldVertex = (kPose * Eigen::Vector3f((x + 0.5f) * depth,
+
+      const float depth = depth_map[x + y * image_size.x()];
+      const Eigen::Vector3f world_vertex = (inv_P * Eigen::Vector3f((x + 0.5f) * depth,
             (y + 0.5f) * depth, depth).homogeneous()).head<3>();
 
-      Eigen::Vector3f direction = (camera - worldVertex).normalized();
-      const Eigen::Vector3f origin = worldVertex - (band * 0.5f) * direction;
-      const Eigen::Vector3f step = (direction*band)/numSteps;
+      const Eigen::Vector3f direction = (camera_pos - world_vertex).normalized();
+      const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
+      const Eigen::Vector3f step = (direction * band) / num_steps;
 
-      Eigen::Vector3i voxel;
-      Eigen::Vector3f voxelPos = origin;
-      for (int i = 0; i < numSteps; i++) {
-        Eigen::Vector3f voxelScaled = (voxelPos * inverseVoxelSize).array().floor();
-        if ((voxelScaled.x() < volume_size)
-            && (voxelScaled.y() < volume_size)
-            && (voxelScaled.z() < volume_size)
-            && (voxelScaled.x() >= 0)
-            && (voxelScaled.y() >= 0)
-            && (voxelScaled.z() >= 0)) {
-          voxel = voxelScaled.cast<int>();
-          se::VoxelBlock<SDF::VoxelType> * n = map_index.fetch(voxel.x(),
-              voxel.y(), voxel.z());
-          if (!n) {
-            HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
-                block_scale);
-            unsigned int idx = voxelCount++;
-            if(idx < reserved) {
+      Eigen::Vector3f voxel_pos = origin;
+      for (int i = 0; i < num_steps; i++) {
+
+        const Eigen::Vector3f voxel_scaled = (voxel_pos * inverse_voxel_size).array().floor();
+
+        if (   (voxel_scaled.x() < volume_size)
+            && (voxel_scaled.y() < volume_size)
+            && (voxel_scaled.z() < volume_size)
+            && (voxel_scaled.x() >= 0)
+            && (voxel_scaled.y() >= 0)
+            && (voxel_scaled.z() >= 0)) {
+          const Eigen::Vector3i voxel = voxel_scaled.cast<int>();
+          se::VoxelBlock<SDF::VoxelType> * node_ptr = map_index.fetch(
+              voxel.x(), voxel.y(), voxel.z());
+          if (node_ptr == nullptr) {
+            const HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
+                leaf_depth);
+            const unsigned int idx = voxel_count++;
+            if (idx < reserved) {
               allocation_list[idx] = k;
             } else {
               break;
             }
           } else {
-            n->active(true);
+            node_ptr->active(true);
           }
         }
-        voxelPos +=step;
+        voxel_pos += step;
       }
     }
   }
-  const size_t written = voxelCount;
+  const size_t written = voxel_count;
   return written >= reserved ? reserved : written;
 }
 

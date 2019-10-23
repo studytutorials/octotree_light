@@ -45,22 +45,22 @@ inline Eigen::Vector4f SDF::raycast(
     const float                            tfar,
     const float                            mu,
     const float                            step,
-    const float                            largestep) {
+    const float                            large_step) {
 
   auto select_depth = [](const auto& val){ return val.x; };
   if (tnear < tfar) {
     // first walk with largesteps until we found a hit
     float t = tnear;
-    float stepsize = largestep;
+    float step_size = large_step;
     Eigen::Vector3f position = origin + direction * t;
     float f_t = volume.interp(position, select_depth).first;
     float f_tt = 0;
     if (f_t > 0) { // ups, if we were already in it, then don't render anything here
-      for (; t < tfar; t += stepsize) {
+      for (; t < tfar; t += step_size) {
         SDF::VoxelType::VoxelData data = volume.get(position);
         if (data.y == 0) {
-          stepsize = largestep;
-          position += stepsize*direction;
+          step_size = large_step;
+          position += step_size * direction;
           continue;
         }
         f_tt = data.x;
@@ -69,12 +69,13 @@ inline Eigen::Vector4f SDF::raycast(
         }
         if (f_tt < 0)                  // got it, jump out of inner loop
           break;
-        stepsize = fmaxf(f_tt * mu, step);
-        position += stepsize*direction;
+        step_size = fmaxf(f_tt * mu, step);
+        position += step_size * direction;
         f_t = f_tt;
       }
-      if (f_tt < 0) {           // got it, calculate accurate intersection
-        t = t + stepsize * f_tt / (f_t - f_tt);
+      if (f_tt < 0) {
+        // got it, calculate accurate intersection
+        t = t + step_size * f_tt / (f_t - f_tt);
         Eigen::Vector4f res = (origin + direction * t).homogeneous();
         res.w() = 0.f;
         return res;

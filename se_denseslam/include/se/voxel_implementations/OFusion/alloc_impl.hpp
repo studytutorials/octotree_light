@@ -80,13 +80,12 @@ size_t OFusion::buildAllocationList(
     const float                  volume_extent,
     const float                  mu) {
 
-  const float voxel_size =  volume_extent / volume_size;
+  const float voxel_size = volume_extent / volume_size;
   const float inverse_voxel_size = 1.f / voxel_size;
-  Eigen::Matrix4f inv_K = K.inverse();
+  const Eigen::Matrix4f inv_K = K.inverse();
   const Eigen::Matrix4f inv_P = T_wc * inv_K;
-  const int size = map_index.size();
-  const int max_depth = log2(size);
-  const int leaves_depth = max_depth
+  const int max_depth = log2(volume_size);
+  const int leaf_depth = max_depth
       - se::math::log2_const(OctreeT<OFusion::VoxelType>::blockSide);
 
 #ifdef _OPENMP
@@ -101,44 +100,45 @@ size_t OFusion::buildAllocationList(
 #pragma omp parallel for
   for (int y = 0; y < image_size.y(); ++y) {
     for (int x = 0; x < image_size.x(); ++x) {
-      if(depth_map[x + y*image_size.x()] == 0) {
+      if (depth_map[x + y * image_size.x()] == 0) {
         continue;
       }
       int tree_depth = max_depth;
       float stepsize = voxel_size;
-      const float depth = depth_map[x + y*image_size.x()];
-      Eigen::Vector3f world_vertex = (inv_P * Eigen::Vector3f((x + 0.5f) * depth,
+      const float depth = depth_map[x + y * image_size.x()];
+      const Eigen::Vector3f world_vertex = (inv_P * Eigen::Vector3f((x + 0.5f) * depth,
             (y + 0.5f) * depth, depth).homogeneous()).head<3>();
 
-      Eigen::Vector3f direction = (camera_pos - world_vertex).normalized();
+      const Eigen::Vector3f direction = (camera_pos - world_vertex).normalized();
       const float sigma = se::math::clamp(mu * se::math::sq(depth), 2 * voxel_size, 0.05f);
       const float band = 2 * sigma;
       const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
       const float dist = (camera_pos - origin).norm();
-      Eigen::Vector3f step = direction*stepsize;
+      Eigen::Vector3f step = direction * stepsize;
 
       Eigen::Vector3f voxel_pos = origin;
       float travelled = 0.f;
       for (; travelled < dist; travelled += stepsize) {
 
-        Eigen::Vector3f voxel_scaled = (voxel_pos * inverse_voxel_size).array().floor();
-        if ((voxel_scaled.x() < size)
-            && (voxel_scaled.y() < size)
-            && (voxel_scaled.z() < size)
+        const Eigen::Vector3f voxel_scaled
+            = (voxel_pos * inverse_voxel_size).array().floor();
+        if (   (voxel_scaled.x() < volume_size)
+            && (voxel_scaled.y() < volume_size)
+            && (voxel_scaled.z() < volume_size)
             && (voxel_scaled.x() >= 0)
             && (voxel_scaled.y() >= 0)
             && (voxel_scaled.z() >= 0)) {
           const Eigen::Vector3i voxel = voxel_scaled.cast<int>();
-          auto node_ptr = map_index.fetch_octant(voxel.x(), voxel.y(), voxel.z(),
-              tree_depth);
-          if (!node_ptr) {
-            HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
-                std::min(tree_depth, leaves_depth));
-            unsigned int idx = voxel_count++;
-            if(idx < reserved) {
+          auto node_ptr = map_index.fetch_octant(
+              voxel.x(), voxel.y(), voxel.z(), tree_depth);
+          if (node_ptr == nullptr) {
+            const HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
+                std::min(tree_depth, leaf_depth));
+            const unsigned int idx = voxel_count++;
+            if (idx < reserved) {
               allocation_list[idx] = k;
             }
-          } else if (tree_depth >= leaves_depth) {
+          } else if (tree_depth >= leaf_depth) {
             static_cast<se::VoxelBlock<OFusion::VoxelType>*>(node_ptr)->active(true);
           }
         }
@@ -146,8 +146,8 @@ size_t OFusion::buildAllocationList(
         stepsize = ofusion_compute_stepsize(travelled, band, voxel_size);
         tree_depth = ofusion_step_to_depth(stepsize, max_depth, voxel_size);
 
-        step = direction*stepsize;
-        voxel_pos +=step;
+        step = direction * stepsize;
+        voxel_pos += step;
       }
     }
   }

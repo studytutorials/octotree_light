@@ -66,7 +66,7 @@ struct SDF {
   /**
    * The maximum value of the weight factor SDF::VoxelType::VoxelData::y.
    */
-  static constexpr int max_weight = 100;
+  static constexpr float max_weight = 100.f;
 
 
 

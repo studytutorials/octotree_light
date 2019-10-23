@@ -45,39 +45,40 @@ inline Eigen::Vector4f MultiresSDF::raycast(
     const float                                    tfar,
     const float                                    mu,
     const float                                    step,
-    const float                                    largestep) {
+    const float                                    large_step) {
 
   auto select_depth = [](const auto& val){ return val.x; };
   if (tnear < tfar) {
     // first walk with largesteps until we found a hit
     float t = tnear;
-    float stepsize = largestep;
+    float step_size = large_step;
     Eigen::Vector3f position = origin + direction * t;
     const int scale = 0;
     auto interp_res = volume.interp(position, scale, select_depth);
     float f_t = interp_res.first;
     float f_tt = 0;
     if (f_t > 0) { // ups, if we were already in it, then don't render anything here
-      for (; t < tfar; t += stepsize) {
+      for (; t < tfar; t += step_size) {
         auto data = volume.get(position, scale);
         if (data.y == 0) {
-          stepsize = largestep;
-          position += stepsize*direction;
+          step_size = large_step;
+          position += step_size * direction;
           continue;
         }
         f_tt = data.x;
-        if(f_tt <= 0.1 && f_tt >= -0.5f) {
+        if (f_tt <= 0.1 && f_tt >= -0.5f) {
           interp_res = volume.interp(position, scale, select_depth);
           f_tt = interp_res.first;
         }
-        if (f_tt < 0)                  // got it, jump out of inner loop
+        if (f_tt < 0.f)                  // got it, jump out of inner loop
           break;
-        stepsize = fmaxf(f_tt * mu, step);
-        position += stepsize*direction;
+        step_size = fmaxf(f_tt * mu, step);
+        position += step_size * direction;
         f_t = f_tt;
       }
-      if (f_tt < 0) {           // got it, calculate accurate intersection
-        t = t + stepsize * f_tt / (f_t - f_tt);
+      if (f_tt < 0.f) {
+        // got it, calculate accurate intersection
+        t = t + step_size * f_tt / (f_t - f_tt);
         Eigen::Vector4f res = (origin + direction * t).homogeneous();
         res.w() = interp_res.second;
         return res;

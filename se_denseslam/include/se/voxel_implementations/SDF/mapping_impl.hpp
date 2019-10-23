@@ -29,8 +29,10 @@
  *
  * */
 
-#ifndef _SDF_MAPPING_IMPL_HPP
-#define _SDF_MAPPING_IMPL_HPP
+#ifndef __SDF_MAPPING_IMPL_HPP
+#define __SDF_MAPPING_IMPL_HPP
+
+#include <algorithm>
 
 #include <se/octree.hpp>
 #include <se/node.hpp>
@@ -60,21 +62,19 @@ struct sdf_update {
                   const Eigen::Vector2f& pixel) {
 
     const Eigen::Vector2i px = pixel.cast<int>();
-    const float depthSample = depth[px.x() + depth_size.x()*px.y()];
+    const float depth_sample = depth[px.x() + depth_size.x() * px.y()];
     // Return on invalid depth measurement
-    if (depthSample <=  0)
+    if (depth_sample <= 0.f)
       return;
 
     // Update the TSDF
-    const float diff = (depthSample - pos.z())
-      * std::sqrt( 1 + se::math::sq(pos.x() / pos.z()) + se::math::sq(pos.y() / pos.z()));
+    const float diff = (depth_sample - pos.z())
+      * std::sqrt(1 + se::math::sq(pos.x() / pos.z()) + se::math::sq(pos.y() / pos.z()));
     if (diff > -mu) {
-      const float sdf = fminf(1.f, diff / mu);
+      const float tsdf_new = fminf(1.f, diff / mu);
       auto data = handler.get();
-      data.x = se::math::clamp(
-          (static_cast<float>(data.y) * data.x + sdf) / (static_cast<float>(data.y) + 1.f),
-          -1.f,
-          1.f);
+      data.x = (data.y * data.x + tsdf_new) / (data.y + 1.f);
+      data.x = se::math::clamp(data.x, -1.f, 1.f);
       data.y = fminf(data.y + 1, SDF::max_weight);
       handler.set(data);
     }

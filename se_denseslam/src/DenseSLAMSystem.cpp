@@ -219,9 +219,9 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 
-    const float voxelsize =  volume_._extent/volume_._size;
+    const float voxel_size = volume_._extent / volume_._size;
     const int num_vox_per_pix = volume_._extent
-        / ((se::VoxelBlock<VoxelImpl::VoxelType>::side)*voxelsize);
+        / ((se::VoxelBlock<VoxelImpl::VoxelType>::side) * voxel_size);
     const size_t total = num_vox_per_pix
         * computation_size_.x() * computation_size_.y();
     allocation_list_.reserve(total);
