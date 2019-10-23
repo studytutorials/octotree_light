@@ -100,18 +100,18 @@ struct ExampleVoxelImpl {
    *
    * \warning The function signature must not be changed.
    */
-  template <template <typename> class OctreeT, typename HashType>
+  template <typename HashType>
   static size_t buildAllocationList(
-      HashType*                             allocation_list,
-      size_t                                reserved,
-      OctreeT<ExampleVoxelImpl::VoxelType>& map_index,
-      const Eigen::Matrix4f&                T_wc,
-      const Eigen::Matrix4f&                K,
-      const float*                          depth_map,
-      const Eigen::Vector2i&                image_size,
-      const unsigned int                    volume_size,
-      const float                           volume_extent,
-      const float                           mu);
+      HashType*                                allocation_list,
+      size_t                                   reserved,
+      se::Octree<ExampleVoxelImpl::VoxelType>& map_index,
+      const Eigen::Matrix4f&                   T_wc,
+      const Eigen::Matrix4f&                   K,
+      const float*                             depth_map,
+      const Eigen::Vector2i&                   image_size,
+      const unsigned int                       volume_size,
+      const float                              volume_extent,
+      const float                              mu);
 
 
 

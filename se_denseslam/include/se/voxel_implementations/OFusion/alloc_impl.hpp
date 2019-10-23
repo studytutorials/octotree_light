@@ -67,16 +67,16 @@ static inline int ofusion_step_to_depth(const float step,
 
 
 
-template <template <typename> class OctreeT, typename HashType>
+template <typename HashType>
 size_t OFusion::buildAllocationList(
-    HashType*                    allocation_list,
-    size_t                       reserved,
-    OctreeT<OFusion::VoxelType>& map_index,
-    const Eigen::Matrix4f&       T_wc,
-    const Eigen::Matrix4f&       K,
-    const float*                 depth_map,
-    const Eigen::Vector2i&       image_size,
-    const float                  mu) {
+    HashType*                       allocation_list,
+    size_t                          reserved,
+    se::Octree<OFusion::VoxelType>& map_index,
+    const Eigen::Matrix4f&          T_wc,
+    const Eigen::Matrix4f&          K,
+    const float*                    depth_map,
+    const Eigen::Vector2i&          image_size,
+    const float                     mu) {
 
   const float voxel_size = map_index.dim() / map_index.size();
   const float inverse_voxel_size = 1.f / voxel_size;
@@ -85,7 +85,7 @@ size_t OFusion::buildAllocationList(
   const int volume_size = map_index.size();
   const int max_depth = log2(volume_size);
   const int leaf_depth = max_depth
-      - se::math::log2_const(OctreeT<OFusion::VoxelType>::blockSide);
+      - se::math::log2_const(se::Octree<OFusion::VoxelType>::blockSide);
 
 #ifdef _OPENMP
   std::atomic<unsigned int> voxel_count;

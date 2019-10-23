@@ -74,16 +74,16 @@ struct TSDF {
    * Compute the VoxelBlocks and Nodes that need to be allocated given the
    * camera pose.
    */
-  template <template <typename> class OctreeT, typename HashType>
+  template <typename HashType>
   static size_t buildAllocationList(
-      HashType*                 allocation_list,
-      size_t                    reserved,
-      OctreeT<TSDF::VoxelType>& map_index,
-      const Eigen::Matrix4f&    T_wc,
-      const Eigen::Matrix4f&    K,
-      const float*              depth_map,
-      const Eigen::Vector2i&    image_size,
-      const float               mu);
+      HashType*                    allocation_list,
+      size_t                       reserved,
+      se::Octree<TSDF::VoxelType>& map_index,
+      const Eigen::Matrix4f&       T_wc,
+      const Eigen::Matrix4f&       K,
+      const float*                 depth_map,
+      const Eigen::Vector2i&       image_size,
+      const float                  mu);
 
 
 
@@ -110,7 +110,7 @@ struct TSDF {
       const float                             tfar,
       const float                             mu,
       const float                             step,
-      const float                             largestep);
+      const float                             large_step);
 };
 
 

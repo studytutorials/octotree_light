@@ -54,16 +54,16 @@
  * \param voxelSize spacing between two consegutive voxels, in metric space
  * \param band maximum extent of the allocating region, per ray
  */
-template <template <typename> class OctreeT, typename HashType>
+template <typename HashType>
 size_t TSDF::buildAllocationList(
-    HashType*                 allocation_list,
-    size_t                    reserved,
-    OctreeT<TSDF::VoxelType>& map_index,
-    const Eigen::Matrix4f&    T_wc,
-    const Eigen::Matrix4f&    K,
-    const float*              depth_map,
-    const Eigen::Vector2i&    image_size,
-    const float               mu) {
+    HashType*                    allocation_list,
+    size_t                       reserved,
+    se::Octree<TSDF::VoxelType>& map_index,
+    const Eigen::Matrix4f&       T_wc,
+    const Eigen::Matrix4f&       K,
+    const float*                 depth_map,
+    const Eigen::Vector2i&       image_size,
+    const float                  mu) {
 
   const float voxel_size = map_index.dim() / map_index.size();
   const float inverse_voxel_size = 1.f / voxel_size;
@@ -72,7 +72,7 @@ size_t TSDF::buildAllocationList(
   const int volume_size = map_index.size();
   const int max_depth = log2(volume_size);
   const unsigned leaf_depth = max_depth
-      - se::math::log2_const(se::VoxelBlock<TSDF::VoxelType>::side);
+      - se::math::log2_const(se::Octree<TSDF::VoxelType>::blockSide);
   const float band = 2.f * mu;
 
 
