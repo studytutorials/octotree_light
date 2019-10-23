@@ -214,10 +214,10 @@ void renderVolumeKernel(const Volume<T>&                  volume,
 
 
 
-static inline void printNormals(const se::Image<Eigen::Vector3f>& in,
-                                const unsigned int                x_dim,
-                                const unsigned int                y_dim,
-                                const char*                       filename);
+inline void printNormals(const se::Image<Eigen::Vector3f>& in,
+                         const unsigned int                x_dim,
+                         const unsigned int                y_dim,
+                         const char*                       filename);
 
 
 

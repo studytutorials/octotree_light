@@ -143,10 +143,10 @@ void renderTrackKernel(unsigned char*         out,
 
 
 
-static inline void printNormals(const se::Image<Eigen::Vector3f>& in,
-                                const unsigned int                x_dim,
-                                const unsigned int                y_dim,
-                                const char*                       filename) {
+inline void printNormals(const se::Image<Eigen::Vector3f>& in,
+                         const unsigned int                x_dim,
+                         const unsigned int                y_dim,
+                         const char*                       filename) {
 
   unsigned char* image = new unsigned char [x_dim * y_dim * 4];
   for (unsigned int y = 0; y < y_dim; ++y) {

@@ -46,7 +46,7 @@ namespace meshing {
       const char* filename, const Eigen::Vector3f& init_pose) {
     std::stringstream points;
     int num_points = 0;
-    for(int i = 0; i < mesh.size(); ++i ){
+    for(size_t i = 0; i < mesh.size(); ++i ){
       const Triangle& t = mesh[i];
       for(int j = 0; j < 3; ++j) {
         points << t.vertexes[j].x() - init_pose.x() << " "
