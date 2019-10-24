@@ -37,8 +37,7 @@
 #include <cstring>
 #include <Eigen/Dense>
 
-template <typename T>
-class Void {};
+
 
 /**
  * Continuous volume abstraction

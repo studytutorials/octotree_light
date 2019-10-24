@@ -197,17 +197,6 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned in
         raycast_pose_ * getInverseCameraMatrix(k), nearPlane,
         farPlane, mu, step, step*BLOCK_SIDE);
     doRaycast = true;
-
-    // std::stringstream s;
-    // s << "./out/point_cloud_" << frame;
-    // savePointCloud(vertex_.data(), vertex_.size(), s.str().c_str(),
-    //     init_pose_);
-
-    // s.str("");
-    // s.clear();
-    // s << "./out/normal_cloud_" << frame;
-    // savePointCloud(normal_.data(), normal_.size(), s.str().c_str(),
-    //     init_pose_);
   }
   return doRaycast;
 }

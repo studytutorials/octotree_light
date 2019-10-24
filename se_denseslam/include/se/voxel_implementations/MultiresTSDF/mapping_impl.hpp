@@ -223,7 +223,7 @@ void propagate_down(const se::Octree<T>& map,
                     se::VoxelBlock<T>* block,
                     const int scale,
                     const int min_scale,
-                    const int maxweight = INT_MAX) {
+                    const int max_weight = INT_MAX) {
   const Eigen::Vector3i base = block->coordinates();
   const int side = se::VoxelBlock<T>::side;
   for(int curr_scale = scale; curr_scale > min_scale; --curr_scale) {
@@ -249,7 +249,7 @@ void propagate_down(const se::Octree<T>& map,
                   curr.delta_y = 0;
                 } else {
                   curr.x  =  std::max(curr.x + delta_x, -1.f);
-                  curr.y  =  fminf(curr.y + data.delta_y, maxweight);
+                  curr.y  =  fminf(curr.y + data.delta_y, max_weight);
                   curr.delta_y = data.delta_y;
                 }
                 block->data(vox, curr_scale - 1, curr);
@@ -276,7 +276,7 @@ void propagate_update(const se::Octree<T>& map,
                     const Eigen::Vector3f& offset,
                     const se::Image<float>& depth,
                     float mu,
-                    int maxweight,
+                    int max_weight,
                     const int scale) {
 
   const int side = se::VoxelBlock<T>::side;
@@ -313,7 +313,7 @@ void propagate_update(const se::Octree<T>& map,
                 curr.delta_y = 0;
               } else {
                 curr.x  =  se::math::clamp(curr.x + delta_x, -1.f, 1.f);
-                curr.y  =  fminf(curr.y + data.delta_y, maxweight);
+                curr.y  =  fminf(curr.y + data.delta_y, max_weight);
                 curr.delta_y = data.delta_y;
               }
 
@@ -353,7 +353,7 @@ void propagate_update(const se::Octree<T>& map,
                 curr.x = se::math::clamp(
                     (static_cast<float>(curr.y) * curr.x + tsdf) / (static_cast<float>(curr.y) + 1.f),
                     -1.f, 1.f);
-                curr.y = fminf(curr.y + 1, maxweight);
+                curr.y = fminf(curr.y + 1, max_weight);
                 curr.delta_y++;
               }
               block->data(vox, scale, curr);
@@ -385,7 +385,7 @@ struct multires_block_update {
                   offset(off),
                   depth(d),
                   mu(m),
-                  maxweight(mw) {}
+                  max_weight(mw) {}
 
   const se::Octree<MultiresTSDF::VoxelType>& map;
   const Sophus::SE3f& Tcw;
@@ -394,7 +394,7 @@ struct multires_block_update {
   const Eigen::Vector3f& offset;
   const se::Image<float>& depth;
   float mu;
-  int maxweight;
+  int max_weight;
 
   void operator()(se::VoxelBlock<MultiresTSDF::VoxelType>* block) {
 
@@ -408,7 +408,7 @@ struct multires_block_update {
     scale = std::max(last_scale - 1, scale);
     block->min_scale(block->min_scale() < 0 ? scale : std::min(block->min_scale(), scale));
     if(last_scale > scale) {
-      propagate_update(map, block, Tcw, K, voxel_size, offset, depth, mu, maxweight, scale);
+      propagate_update(map, block, Tcw, K, voxel_size, offset, depth, mu, max_weight, scale);
       return;
     }
 
@@ -450,7 +450,7 @@ struct multires_block_update {
             data.x = se::math::clamp(
                 (static_cast<float>(data.y) * data.x + tsdf) / (static_cast<float>(data.y) + 1.f),
                 -1.f, 1.f);
-            data.y = fminf(data.y + 1, maxweight);
+            data.y = fminf(data.y + 1, max_weight);
             data.delta_y++;
             block->data(pix, scale, data);
           }
@@ -474,7 +474,7 @@ void integrate(se::Octree<T>& , const Sophus::SE3f& , const
 
 static void integrate(se::Octree<MultiresTSDF::VoxelType>& map, const Sophus::SE3f& Tcw, const
     Eigen::Matrix4f& K, float voxelsize, const Eigen::Vector3f& offset, const
-    se::Image<float>& depth, float mu, int maxweight, const unsigned frame) {
+    se::Image<float>& depth, float mu, int max_weight, const unsigned frame) {
       // Filter visible blocks
       using namespace std::placeholders;
       std::vector<se::VoxelBlock<MultiresTSDF::VoxelType>*> active_list;
@@ -493,7 +493,7 @@ static void integrate(se::Octree<MultiresTSDF::VoxelType>& map, const Sophus::SE
       std::deque<Node<MultiresTSDF::VoxelType>*> prop_list;
       std::mutex deque_mutex;
       struct multires_block_update funct(map, Tcw, K, voxelsize,
-          offset, depth, mu, maxweight);
+          offset, depth, mu, max_weight);
       se::functor::internal::parallel_for_each(active_list, funct);
 
       for(const auto& b : active_list) {
