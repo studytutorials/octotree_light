@@ -1,0 +1,9 @@
+image: sotirisp/supereight-testing:latest
+
+pipelines:
+  default:
+    - step:
+        script:
+          - make
+          - GTEST_ROOT=/usr/local/src/googletest/googletest/ make test
+
