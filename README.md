@@ -46,7 +46,7 @@ The following packages are required to build the `se-denseslam` library:
 * Eigen3
 * Sophus
 * OpenMP (optional)
-* GTest
+* googletest (for unit tests)
 
 The benchmarking and GUI apps additionally require:
 * GLut
@@ -78,6 +78,15 @@ desired, with ONE of the libraries in the `SUPEREIGHT_DENSESLAM_LIBS` CMake
 variable.  More information about the variables defined by using
 `find_package(supereight)` along with usage examples can be found in
 [cmake/Config.cmake.in](cmake/Config.cmake.in).
+
+# Running unit tests
+The unit tests use googletest. It must be compiled with the same flags as
+supereight and the environment variable `GTEST_ROOT` set to the path which
+contains the googletest library. To compile and run the tests, assuming
+googletest was compiled in `~/googletest/googletest`, run:
+```
+GTEST_ROOT=~/googletest/googletest make test
+```
 
 # Usage example
 To run one of the apps in se_apps you need to first produce an input file. We
