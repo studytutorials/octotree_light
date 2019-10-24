@@ -31,73 +31,78 @@
 #include "../utils/math_utils.h"
 #include "../node.hpp"
 
-/*! \brief Provide a generic way to get and set the data of both intermediate
- * (Node) and leaf (VoxelBlock) Octree nodes.
- */
-template <typename SpecialisedHandlerT, typename NodeT>
-class DataHandlerBase {
-  typename NodeT::VoxelData get() {
-    return static_cast<SpecialisedHandlerT *>(this)->get();
-  }
 
-  void set(const typename NodeT::VoxelData& val) {
-    static_cast<SpecialisedHandlerT *>(this)->set(val);
-  }
-};
 
-/*! \brief Get and set the data of a single voxel.
- */
-template<typename FieldType>
-class VoxelBlockHandler :
-  DataHandlerBase<VoxelBlockHandler<FieldType>, se::VoxelBlock<FieldType> > {
+namespace se {
 
-public:
-  /*!
-   * \param[in] ptr Pointer to the VoxelBlock.
-   * \param[in] v Coordinates of the voxel to get/set the data of. The elements
-   * of v must be in the in the interval [0, BLOCK_SIDE-1].
+  /*! \brief Provide a generic way to get and set the data of both intermediate
+   * (Node) and leaf (VoxelBlock) Octree nodes.
    */
-  VoxelBlockHandler(se::VoxelBlock<FieldType>* ptr, Eigen::Vector3i v) :
-    _block(ptr), _voxel(v) {}
+  template <typename SpecialisedHandlerT, typename NodeT>
+    class DataHandlerBase {
+      typename NodeT::VoxelData get() {
+        return static_cast<SpecialisedHandlerT *>(this)->get();
+      }
 
-  typename se::VoxelBlock<FieldType>::VoxelData get() {
-    return _block->data(_voxel);
-  }
+      void set(const typename NodeT::VoxelData& val) {
+        static_cast<SpecialisedHandlerT *>(this)->set(val);
+      }
+    };
 
-  void set(const typename se::VoxelBlock<FieldType>::VoxelData& val) {
-    _block->data(_voxel, val);
-  }
+  /*! \brief Get and set the data of a single voxel.
+  */
+  template<typename FieldType>
+    class VoxelBlockHandler :
+      DataHandlerBase<VoxelBlockHandler<FieldType>, se::VoxelBlock<FieldType> > {
 
-  private:
-    se::VoxelBlock<FieldType> * _block;
-    Eigen::Vector3i _voxel;
-};
+        public:
+          /*!
+           * \param[in] ptr Pointer to the VoxelBlock.
+           * \param[in] v Coordinates of the voxel to get/set the data of. The
+           * elements of v must be in the in the interval [0, BLOCK_SIDE-1].
+           */
+          VoxelBlockHandler(se::VoxelBlock<FieldType>* ptr, Eigen::Vector3i v) :
+            _block(ptr), _voxel(v) {}
 
-/*! \brief Get and set the data of a child of an intermediate (Node) Octree
- * node.
- */
-template<typename FieldType>
-class NodeHandler: DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> > {
-  public:
-    /*!
-     * \param[in] ptr Pointer to the Node.
-     * \param[in] i Index of the child node to get/set the data of. i must be
-     * in the in the interval [0, 7].
-     */
-    NodeHandler(se::Node<FieldType>* ptr, int i) : _node(ptr), _idx(i) {}
+          typename se::VoxelBlock<FieldType>::VoxelData get() {
+            return _block->data(_voxel);
+          }
 
-    typename se::Node<FieldType>::VoxelData get() {
-      return _node->value_[_idx];
-    }
+          void set(const typename se::VoxelBlock<FieldType>::VoxelData& val) {
+            _block->data(_voxel, val);
+          }
 
-    void set(const typename se::Node<FieldType>::VoxelData& val) {
-      _node->value_[_idx] = val;
-    }
+        private:
+          se::VoxelBlock<FieldType> * _block;
+          Eigen::Vector3i _voxel;
+      };
 
-  private:
-    se::Node<FieldType> * _node;
-    int _idx;
-};
+  /*! \brief Get and set the data of a child of an intermediate (Node) Octree
+   * node.
+   */
+  template<typename FieldType>
+    class NodeHandler: DataHandlerBase<NodeHandler<FieldType>, se::Node<FieldType> > {
+      public:
+        /*!
+         * \param[in] ptr Pointer to the Node.
+         * \param[in] i Index of the child node to get/set the data of. i must
+         * be in the in the interval [0, 7].
+         */
+        NodeHandler(se::Node<FieldType>* ptr, int i) : _node(ptr), _idx(i) {}
 
+        typename se::Node<FieldType>::VoxelData get() {
+          return _node->value_[_idx];
+        }
+
+        void set(const typename se::Node<FieldType>::VoxelData& val) {
+          _node->value_[_idx] = val;
+        }
+
+      private:
+        se::Node<FieldType> * _node;
+        int _idx;
+    };
+
+} // namespace se
 
 #endif
