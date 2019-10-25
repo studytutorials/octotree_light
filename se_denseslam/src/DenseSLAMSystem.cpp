@@ -123,20 +123,25 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
         discrete_vol_ptr_.get());
 }
 
-bool DenseSLAMSystem::preprocessing(const unsigned short * inputDepth,
-    const Eigen::Vector2i& inputSize, const bool filterInput){
 
-    mm2metersKernel(float_depth_, inputDepth, inputSize);
-    if(filterInput){
-        bilateralFilterKernel(scaled_depth_[0], float_depth_, gaussian_,
-            e_delta, radius);
-    }
-    else {
+
+bool DenseSLAMSystem::preprocessing(const uint16_t*        input_depth,
+                                    const Eigen::Vector2i& input_size,
+                                    const bool             filter_depth){
+
+    mm2metersKernel(float_depth_, input_depth, input_size);
+
+    if (filter_depth) {
+      bilateralFilterKernel(scaled_depth_[0], float_depth_, gaussian_,
+          e_delta, radius);
+    } else {
       std::memcpy(scaled_depth_[0].data(), float_depth_.data(),
           sizeof(float) * computation_size_.x() * computation_size_.y());
     }
 	return true;
 }
+
+
 
 bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k,
     float icp_threshold, unsigned tracking_rate, unsigned frame) {

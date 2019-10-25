@@ -35,6 +35,7 @@
 #ifndef _KERNELS_
 #define _KERNELS_
 
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -107,7 +108,7 @@ class DenseSLAMSystem {
      * reconstructed volume in meters.
      * \param[in] initPose The x, y and z coordinates of the initial camera
      * position. The camera orientation is assumed to be aligned with the axes.
-     * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
+     * \param[in] pyramid See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
     DenseSLAMSystem(const Eigen::Vector2i& inputSize,
@@ -125,7 +126,7 @@ class DenseSLAMSystem {
      * \param[in] volume_dimension_ The x, y and z dimensions of the
      * reconstructed volume in meters.
      * \param[in] initPose The initial camera pose encoded in a 4x4 matrix.
-     * \param[in] pyramid TODO See ::Configuration.pyramid for more details.
+     * \param[in] pyramid See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
     DenseSLAMSystem(const Eigen::Vector2i& inputSize,
@@ -139,24 +140,25 @@ class DenseSLAMSystem {
      * Preprocess a single depth measurement frame and add it to the pipeline.
      * This is the first stage of the pipeline.
      *
-     * \param[in] inputDepth Pointer to the depth frame.
-     * \param[in] inputSize Size of the depth frame in pixels (width and
+     * \param[in] input_depth Pointer to the depth frame data. Each pixel is
+     * represented by a single uint16_t.
+     * \param[in] input_size Size of the depth frame in pixels (width and
      * height).
-     * \param[in] filterInput Whether to filter the frame using a bilateral
-     * filter to reduce the measurement noise.
+     * \param[in] filter_depth Whether to filter the depth frame using a
+     * bilateral filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessing(const unsigned short * inputDepth,
-                       const Eigen::Vector2i& inputSize,
-                       const bool             filterInput);
+    bool preprocessing(const uint16_t*        input_depth,
+                       const Eigen::Vector2i& input_size,
+                       const bool             filter_depth);
 
     /*
      * TODO Implement this.
      */
-    bool preprocessing(const unsigned short*  inputDepth,
-                       const unsigned char*   inputRGB,
-                       const Eigen::Vector2i& inputSize,
-                       const bool             filterInput);
+    bool preprocessing(const uint16_t*        input_depth,
+                       const uint8_t*         input_RGB,
+                       const Eigen::Vector2i& input_size,
+                       const bool             filter_depth);
 
     /**
      * Update the camera pose. Create a 3D reconstruction from the current
