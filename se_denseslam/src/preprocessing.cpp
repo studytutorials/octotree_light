@@ -36,6 +36,8 @@
 
 #include <se/preprocessing.hpp>
 
+#include <cassert>
+
 
 
 void bilateralFilterKernel(se::Image<float>&         out,
@@ -252,5 +254,56 @@ void halfSampleRobustImageKernel(se::Image<float>&       out,
     }
   }
   TOCK("halfSampleRobustImageKernel", out.width() * out.height());
+}
+
+
+
+void downsampleImageKernel(const uint8_t*         input_RGB,
+                           const Eigen::Vector2i& input_size,
+                           se::Image<uint32_t>&   output_RGBA) {
+
+  TICK();
+  // Check for correct image sizes.
+  assert((input_size.x() >= output_RGBA.width())
+      && "Error: input width must be greater than output width");
+  assert((input_size.y() >= output_RGBA.height())
+      && "Error: input height must be greater than output height");
+  assert((input_size.x() % output_RGBA.width() == 0)
+      && "Error: input width must be an integer multiple of output width");
+  assert((input_size.y() % output_RGBA.height() == 0)
+      && "Error: input height must be an integer multiple of output height");
+  assert((input_size.x() / output_RGBA.width() == input_size.y() / output_RGBA.height())
+      && "Error: input and output width and height ratios must be the same");
+
+  const int ratio = input_size.x() / output_RGBA.width();
+  // Iterate over each output pixel.
+#pragma omp parallel for
+  for (int y_out = 0; y_out < output_RGBA.height(); ++y_out) {
+    for (int x_out = 0; x_out < output_RGBA.width(); ++x_out) {
+
+      // Average the neighboring pixels by iterating over the nearby input
+      // pixels.
+      uint16_t r = 0, g = 0, b = 0;
+      for (int yy = 0; yy < ratio; ++yy) {
+        for (int xx = 0; xx < ratio; ++xx) {
+          const int x_in = x_out * ratio + xx;
+          const int y_in = y_out * ratio + yy;
+          r += input_RGB[3 * (x_in + input_size.x() * y_in)    ];
+          g += input_RGB[3 * (x_in + input_size.x() * y_in) + 1];
+          b += input_RGB[3 * (x_in + input_size.x() * y_in) + 2];
+        }
+      }
+      r /= ratio * ratio;
+      g /= ratio * ratio;
+      b /= ratio * ratio;
+
+      // Combine into a uint32_t by adding an alpha channel with 100% opacity.
+      // It is stored in big-endian order in all common CPUs so the alpha
+      // channel is stored in the MSB and the red channel in the LSB.
+      const uint32_t pixel = (255 << 24) + (b << 16) + (g <<  8) +  r;
+      output_RGBA[x_out + output_RGBA.width() * y_out] = pixel;
+    }
+  }
+  TOCK("downsampleImageKernel", output_RGBA.width() * output_RGBA.height());
 }
 

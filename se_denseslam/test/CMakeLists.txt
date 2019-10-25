@@ -12,6 +12,7 @@ enable_testing()
 set(CMAKE_CXX_STANDARD 14)
 include_directories(
 	../../se_core/include
+	../../se_shared/include
     ../include/se
 	../include
     ${EIGEN3_INCLUDE_DIR}
@@ -20,3 +21,4 @@ include_directories(
 
 add_subdirectory(multiscale_esdf_moving_sphere)
 add_subdirectory(multiscale_tsdf_moving_camera)
+add_subdirectory(preprocessing)

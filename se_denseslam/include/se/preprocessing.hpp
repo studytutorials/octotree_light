@@ -37,8 +37,11 @@
 #ifndef __PREPROCESSING_HPP
 #define __PREPROCESSING_HPP
 
+#include <cstdint>
+
+#include <Eigen/Dense>
+
 #include <se/timings.h>
-#include <se/perfstats.h>
 #include <se/commons.h>
 #include <se/utils/math_utils.h>
 #include <se/image/image.hpp>
@@ -85,6 +88,22 @@ void halfSampleRobustImageKernel(se::Image<float>&       out,
                                  const se::Image<float>& in,
                                  const float             e_d,
                                  const int               r);
+
+
+/**
+ * Downsample an RGB image and copy into an se::Image class.
+ *
+ * \param[in] input_RGB Pointer to the RGB image data, 3 channels, 8 bits per
+ * channel.
+ * \param[in] input_size Size of the RGB image in pixels (width and height).
+ * \param[out] output_RGB Object to store the output image to. The output image
+ * dimensions must be an integer multiple of the input image dimensions. The
+ * data for each pixel is stored in ARGB order, with the alpha channel in the
+ * MSB of the uint32_t and the red channel in the LSB of the uint32_t.
+ */
+void downsampleImageKernel(const uint8_t*         input_RGB,
+                           const Eigen::Vector2i& input_size,
+                           se::Image<uint32_t>&   output_RGBA);
 
 #endif
 
