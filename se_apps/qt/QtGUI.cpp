@@ -77,7 +77,7 @@ static bool loopEnabled = false;
 void setLoopMode(bool value) {
 	loopEnabled = value;
 }
-//Should we have a powerMonitor in the main code we can 
+//Should we have a powerMonitor in the main code we can
 extern PowerMonitor *powerMonitor;
 
 // We can pass this to the QT and it will allow us to change features in the DenseSLAMSystem
@@ -214,7 +214,7 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 
 //This function is passed to QT and is called whenever we aren't busy i.e in a constant loop
 void qtIdle(void) {
-	//This will set the view for rendering the model, either to the tracked camera view or the static view    
+	//This will set the view for rendering the model, either to the tracked camera view or the static view
   Eigen::Matrix4f pose = (rot * trans).matrix();
 	if (usePOV)
 		(*pipeline_pp)->setViewPose(); //current position as found by track
@@ -235,7 +235,7 @@ void qtIdle(void) {
 			reset = false;
 		}
 	} else {
-		//If we aren't reading 
+		//If we aren't reading
 		if ((*reader_pp == NULL) || !(*reader_pp)->cameraOpen
 				|| !(*reader_pp)->cameraActive)
 			if (forceRender) {
@@ -293,7 +293,7 @@ void dumpPowerLog() {
 
 void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 		DepthReader **_depthReader, Configuration *_config, void *depthRender,
-		void *trackRender, void *volumeRender, void *inputRGB) {
+		void *trackRender, void *volumeRender, void *RGBARender) {
 	pipeline_pp = _pipe;
 	config = _config;
 	reader_pp = _depthReader;
@@ -369,7 +369,7 @@ appWindow	->addButtonChoices("Compute Res",
 	int height = (
 			((*reader_pp) == NULL) ? 480 : ((*reader_pp)->getinputSize()).y);
 
-	FImage rgbImage = { width, height, GL_RGB, GL_UNSIGNED_BYTE, inputRGB };
+	FImage rgbImage = { cwidth, cheight, GL_RGBA, GL_UNSIGNED_BYTE, RGBARender };
 	FImage depthImage =
 			{ cwidth, cheight, GL_RGBA, GL_UNSIGNED_BYTE, depthRender };
 	FImage trackImage =
@@ -397,7 +397,7 @@ appWindow	->addButtonChoices("Compute Res",
 			(const char*) "Performance Statistics", &statsEnabled);
 	appWindow->viewers->setStatEntry("Performance", { "X", "Y", "Z", "tracked",
 			"integrated", "frame" }, false);
-	//this is the default field used for calculating the frame rate    
+	//this is the default field used for calculating the frame rate
 	appWindow->setFrameRateField((char *) "computation");
 
 	if (powerMonitor != NULL && powerMonitor->isActive()) {
@@ -407,7 +407,7 @@ appWindow	->addButtonChoices("Compute Res",
 		appWindow->viewers->setStatEntry("Energy", { "Sample_time" }, false);
 	}
 
-	//There are a number of options  to set a range you can use either a slider a dial or a buttonChoice    
+	//There are a number of options  to set a range you can use either a slider a dial or a buttonChoice
 	appWindow->addButtonChoices("Track", 1, 5, &(config->tracking_rate));
 	appWindow->addButtonChoices("Integrate", 1, 5, &(config->integration_rate));
 	appWindow->addButtonChoices("Render", 1, 5, &(config->rendering_rate));

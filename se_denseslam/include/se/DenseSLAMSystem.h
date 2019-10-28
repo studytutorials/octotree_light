@@ -305,6 +305,18 @@ class DenseSLAMSystem {
     void renderDepth(unsigned char*         out,
                      const Eigen::Vector2i& outputSize);
 
+    /**
+     * Render the RGB frame currently in the pipeline.
+     *
+     * \param[out] output_RGBA Pointer to an array containing the rendered
+     * frame, 4 channels, 8 bits per channel. The array must be allocated
+     * before calling this function.
+     * \param[in] output_size The dimensions of the output image (width and
+     * height in pixels).
+     */
+    void renderRGBA(uint8_t*               output_RGBA,
+                    const Eigen::Vector2i& output_size);
+
     //
     // Getters
     //

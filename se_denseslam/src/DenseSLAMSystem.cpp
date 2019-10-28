@@ -293,6 +293,16 @@ void DenseSLAMSystem::renderDepth(unsigned char* out,
         renderDepthKernel(out, float_depth_.data(), outputSize, nearPlane, farPlane);
 }
 
+
+
+void DenseSLAMSystem::renderRGBA(uint8_t*               output_RGBA,
+                                 const Eigen::Vector2i& output_size) {
+
+  renderRGBAKernel(output_RGBA, output_size, rgba_);
+}
+
+
+
 void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(),

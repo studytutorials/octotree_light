@@ -37,6 +37,8 @@
 #ifndef __RENDERING_HPP
 #define __RENDERING_HPP
 
+#include <cstdint>
+
 #include <sophus/se3.hpp>
 
 #include <se/utils/math_utils.h>
@@ -125,6 +127,12 @@ void raycastKernel(const Volume<T>&            volume,
   }
   TOCK("raycastKernel", vertex.width() * vertex.height());
 }
+
+
+
+void renderRGBAKernel(uint8_t*                   output_RGBA,
+                      const Eigen::Vector2i&     output_size,
+                      const se::Image<uint32_t>& input_RGBA);
 
 
 

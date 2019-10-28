@@ -36,6 +36,20 @@
 
 #include <se/rendering.hpp>
 
+#include <cstring>
+
+
+void renderRGBAKernel(uint8_t*                   output_RGBA,
+                      const Eigen::Vector2i&     output_size,
+                      const se::Image<uint32_t>& input_RGBA) {
+
+  TICK();
+
+  memcpy(output_RGBA, input_RGBA.data(), output_size.x() * output_size.y() * 4);
+
+  TOCK("renderRGBAKernel", output_size.x() * output_size.y());
+}
+
 
 
 void renderDepthKernel(unsigned char*         out,

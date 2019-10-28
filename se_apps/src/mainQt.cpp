@@ -37,6 +37,7 @@ PerfStats Stats;
 PowerMonitor *powerMonitor = NULL;
 uint16_t * inputDepth = NULL;
 static uchar3 * inputRGB = NULL;
+static uchar4 * RGBARender = NULL;
 static uchar4 * depthRender = NULL;
 static uchar4 * trackRender = NULL;
 static uchar4 * volumeRender = NULL;
@@ -62,7 +63,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipeline,
 		DepthReader **_depthReader, Configuration *config, void *depthRender,
-		void *trackRender, void *volumeModel, void *inputRGB);
+		void *trackRender, void *volumeModel, void *RGBARender);
 
 void storeStats(int frame,
     std::chrono::time_point<std::chrono::steady_clock> *timings,
@@ -111,6 +112,8 @@ int main(int argc, char ** argv) {
         (uint16_t*) malloc(sizeof(uint16_t) * inputSize.x*inputSize.y);
 	inputRGB =
         (uchar3*) malloc(sizeof(uchar3) * inputSize.x*inputSize.y);
+	RGBARender =
+        (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
 	depthRender =
         (uchar4*) malloc(sizeof(uchar4) * computationSize.x*computationSize.y);
 	trackRender =
@@ -140,15 +143,15 @@ int main(int argc, char ** argv) {
 	//We can opt to not run the gui which would be faster
 	if (!config.no_gui) {
 #ifdef __QT__
-		qtLinkKinectQt(argc,argv, &pipeline, &reader, &config, depthRender, trackRender, volumeRender, inputRGB);
+		qtLinkKinectQt(argc,argv, &pipeline, &reader, &config, depthRender, trackRender, volumeRender, RGBARender);
 #else
 		if ((reader == NULL) || (reader->cameraActive == false)) {
 			std::cerr << "No valid input file specified\n";
 			exit(1);
 		}
 		while (processAll(reader, true, true, &config, false) == 0) {
-			drawthem(inputRGB, depthRender, trackRender, volumeRender,
-					trackRender, inputSize, computationSize,
+			drawthem(RGBARender, depthRender, trackRender, volumeRender,
+					trackRender, computationSize, computationSize,
                     computationSize, computationSize);
 		}
 #endif
@@ -192,6 +195,7 @@ int main(int argc, char ** argv) {
 	//  =========  FREE BASIC BUFFERS  =========
 
 	free(inputDepth);
+	free(RGBARender);
 	free(depthRender);
 	free(trackRender);
 	free(volumeRender);
@@ -248,7 +252,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 		timings[1] = std::chrono::steady_clock::now();
 
-		pipeline->preprocessing(inputDepth,
+		pipeline->preprocessing(inputDepth, (uint8_t*) inputRGB,
 			Eigen::Vector2i(inputSize.x, inputSize.y),
 			config->bilateralFilter);
 
@@ -286,6 +290,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		timings[5] = std::chrono::steady_clock::now();
 	}
 	if (renderImages) {
+		pipeline->renderRGBA((uint8_t*) RGBARender, pipeline->getComputationResolution());
 		pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
 		pipeline->renderTrack((unsigned char*)trackRender, pipeline->getComputationResolution());
 		pipeline->renderVolume((unsigned char*)volumeRender, pipeline->getComputationResolution(),
