@@ -69,7 +69,8 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
   config_(config),
   vertex_(computation_size_.x(), computation_size_.y()),
   normal_(computation_size_.x(), computation_size_.y()),
-  float_depth_(computation_size_.x(), computation_size_.y())
+  float_depth_(computation_size_.x(), computation_size_.y()),
+  rgba_(computation_size_.x(), computation_size_.y())
   {
 
     this->init_pose_ = initPose.block<3,1>(0,3);
@@ -139,6 +140,19 @@ bool DenseSLAMSystem::preprocessing(const uint16_t*        input_depth,
           sizeof(float) * computation_size_.x() * computation_size_.y());
     }
 	return true;
+}
+
+
+
+bool DenseSLAMSystem::preprocessing(const uint16_t*        input_depth,
+                                    const uint8_t*         input_RGB,
+                                    const Eigen::Vector2i& input_size,
+                                    const bool             filter_depth) {
+  preprocessing(input_depth, input_size, filter_depth);
+
+  downsampleImageKernel(input_RGB, input_size, rgba_);
+
+  return true;
 }
 
 

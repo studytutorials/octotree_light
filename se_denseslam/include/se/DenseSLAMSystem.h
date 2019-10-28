@@ -91,6 +91,7 @@ class DenseSLAMSystem {
     std::vector<se::Image<Eigen::Vector3f> > input_vertex_;
     std::vector<se::Image<Eigen::Vector3f> > input_normal_;
     se::Image<float> float_depth_;
+    se::Image<uint32_t> rgba_;
     std::vector<TrackData>  tracking_result_;
     Eigen::Matrix4f old_pose_;
     Eigen::Matrix4f raycast_pose_;
@@ -152,8 +153,19 @@ class DenseSLAMSystem {
                        const Eigen::Vector2i& input_size,
                        const bool             filter_depth);
 
-    /*
-     * TODO Implement this.
+    /**
+     * Preprocess a pair of depth and RGB frames and add them to the pipeline.
+     * This is the first stage of the pipeline.
+     *
+     * \param[in] input_depth Pointer to the depth frame data. Each pixel is
+     * represented by a single uint16_t.
+     * \param[in] input_RGB Pointer to the RGB frame data, 3 channels, 8 bits
+     * per channel.
+     * \param[in] input_size Size of the depth and RGB frames in pixels (width
+     * and height).
+     * \param[in] filter_depth Whether to filter the depth frame using a
+     * bilateral filter to reduce the measurement noise.
+     * \return true (does not fail).
      */
     bool preprocessing(const uint16_t*        input_depth,
                        const uint8_t*         input_RGB,
