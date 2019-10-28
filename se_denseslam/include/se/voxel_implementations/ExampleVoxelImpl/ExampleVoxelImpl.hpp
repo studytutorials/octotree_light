@@ -41,11 +41,20 @@
  * functions and data members are required. The signature of the functions
  * should not be changed. Additional static functions or data members may be
  * added freely.
+ *
+ * \note There is usually no reason to create an instance of this struct, it is
+ * only meant to be passed as a template parameter to se::DenseSLAMSystem and
+ * related functions/classes.
  */
 struct ExampleVoxelImpl {
 
   /**
    * The voxel type used as the template parameter for se::Octree.
+   *
+   *
+   * \note There is usually no reason to create an instance of this struct, it
+   * is only meant to be passed as a template parameter to se::Octree and
+   * related functions/classes.
    *
    * \warning The struct name must always be `VoxelType`.
    */

@@ -36,8 +36,11 @@
 
 /**
  * An example voxel type used as the template parameter for se::Octree. This is
- * a minimal working example. There is no point in creating an instance of this
- * struct, it should only be passed as a template parameter to se::Octree.
+ * a minimal working example.
+ *
+ * \note There is usually no reason to create an instance of this struct, it is
+ * only meant to be passed as a template parameter to se::Octree and related
+ * functions/classes.
  */
 struct ExampleVoxelT {
   /**
