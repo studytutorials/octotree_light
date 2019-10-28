@@ -43,10 +43,10 @@ struct TestVoxelT {
 };
 
 struct OccupancyVoxelT {
-  typedef struct {
+  struct VoxelData {
     float x;
     double y;
-  } VoxelData;
+  };
   static inline VoxelData empty(){ return {0.f, 0.}; }
   static inline VoxelData initValue(){ return {1.f, 0.}; }
 };

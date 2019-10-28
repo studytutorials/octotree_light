@@ -46,9 +46,9 @@ struct ExampleVoxelT {
    *
    * \warning The struct name must always be `VoxelData`.
    */
-  typedef struct {
+  struct VoxelData {
     float x;
-  } VoxelData;
+  };
 
 
 

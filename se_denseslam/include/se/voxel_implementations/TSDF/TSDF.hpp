@@ -43,18 +43,18 @@ struct TSDF {
   /**
    * The voxel type used as the template parameter for se::Octree.
    */
-  typedef struct {
+  struct VoxelType {
     /**
      * The struct stored in each se::Octree voxel.
      */
-    typedef struct {
+    struct VoxelData {
       float x; /**< The value of the TSDF. */
       float y; /**< The number of measurements integrated in the voxel. */
-    } VoxelData;
+    };
 
     static inline VoxelData empty()     { return {1.f, -1.f}; }
     static inline VoxelData initValue() { return {1.f,  0.f}; }
-  } VoxelType;
+  };
 
 
 

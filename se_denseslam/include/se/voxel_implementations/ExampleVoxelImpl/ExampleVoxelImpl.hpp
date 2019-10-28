@@ -49,19 +49,19 @@ struct ExampleVoxelImpl {
    *
    * \warning The struct name must always be `VoxelType`.
    */
-  typedef struct {
+  struct VoxelType {
   /**
    * The declaration of the struct stored in each se::Octree voxel. It may
    * contain additional members if desired.
    *
    * \warning The struct name must always be `VoxelData`.
    */
-    typedef struct  {
+    struct VoxelData {
       float  x; /**< The value stored in each voxel of the octree. */
 
       // Any other data stored in each voxel go here. Make sure to also update
       // empty() and initValue() to initialize all data members.
-    } VoxelData;
+    };
 
 
     /**
@@ -79,7 +79,7 @@ struct ExampleVoxelImpl {
      * \warning The function signature must not be changed.
      */
     static inline VoxelData initValue() { return 1.f; }
-  } VoxelType;
+  };
 
 
 

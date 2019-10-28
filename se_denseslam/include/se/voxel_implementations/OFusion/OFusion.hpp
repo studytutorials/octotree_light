@@ -43,18 +43,18 @@ struct OFusion {
   /**
    * The voxel type used as the template parameter for se::Octree.
    */
-  typedef struct {
+  struct VoxelType {
     /**
      * The struct stored in each se::Octree voxel.
      */
-    typedef struct  {
+    struct VoxelData {
       float  x; /**< The occupancy value in log-odds. */
       double y; /**< The timestamp of the last update. */
-    } VoxelData;
+    };
 
     static inline VoxelData empty()     { return {0.f, 0.f}; }
     static inline VoxelData initValue() { return {0.f, 0.f}; }
-  } VoxelType;
+  };
 
 
 
