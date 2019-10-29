@@ -79,7 +79,7 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
 
 
 void mm2metersKernel(se::Image<float>&      out,
-                     const unsigned short*  in,
+                     const uint16_t*        in,
                      const Eigen::Vector2i& input_size);
 
 

@@ -187,7 +187,7 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
 
 
 void mm2metersKernel(se::Image<float>&      out,
-                     const unsigned short*  in,
+                     const uint16_t*        in,
                      const Eigen::Vector2i& input_size) {
   TICK();
   // Check for unsupported conditions
@@ -214,7 +214,7 @@ void mm2metersKernel(se::Image<float>&      out,
         for (int a = 0; a < ratio; a++) {
           const int y_in = y_out * ratio + b;
           const int x_in = x_out * ratio + a;
-          if (in[x_in + input_size.x() * y_in] <= 0)
+          if (in[x_in + input_size.x() * y_in] == 0)
             continue;
           pix_mean += in[x_in + input_size.x() * y_in];
           n_valid++;
