@@ -7,7 +7,7 @@
 
  This code is licensed under the MIT License.
 
- Copyright 2016 Emanuele Vespa, Imperial College London 
+ Copyright 2016 Emanuele Vespa, Imperial College London
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -32,7 +32,7 @@
  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #ifndef _COMMONS_
@@ -160,7 +160,7 @@ inline void gs2rgb(double h, unsigned char rgbw[4]) {
 	rgbw[0] = r * 255;
 	rgbw[1] = g * 255;
 	rgbw[2] = b * 255;
-	rgbw[3] = 0; // Only for padding purposes 
+	rgbw[3] = 255; // Only for padding purposes
 }
 
 typedef struct Triangle {
@@ -169,16 +169,16 @@ typedef struct Triangle {
   Eigen::Vector3f normal;
   float color;
   float surface_area;
-  
-  Triangle(){ 
+
+  Triangle(){
     vertexes[0] = Eigen::Vector3f::Constant(0);
     vertexes[1] = Eigen::Vector3f::Constant(0);
     vertexes[2] = Eigen::Vector3f::Constant(0);
     normal = Eigen::Vector3f::Constant(0);
     surface_area = -1.f;
   }
-  
-  inline bool iszero(const Eigen::Vector3f& v){ 
+
+  inline bool iszero(const Eigen::Vector3f& v){
     return !(v.array() == 0).all();
   }
 
@@ -208,14 +208,14 @@ typedef struct Triangle {
     Eigen::Vector3f b = vertexes[2] - vertexes[1];
     Eigen::Vector3f v = a.cross(b);
     surface_area = v.norm()/2;
-    return surface_area; 
+    return surface_area;
   }
 
   Eigen::Vector3f * uniform_sample(int num){
 
     Eigen::Vector3f * points = new Eigen::Vector3f[num];
     for(int i = 0; i < num; ++i){
-      float u = ((float)rand())/(float)RAND_MAX; 
+      float u = ((float)rand())/(float)RAND_MAX;
       float v = ((float)rand())/(float)RAND_MAX;
       if(u + v > 1){
         u = 1 - u;
@@ -223,7 +223,7 @@ typedef struct Triangle {
       }
       float w = 1 - (u + v);
       points[i] = u*vertexes[0] + v*vertexes[1] + w*vertexes[2];
-    } 
+    }
 
     return points;
   }
@@ -232,7 +232,7 @@ typedef struct Triangle {
 
     Eigen::Vector3f * points = new Eigen::Vector3f[num];
     for(int i = 0; i < num; ++i){
-      float u = ((float)rand_r(&seed))/(float)RAND_MAX; 
+      float u = ((float)rand_r(&seed))/(float)RAND_MAX;
       float v = ((float)rand_r(&seed))/(float)RAND_MAX;
       if(u + v > 1){
         u = 1 - u;
@@ -240,7 +240,7 @@ typedef struct Triangle {
       }
       float w = 1 - (u + v);
       points[i] = u*vertexes[0] + v*vertexes[1] + w*vertexes[2];
-    } 
+    }
     return points;
   }
 
@@ -322,7 +322,7 @@ void writefile(std::string prefix, int idx, T * data, unsigned int size) {
 	fclose(pFile);
 }
 
-inline void writeVtkMesh(const char * filename, 
+inline void writeVtkMesh(const char * filename,
                          const std::vector<Triangle>& mesh,
                          const Eigen::Vector3f& init_pose,
                          const float * point_data = NULL,
@@ -339,19 +339,19 @@ inline void writeVtkMesh(const char * filename,
   for(unsigned int i = 0; i < mesh.size(); ++i ){
     const Triangle& t = mesh[i];
 
-    points << t.vertexes[0].x() - init_pose.x() << " " 
-           << t.vertexes[0].y() - init_pose.y() << " " 
-           << t.vertexes[0].z() - init_pose.z() << std::endl; 
+    points << t.vertexes[0].x() - init_pose.x() << " "
+           << t.vertexes[0].y() - init_pose.y() << " "
+           << t.vertexes[0].z() - init_pose.z() << std::endl;
 
-    points << t.vertexes[1].x() - init_pose.x() << " " 
-           << t.vertexes[1].y() - init_pose.y() << " " 
-           << t.vertexes[1].z() - init_pose.z() << std::endl; 
+    points << t.vertexes[1].x() - init_pose.x() << " "
+           << t.vertexes[1].y() - init_pose.y() << " "
+           << t.vertexes[1].z() - init_pose.z() << std::endl;
 
-    points << t.vertexes[2].x() - init_pose.x() << " " 
-           << t.vertexes[2].y() - init_pose.y() << " " 
-           << t.vertexes[2].z() - init_pose.z() << std::endl; 
+    points << t.vertexes[2].x() - init_pose.x() << " "
+           << t.vertexes[2].y() - init_pose.y() << " "
+           << t.vertexes[2].z() - init_pose.z() << std::endl;
 
-    polygons << "3 " << point_count << " " << point_count+1 << 
+    polygons << "3 " << point_count << " " << point_count+1 <<
       " " << point_count+2 << std::endl;
 
     if(hasPointData){
@@ -366,7 +366,7 @@ inline void writeVtkMesh(const char * filename,
 
     point_count +=3;
     triangle_count++;
-  }   
+  }
 
   std::ofstream f;
   f.open(filename);
@@ -381,14 +381,14 @@ inline void writeVtkMesh(const char * filename,
   f << "POLYGONS " << triangle_count << " " << triangle_count * 4 << std::endl;
   f << polygons.str() << std::endl;
   if(hasPointData){
-    f << "POINT_DATA " << point_count << std::endl; 
+    f << "POINT_DATA " << point_count << std::endl;
     f << "SCALARS vertex_scalars float 1" << std::endl;
     f << "LOOKUP_TABLE default" << std::endl;
     f << pointdata.str();
   }
 
   if(hasCellData){
-    f << "CELL_DATA " << triangle_count << std::endl; 
+    f << "CELL_DATA " << triangle_count << std::endl;
     f << "SCALARS cell_scalars float 1" << std::endl;
     f << "LOOKUP_TABLE default" << std::endl;
     f << celldata.str();
@@ -404,29 +404,29 @@ inline void writeObjMesh(const char * filename,
   int face_count = 0;
 
   for(unsigned int i = 0; i < mesh.size(); i++){
-    const Triangle& t = mesh[i];  
+    const Triangle& t = mesh[i];
     points << "v " << t.vertexes[0](0) << " " << t.vertexes[0](1)
            << " "  << t.vertexes[0](2) << std::endl;
-    points << "v " << t.vertexes[1](0) << " " << t.vertexes[1](1) 
+    points << "v " << t.vertexes[1](0) << " " << t.vertexes[1](1)
            << " "  << t.vertexes[1](2) << std::endl;
-    points << "v " << t.vertexes[2](0) << " " << t.vertexes[2](1) 
+    points << "v " << t.vertexes[2](0) << " " << t.vertexes[2](1)
            << " "  << t.vertexes[2](2) << std::endl;
 
-    faces  << "f " << (face_count*3)+1 << " " << (face_count*3)+2 
+    faces  << "f " << (face_count*3)+1 << " " << (face_count*3)+2
            << " " << (face_count*3)+3 << std::endl;
 
     point_count +=3;
     face_count += 1;
   }
 
-  std::ofstream f(filename); 
+  std::ofstream f(filename);
   f << "# OBJ file format with ext .obj" << std::endl;
   f << "# vertex count = " << point_count << std::endl;
   f << "# face count = " << face_count << std::endl;
   f << points.str();
   f << faces.str();
   f.close();
-  std::cout << "Written " << face_count << " faces and " << point_count 
+  std::cout << "Written " << face_count << " faces and " << point_count
             << " points" << std::endl;
 }
 #endif

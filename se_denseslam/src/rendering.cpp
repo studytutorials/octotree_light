@@ -74,12 +74,12 @@ void renderDepthKernel(unsigned char*         out,
         out[idx + 0] = 255;
         out[idx + 1] = 255;
         out[idx + 2] = 255;
-        out[idx + 3] = 0;
+        out[idx + 3] = 255;
       } else if (depth[pos] > far_plane) {
         out[idx + 0] = 0;
         out[idx + 1] = 0;
         out[idx + 2] = 0;
-        out[idx + 3] = 0;
+        out[idx + 3] = 255;
       } else {
         const float d = (depth[pos] - near_plane) * range_scale;
         unsigned char rgbw[4];
@@ -112,43 +112,43 @@ void renderTrackKernel(unsigned char*         out,
           out[idx + 0] = 128;
           out[idx + 1] = 128;
           out[idx + 2] = 128;
-          out[idx + 3] = 0;
+          out[idx + 3] = 255;
           break;
         case -1:
           out[idx + 0] = 0;
           out[idx + 1] = 0;
           out[idx + 2] = 0;
-          out[idx + 3] = 0;
+          out[idx + 3] = 255;
           break;
         case -2:
           out[idx + 0] = 255;
           out[idx + 1] = 0;
           out[idx + 2] = 0;
-          out[idx + 3] = 0;
+          out[idx + 3] = 255;
           break;
         case -3:
           out[idx + 0] = 0;
           out[idx + 1] = 255;
           out[idx + 2] = 0;
-          out[idx + 3] = 0;
+          out[idx + 3] = 255;
           break;
         case -4:
           out[idx + 0] = 0;
           out[idx + 1] = 0;
           out[idx + 2] = 255;
-          out[idx + 3] = 0;
+          out[idx + 3] = 255;
           break;
         case -5:
           out[idx + 0] = 255;
           out[idx + 1] = 255;
           out[idx + 2] = 0;
-          out[idx + 3] = 0;
+          out[idx + 3] = 255;
           break;
         default:
           out[idx + 0] = 255;
           out[idx + 1] = 128;
           out[idx + 2] = 128;
-          out[idx + 3] = 0;
+          out[idx + 3] = 255;
           break;
       }
     }
