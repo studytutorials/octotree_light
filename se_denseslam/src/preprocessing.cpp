@@ -186,40 +186,41 @@ void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
 
 
 
-void mm2metersKernel(se::Image<float>& out, const unsigned short* in,
-    const Eigen::Vector2i& inputSize) {
+void mm2metersKernel(se::Image<float>&      out,
+                     const unsigned short*  in,
+                     const Eigen::Vector2i& input_size) {
   TICK();
   // Check for unsupported conditions
-  if ((inputSize.x() < out.width()) || inputSize.y() < out.height()) {
+  if ((input_size.x() < out.width()) || input_size.y() < out.height()) {
     std::cerr << "Invalid ratio." << std::endl;
     exit(1);
   }
-  if ((inputSize.x() % out.width() != 0) || (inputSize.y() % out.height() != 0)) {
+  if ((input_size.x() % out.width() != 0) || (input_size.y() % out.height() != 0)) {
     std::cerr << "Invalid ratio." << std::endl;
     exit(1);
   }
-  if ((inputSize.x() / out.width() != inputSize.y() / out.height())) {
+  if ((input_size.x() / out.width() != input_size.y() / out.height())) {
     std::cerr << "Invalid ratio." << std::endl;
     exit(1);
   }
 
-  assert(inputSize.x()%out.width() == 0 && inputSize.y()%out.height() == 0);
-  int ratio = inputSize.x() / out.width();
+  const int ratio = input_size.x() / out.width();
 #pragma omp parallel for
   for (int y_out = 0; y_out < out.height(); y_out++)
     for (int x_out = 0; x_out < out.width(); x_out++) {
       size_t n_valid = 0;
       float pix_mean = 0;
-      for (size_t b = 0; b < ratio; b++)
-        for (size_t a = 0; a < ratio; a++) {
-          int y_in = y_out * ratio + b;
-          int x_in = x_out * ratio + a;
-          if (in[x_in + inputSize.x() * y_in] <= 0)
+      for (int b = 0; b < ratio; b++)
+        for (int a = 0; a < ratio; a++) {
+          const int y_in = y_out * ratio + b;
+          const int x_in = x_out * ratio + a;
+          if (in[x_in + input_size.x() * y_in] <= 0)
             continue;
-          pix_mean += in[x_in + inputSize.x() * y_in];
+          pix_mean += in[x_in + input_size.x() * y_in];
           n_valid++;
         }
-      out[x_out + out.width() * y_out] = (n_valid > 0) ? pix_mean / (n_valid * 1000.0f) : 0;
+      out[x_out + out.width() * y_out]
+          = (n_valid > 0) ? pix_mean / (n_valid * 1000.0f) : 0;
     }
   TOCK("mm2metersKernel", out.width() * out.height());
 }
