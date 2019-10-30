@@ -264,7 +264,7 @@ class KinectFusion(SLAMAlgorithm):
         self.tracking_rate = 1
 
         self.blocking = False
-        self.bilateralFilter = True
+        self.bilateral_filter = True
 
         self.camera = ''
         self.quat = None
@@ -318,7 +318,7 @@ class KinectFusion(SLAMAlgorithm):
         if self.quat:
             args.extend(['-a', str(self.quat)])
 
-        if self.bilateralFilter:
+        if self.bilateral_filter:
             args.extend(['-F', ''])
 
         return [self.bin_path + 'se-denseslam-' + self.impl + '-main'] + (args)
