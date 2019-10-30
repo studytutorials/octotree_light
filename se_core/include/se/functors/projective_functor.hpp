@@ -69,8 +69,8 @@ namespace functor {
         const Eigen::Matrix4f Tcw = _Tcw.matrix();
         const float voxel_size = _map.dim()/_map.size();
         auto in_frustum_predicate =
-          std::bind(algorithms::in_frustum<se::VoxelBlock<FieldType>>, _1,
-              voxel_size, _K*Tcw, _frame_size);
+          std::bind(algorithms::in_frustum<se::VoxelBlock<FieldType>>,
+              std::placeholders::_1, voxel_size, _K*Tcw, _frame_size);
         auto is_active_predicate = [](const se::VoxelBlock<FieldType>* b) {
           return b->active();
         };

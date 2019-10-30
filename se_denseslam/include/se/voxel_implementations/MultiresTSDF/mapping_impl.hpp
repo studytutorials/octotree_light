@@ -485,8 +485,8 @@ static void integrate(se::Octree<MultiresTSDF::VoxelType>& map, const Sophus::SE
       const Eigen::Vector2i framesize(depth.width(), depth.height());
       const Eigen::Matrix4f Pcw = K*Tcw.matrix();
       auto in_frustum_predicate =
-        std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresTSDF::VoxelType>>, _1,
-            voxelsize, Pcw, framesize);
+        std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresTSDF::VoxelType>>,
+            std::placeholders::_1, voxelsize, Pcw, framesize);
       se::algorithms::filter(active_list, block_array, is_active_predicate,
           in_frustum_predicate);
 
