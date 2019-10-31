@@ -38,7 +38,7 @@
 #include <se/functors/projective_functor.hpp>
 #include <se/constant_parameters.h>
 #include <se/image/image.hpp>
-#include "bspline_lookup.cc"
+#include "OFusion_bspline_lookup.cc"
 #include "OFusion.hpp"
 
 

@@ -115,9 +115,9 @@ struct TSDF {
 
 
 
-#include "se/voxel_implementations/TSDF/alloc_impl.hpp"
-#include "se/voxel_implementations/TSDF/rendering_impl.hpp"
-#include "se/voxel_implementations/TSDF/mapping_impl.hpp"
+#include "TSDF_allocation.hpp"
+#include "TSDF_rendering.hpp"
+#include "TSDF_mapping.hpp"
 
 #endif
 

@@ -118,9 +118,9 @@ struct MultiresTSDF {
 
 
 
-#include "se/voxel_implementations/MultiresTSDF/alloc_impl.hpp"
-#include "se/voxel_implementations/MultiresTSDF/rendering_impl.hpp"
-#include "se/voxel_implementations/MultiresTSDF/mapping_impl.hpp"
+#include "MultiresTSDF_allocation.hpp"
+#include "MultiresTSDF_rendering.hpp"
+#include "MultiresTSDF_mapping.hpp"
 
 #endif
 

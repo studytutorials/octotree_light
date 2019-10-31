@@ -134,9 +134,9 @@ struct OFusion {
 
 
 
-#include "se/voxel_implementations/OFusion/alloc_impl.hpp"
-#include "se/voxel_implementations/OFusion/rendering_impl.hpp"
-#include "se/voxel_implementations/OFusion/mapping_impl.hpp"
+#include "OFusion_allocation.hpp"
+#include "OFusion_rendering.hpp"
+#include "OFusion_mapping.hpp"
 
 #endif
 
