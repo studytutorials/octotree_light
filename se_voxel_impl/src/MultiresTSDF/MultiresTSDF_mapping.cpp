@@ -29,15 +29,13 @@
  *
  * */
 
-#ifndef __MULTIRESTSDF_MAPPING_IMPL_HPP
-#define __MULTIRESTSDF_MAPPING_IMPL_HPP
+#include "se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
 
 #include <se/node.hpp>
 #include <se/octree.hpp>
 #include <se/image/image.hpp>
 #include <se/algorithms/filter.hpp>
 #include <se/functors/for_each.hpp>
-#include "MultiresTSDF.hpp"
 
 
 
@@ -513,12 +511,12 @@ static void integrate(se::Octree<MultiresTSDF::VoxelType>& map, const Sophus::SE
 
 
 
-inline void MultiresTSDF::integrate(se::Octree<MultiresTSDF::VoxelType>& map,
-                                    const Sophus::SE3f&                  T_cw,
-                                    const Eigen::Matrix4f&               K,
-                                    const se::Image<float>&              depth,
-                                    const float                          mu,
-                                    const unsigned                       frame) {
+void MultiresTSDF::integrate(se::Octree<MultiresTSDF::VoxelType>& map,
+                             const Sophus::SE3f&                  T_cw,
+                             const Eigen::Matrix4f&               K,
+                             const se::Image<float>&              depth,
+                             const float                          mu,
+                             const unsigned                       frame) {
 
   const Eigen::Vector2i depth_size (depth.width(), depth.height());
   const float voxel_size =  map.dim() / map.size();
@@ -527,5 +525,3 @@ inline void MultiresTSDF::integrate(se::Octree<MultiresTSDF::VoxelType>& map,
       map._offset, depth, mu, MultiresTSDF::max_weight, frame);
 }
 
-
-#endif

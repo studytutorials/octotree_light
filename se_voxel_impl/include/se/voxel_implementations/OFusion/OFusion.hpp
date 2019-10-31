@@ -93,9 +93,8 @@ struct OFusion {
    * Compute the VoxelBlocks and Nodes that need to be allocated given the
    * camera pose.
    */
-  template <typename HashType>
   static size_t buildAllocationList(
-      HashType*                       allocation_list,
+      se::key_t*                      allocation_list,
       size_t                          reserved,
       se::Octree<OFusion::VoxelType>& map_index,
       const Eigen::Matrix4f&          T_wc,
@@ -109,19 +108,19 @@ struct OFusion {
   /**
    * Integrate a depth image into the map.
    */
-  static inline void integrate(se::Octree<OFusion::VoxelType>& map,
-                               const Sophus::SE3f&             T_cw,
-                               const Eigen::Matrix4f&          K,
-                               const se::Image<float>&         depth,
-                               const float                     mu,
-                               const unsigned                  frame);
+  static void integrate(se::Octree<OFusion::VoxelType>& map,
+                        const Sophus::SE3f&             T_cw,
+                        const Eigen::Matrix4f&          K,
+                        const se::Image<float>&         depth,
+                        const float                     mu,
+                        const unsigned                  frame);
 
 
 
   /**
    * Cast a ray and return the point where the surface was hit.
    */
-  static inline Eigen::Vector4f raycast(
+  static Eigen::Vector4f raycast(
       const VolumeTemplate<OFusion, se::Octree>& volume,
       const Eigen::Vector3f&                     origin,
       const Eigen::Vector3f&                     direction,
@@ -131,12 +130,6 @@ struct OFusion {
       const float                                step,
       const float								 large_step);
 };
-
-
-
-#include "OFusion_allocation.hpp"
-#include "OFusion_rendering.hpp"
-#include "OFusion_mapping.hpp"
 
 #endif
 

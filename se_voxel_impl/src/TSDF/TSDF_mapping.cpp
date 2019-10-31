@@ -29,15 +29,13 @@
  *
  * */
 
-#ifndef __TSDF_MAPPING_IMPL_HPP
-#define __TSDF_MAPPING_IMPL_HPP
+#include "se/voxel_implementations/TSDF/TSDF.hpp"
 
 #include <algorithm>
 
 #include <se/octree.hpp>
 #include <se/node.hpp>
 #include <se/functors/projective_functor.hpp>
-#include "TSDF.hpp"
 
 
 
@@ -83,12 +81,12 @@ struct tsdf_update {
 
 
 
-inline void TSDF::integrate(se::Octree<TSDF::VoxelType>& map,
-                            const Sophus::SE3f&          T_cw,
-                            const Eigen::Matrix4f&       K,
-                            const se::Image<float>&      depth,
-                            const float                  mu,
-                            const unsigned) {
+void TSDF::integrate(se::Octree<TSDF::VoxelType>& map,
+                     const Sophus::SE3f&          T_cw,
+                     const Eigen::Matrix4f&       K,
+                     const se::Image<float>&      depth,
+                     const float                  mu,
+                     const unsigned) {
 
   const Eigen::Vector2i depth_size (depth.width(), depth.height());
 
@@ -96,6 +94,4 @@ inline void TSDF::integrate(se::Octree<TSDF::VoxelType>& map,
 
   se::functor::projective_map(map, map._offset, T_cw, K, depth_size, funct);
 }
-
-#endif
 

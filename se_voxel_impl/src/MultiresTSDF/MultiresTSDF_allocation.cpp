@@ -29,8 +29,7 @@
  *
  * */
 
-#ifndef __MULTIRESTSDF_ALLOC_IMPL_HPP
-#define __MULTIRESTSDF_ALLOC_IMPL_HPP
+#include "se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
 
 #include <se/utils/math_utils.h>
 #include <se/node.hpp>
@@ -55,9 +54,8 @@
  * \param voxelSize spacing between two consegutive voxels, in metric space
  * \param band maximum extent of the allocating region, per ray
  */
-template <typename HashType>
 size_t MultiresTSDF::buildAllocationList(
-    HashType*                            allocation_list,
+    se::key_t*                           allocation_list,
     size_t                               reserved,
     se::Octree<MultiresTSDF::VoxelType>& map_index,
     const Eigen::Matrix4f&               T_wc,
@@ -116,7 +114,7 @@ size_t MultiresTSDF::buildAllocationList(
           se::VoxelBlock<MultiresTSDF::VoxelType> * node_ptr = map_index.fetch(
               voxel.x(), voxel.y(), voxel.z());
           if (node_ptr == nullptr) {
-            const HashType k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
+            const se::key_t k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
                 leaf_depth);
             const unsigned int idx = voxel_count++;
             if (idx < reserved) {
@@ -136,4 +134,3 @@ size_t MultiresTSDF::buildAllocationList(
   return written >= reserved ? reserved : written;
 }
 
-#endif

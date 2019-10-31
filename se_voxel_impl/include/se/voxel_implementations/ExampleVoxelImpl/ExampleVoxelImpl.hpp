@@ -109,9 +109,8 @@ struct ExampleVoxelImpl {
    *
    * \warning The function signature must not be changed.
    */
-  template <typename HashType>
   static size_t buildAllocationList(
-      HashType*                                allocation_list,
+      se::key_t*                               allocation_list,
       size_t                                   reserved,
       se::Octree<ExampleVoxelImpl::VoxelType>& map_index,
       const Eigen::Matrix4f&                   T_wc,

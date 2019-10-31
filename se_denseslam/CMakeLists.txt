@@ -31,13 +31,6 @@ endif()
 
 
 
-# List of SE_VOXEL_IMPLEMENTATION macro values. The elements of this list
-# should coincide with the names of the structs defined in
-# se_voxel_impl/include/se/voxel_implementations/*/*.hpp. When adding a new
-# field type appending it to this list is enough to compile se-denseslam using
-# it.
-set(SUPEREIGHT_FIELD_TYPES TSDF OFusion MultiresTSDF)
-
 # The source files to compile
 set(se_src
   "./src/preprocessing.cpp"
@@ -47,15 +40,18 @@ set(se_src
 
 # Iterate over each SE_VOXEL_IMPLEMENTATION and compile the se-denseslam
 # library for it.
-foreach(field_type ${SUPEREIGHT_FIELD_TYPES})
-  # Convert the field type name to lowercase for use in filenames.
-  string(TOLOWER ${field_type} field_type_lc)
+foreach(voxel_impl ${SUPEREIGHT_VOXEL_IMPLS})
+  # Convert the voxel implementation name to lowercase for use in filenames.
+  string(TOLOWER ${voxel_impl} voxel_impl_lc)
 
   # Prepare the preprocessor SE_VOXEL_IMPLEMENTATION macro.
-  set(field_type_macro SE_VOXEL_IMPLEMENTATION=${field_type})
+  set(field_type_macro SE_VOXEL_IMPLEMENTATION=${voxel_impl})
 
   # Prepare the library name.
-  set(lib_name "${PROJECT_NAME}-${field_type_lc}")
+  set(lib_name "${PROJECT_NAME}-${voxel_impl_lc}")
+
+  # Find the name of the respective voxel-impl library.
+  set(voxel_impl_lib_name "se-voxel-impl-${voxel_impl_lc}")
 
   # Add the static library.
   add_library(${lib_name} STATIC
@@ -65,7 +61,7 @@ foreach(field_type ${SUPEREIGHT_FIELD_TYPES})
     $<INSTALL_INTERFACE:include>
     ${EIGEN3_INCLUDE_DIR})
   target_compile_options(${lib_name} PUBLIC ${compile_flags})
-  target_link_libraries(${lib_name} ${libraries})
+  target_link_libraries(${lib_name} ${libraries} ${voxel_impl_lib_name})
   target_compile_definitions(${lib_name} PUBLIC ${field_type_macro})
 
   # Install the library and headers.
@@ -85,9 +81,6 @@ foreach(field_type ${SUPEREIGHT_FIELD_TYPES})
 endforeach()
 
 
-
-# Make the list of field types available to the parent file.
-set(SUPEREIGHT_FIELD_TYPES ${SUPEREIGHT_FIELD_TYPES} PARENT_SCOPE)
 
 # Make the list of compiled se-denseslam libraries available to the parent file.
 set(SUPEREIGHT_DENSESLAM_LIBS ${SUPEREIGHT_DENSESLAM_LIBS} PARENT_SCOPE)

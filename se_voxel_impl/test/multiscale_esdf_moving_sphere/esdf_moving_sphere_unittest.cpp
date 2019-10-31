@@ -6,6 +6,10 @@
 #include <se/io/vtk-io.h>
 #include <se/io/ply_io.hpp>
 #include "../../include/se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
+#include "../../src/MultiresTSDF/MultiresTSDF.cpp"
+#include "../../src/MultiresTSDF/MultiresTSDF_allocation.cpp"
+#include "../../src/MultiresTSDF/MultiresTSDF_mapping.cpp"
+#include "../../src/MultiresTSDF/MultiresTSDF_rendering.cpp"
 #include <random>
 #include <functional>
 #include <gtest/gtest.h>
