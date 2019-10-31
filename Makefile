@@ -36,14 +36,17 @@ uninstall:
 #### TESTING ####
 build-tests:
 	$(MAKE) -C se_core/test $(MFLAGS)
+	$(MAKE) -C se_voxel_impl/test $(MFLAGS)
 	$(MAKE) -C se_denseslam/test $(MFLAGS)
 
 test: build-tests
 	$(MAKE) -C se_core/test $(MFLAGS) test
+	$(MAKE) -C se_voxel_impl/test $(MFLAGS) test
 	$(MAKE) -C se_denseslam/test $(MFLAGS) test
 
 clean-tests:
 	$(MAKE) -C se_core/test $(MFLAGS) clean
+	$(MAKE) -C se_voxel_impl/test $(MFLAGS) clean
 	$(MAKE) -C se_denseslam/test $(MFLAGS) clean
 
 

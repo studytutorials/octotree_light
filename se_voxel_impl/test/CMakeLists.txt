@@ -19,4 +19,5 @@ include_directories(
     ${SOPHUS_INCLUDE_DIR}
 )
 
-add_subdirectory(preprocessing)
+add_subdirectory(multiscale_esdf_moving_sphere)
+add_subdirectory(multiscale_tsdf_moving_camera)

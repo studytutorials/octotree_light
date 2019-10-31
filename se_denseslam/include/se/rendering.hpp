@@ -50,7 +50,7 @@
 #include <se/ray_iterator.hpp>
 
 /* Raycasting implementations */
-#include "se/voxel_implementations/voxel_implementations.hpp"
+#include "voxel_implementations.hpp"
 
 
 
