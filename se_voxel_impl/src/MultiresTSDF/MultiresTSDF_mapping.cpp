@@ -86,10 +86,9 @@ namespace se {
  * \param[in] block VoxelBlock to be updated
  * \param[in] scale scale from which propagate up voxel values
 */
-template <typename T>
-void propagate_up(se::VoxelBlock<T>* block, const int scale) {
+void propagate_up(se::VoxelBlock<MultiresTSDF::VoxelType>* block, const int scale) {
   const Eigen::Vector3i base = block->coordinates();
-  const int side = se::VoxelBlock<T>::side;
+  const int side = se::VoxelBlock<MultiresTSDF::VoxelType>::side;
   for(int curr_scale = scale; curr_scale < se::math::log2_const(side); ++curr_scale) {
     const int stride = 1 << (curr_scale + 1);
     for(int z = 0; z < side; z += stride)
@@ -119,7 +118,7 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
             data.x_last = mean;
             data.y = ceil(weight);
           } else {
-            data = T::initValue();
+            data = MultiresTSDF::VoxelType::initValue();
           }
           data.delta_y = 0;
           block->data(curr, curr_scale + 1, data);
@@ -127,8 +126,7 @@ void propagate_up(se::VoxelBlock<T>* block, const int scale) {
   }
 }
 
-template <typename T>
-void propagate_up(se::Node<T>* node, const int max_depth,
+void propagate_up(se::Node<MultiresTSDF::VoxelType>* node, const int max_depth,
                   const unsigned timestamp) {
 
   if(!node->parent()) {
@@ -216,14 +214,13 @@ float interp(const se::Octree<MultiresTSDF::VoxelType>& octree,
  * \param[in] block VoxelBlock to be updated
  * \param[in] scale scale from which propagate down voxel values
 */
-template <typename T>
-void propagate_down(const se::Octree<T>& map,
-                    se::VoxelBlock<T>* block,
+void propagate_down(const se::Octree<MultiresTSDF::VoxelType>& map,
+                    se::VoxelBlock<MultiresTSDF::VoxelType>* block,
                     const int scale,
                     const int min_scale,
                     const int max_weight = INT_MAX) {
   const Eigen::Vector3i base = block->coordinates();
-  const int side = se::VoxelBlock<T>::side;
+  const int side = se::VoxelBlock<MultiresTSDF::VoxelType>::side;
   for(int curr_scale = scale; curr_scale > min_scale; --curr_scale) {
     const int stride = 1 << curr_scale;
     for(int z = 0; z < side; z += stride)
@@ -265,9 +262,8 @@ void propagate_down(const se::Octree<T>& map,
  * Update a voxel block at a given scale by first propagating down the parent
  * values and then integrating the new measurement;
 */
-template <typename T>
-void propagate_update(const se::Octree<T>& map,
-                    se::VoxelBlock<T>* block,
+void propagate_update(const se::Octree<MultiresTSDF::VoxelType>& map,
+                    se::VoxelBlock<MultiresTSDF::VoxelType>* block,
                     const Sophus::SE3f& Tcw,
                     const Eigen::Matrix4f& K,
                     const float voxelsize,
@@ -277,7 +273,7 @@ void propagate_update(const se::Octree<T>& map,
                     int max_weight,
                     const int scale) {
 
-  const int side = se::VoxelBlock<T>::side;
+  const int side = se::VoxelBlock<MultiresTSDF::VoxelType>::side;
   const int parent_scale = scale + 1;
   const int stride = 1 << parent_scale;
   const int half_stride = stride >> 1;
@@ -459,15 +455,8 @@ struct multires_block_update {
   }
 };
 
-template <typename T>
-void propagate(se::VoxelBlock<T>* block) {
+void propagate(se::VoxelBlock<MultiresTSDF::VoxelType>* block) {
   propagate_up(block, block->current_scale());
-}
-
-template <typename T>
-void integrate(se::Octree<T>& , const Sophus::SE3f& , const
-    Eigen::Matrix4f& , float , const Eigen::Vector3f& , const
-    se::Image<float>& , float , int, const unsigned) {
 }
 
 static void integrate(se::Octree<MultiresTSDF::VoxelType>& map, const Sophus::SE3f& Tcw, const
