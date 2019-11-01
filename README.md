@@ -28,17 +28,19 @@ for which licence applies.
 supereight is made of three main components:
 
 * `se_core`: the main header only template octree library
+* `se_shared`: third party libraries and code required throughout supereight.
+* `se_voxel_impl`: classes intended to be used as template parameters for the
+  `se_denseslam` pipeline. These classes define the data stored in the octree
+  voxels and how new measurements are integrated into the octree.
 * `se_denseslam`: the volumetric SLAM pipelines presented in [1], which can be
   compiled in a library and used in external projects. Notice that the pipeline
-  API exposes the discrete octree map via a shared pointer. As the map is a
-  template class, it needs to be instantiated correctly. You do this by
-  defining a `SE_FIELD_TYPE` macro before including `DenseSLAMSystem.h`. The
-  field type must be consistent with the library you are linking against. Have a
-  look at `se_denseslam` and `se_apps` CMakeLists to see how it is done in our
-  examples.
-* `se_apps`: front-end applications which run the `se-denseslam` pipelines on
+  API exposes the discrete octree map via a `shared_ptr`. As the map is a
+  template class, it needs to be instantiated correctly. This is done by setting
+  the value of the `SE_VOXEL_IMPLEMENTATION` macro to the name of one of the
+  classes defined in `se_voxel_impl`. By default pipelines are created for each
+  of the voxel implementations defined in `se_voxel_impl`.
+* `se_apps`: front-end applications which run the `se_denseslam` pipelines on
   given inputs or live camera.
-* `se_shared`: third party libraries and code required throughout supereight
 * `se_tools`: related tools and scripts (e.g. for converting datasets and
   evaluating the pipeline)
 

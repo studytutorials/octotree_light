@@ -35,3 +35,45 @@
 // Initialize static data members.
 constexpr bool invert_normals = false;
 
+
+
+// Implement static member functions.
+size_t ExampleVoxelImpl::buildAllocationList(
+    se::key_t*                               allocation_list,
+    size_t                                   reserved,
+    se::Octree<ExampleVoxelImpl::VoxelType>& map_index,
+    const Eigen::Matrix4f&                   T_wc,
+    const Eigen::Matrix4f&                   K,
+    const float*                             depth_map,
+    const Eigen::Vector2i&                   image_size,
+    const float                              mu) {
+
+  return 0;
+}
+
+
+
+void ExampleVoxelImpl::integrate(
+    se::Octree<ExampleVoxelImpl::VoxelType>& map,
+    const Sophus::SE3f&                      T_cw,
+    const Eigen::Matrix4f&                   K,
+    const se::Image<float>&                  depth,
+    const float                              mu,
+    const unsigned                           frame) {
+}
+
+
+
+Eigen::Vector4f ExampleVoxelImpl::raycast(
+    const VolumeTemplate<ExampleVoxelImpl, se::Octree>& volume,
+    const Eigen::Vector3f&                              origin,
+    const Eigen::Vector3f&                              direction,
+    const float                                         tnear,
+    const float                                         tfar,
+    const float                                         mu,
+    const float                                         step,
+    const float                                         large_step) {
+
+  return Eigen::Vector4f::Zero();
+}
+

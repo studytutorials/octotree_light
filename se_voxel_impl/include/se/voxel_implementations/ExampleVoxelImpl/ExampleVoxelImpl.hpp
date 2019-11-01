@@ -38,9 +38,9 @@
 
 /**
  * Minimal example of the structure of a potential voxel implementation. All
- * functions and data members are required. The signature of the functions
- * should not be changed. Additional static functions or data members may be
- * added freely.
+ * functions and data members currently present are required. The signature of
+ * the functions should not be changed. Additional static functions or data
+ * members may be added freely.
  *
  * \note There is usually no reason to create an instance of this struct, it is
  * only meant to be passed as a template parameter to se::DenseSLAMSystem and
@@ -61,7 +61,9 @@ struct ExampleVoxelImpl {
   struct VoxelType {
   /**
    * The declaration of the struct stored in each se::Octree voxel. It may
-   * contain additional members if desired.
+   * contain additional members if desired. Make sure to also update
+   * VoxelType::empty() and VoxelType::initValue() to initialize all data
+   * members by returning an appropriate struct brace initializer.
    *
    * \warning The struct name must always be `VoxelData`.
    */
@@ -69,7 +71,8 @@ struct ExampleVoxelImpl {
       float  x; /**< The value stored in each voxel of the octree. */
 
       // Any other data stored in each voxel go here. Make sure to also update
-      // empty() and initValue() to initialize all data members.
+      // empty() and initValue() to initialize all data members by returning an
+      // appropriate struct brace initializer.
     };
 
 
@@ -78,7 +81,7 @@ struct ExampleVoxelImpl {
      *
      * \warning The function signature must not be changed.
      */
-    static inline VoxelData empty()     { return 0.f; }
+    static inline VoxelData empty()     { return {0.f}; }
 
 
 
@@ -87,7 +90,7 @@ struct ExampleVoxelImpl {
      *
      * \warning The function signature must not be changed.
      */
-    static inline VoxelData initValue() { return 1.f; }
+    static inline VoxelData initValue() { return {1.f}; }
   };
 
 
@@ -96,10 +99,16 @@ struct ExampleVoxelImpl {
    * Set to true for TSDF maps, false for occupancy maps.
    *
    * \warning The name of this variable must always be `invert_normals`.
+   *
+   * \warning This and all static member variables of this class must be also
+   * defined in the respective `.cpp` file
+   * `se_voxel_impl/src/ExampleVoxelImpl.cpp`.
    */
   static constexpr bool invert_normals = false;
 
   // Any other constant parameters required for the implementation go here.
+  // Make sure to also define them in the respective .cpp file
+  // se_voxel_impl/src/ExampleVoxelImpl.cpp.
 
 
 
@@ -117,8 +126,6 @@ struct ExampleVoxelImpl {
       const Eigen::Matrix4f&                   K,
       const float*                             depth_map,
       const Eigen::Vector2i&                   image_size,
-      const unsigned int                       volume_size,
-      const float                              volume_extent,
       const float                              mu);
 
 
@@ -128,12 +135,12 @@ struct ExampleVoxelImpl {
    *
    * \warning The function signature must not be changed.
    */
-  static inline void integrate(se::Octree<ExampleVoxelImpl::VoxelType>& map,
-                               const Sophus::SE3f&                      T_cw,
-                               const Eigen::Matrix4f&                   K,
-                               const se::Image<float>&                  depth,
-                               const float                              mu,
-                               const unsigned                           frame);
+  static void integrate(se::Octree<ExampleVoxelImpl::VoxelType>& map,
+                        const Sophus::SE3f&                      T_cw,
+                        const Eigen::Matrix4f&                   K,
+                        const se::Image<float>&                  depth,
+                        const float                              mu,
+                        const unsigned                           frame);
 
 
 
@@ -142,7 +149,7 @@ struct ExampleVoxelImpl {
    *
    * \warning The function signature must not be changed.
    */
-  static inline Eigen::Vector4f raycast(
+  static Eigen::Vector4f raycast(
       const VolumeTemplate<ExampleVoxelImpl, se::Octree>& volume,
       const Eigen::Vector3f&                              origin,
       const Eigen::Vector3f&                              direction,
