@@ -250,15 +250,13 @@ void trackKernel(TrackData*                        output,
                  const float                       normal_threshold) {
 
   TICK();
-  Eigen::Vector2i   pixel(0, 0);
   const Eigen::Vector2i  in_size( in_vertex.width(),  in_vertex.height());
   const Eigen::Vector2i ref_size(ref_vertex.width(), ref_vertex.height());
 
 #pragma omp parallel for
   for (int pixely = 0; pixely < in_size.y(); pixely++) {
     for (int pixelx = 0; pixelx < in_size.x(); pixelx++) {
-      pixel.x() = pixelx;
-      pixel.y() = pixely;
+      const Eigen::Vector2i pixel (pixelx, pixely);
 
       TrackData & row = output[pixel.x() + pixel.y() * ref_size.x()];
 
