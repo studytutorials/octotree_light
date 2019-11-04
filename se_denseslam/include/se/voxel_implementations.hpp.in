@@ -29,9 +29,9 @@
 #ifndef __VOXEL_IMPLEMENTATIONS
 #define __VOXEL_IMPLEMENTATIONS
 
-#include <se/voxel_implementations/TSDF/TSDF.hpp>
-#include <se/voxel_implementations/OFusion/OFusion.hpp>
-#include <se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp>
+// CMake will insert the appropriate #include statement for each voxel
+// implementation that has been compiled below.
+@voxel_impl_includes@
 
 
 

@@ -31,12 +31,29 @@ endif()
 
 
 
+# Generate the appropriate include line for each voxel implementation.
+foreach(voxel_impl ${SUPEREIGHT_VOXEL_IMPLS})
+  string(APPEND
+    voxel_impl_includes
+    "#include <se/voxel_implementations/${voxel_impl}/${voxel_impl}.hpp>\n")
+endforeach()
+
+# Generate header file including each voxel implementation.
+configure_file(
+	"${PROJECT_SOURCE_DIR}/include/se/voxel_implementations.hpp.in"
+	"${PROJECT_BINARY_DIR}/include/se/voxel_implementations.hpp"
+)
+
+
+
 # The source files to compile
 set(se_src
   "./src/preprocessing.cpp"
   "./src/tracking.cpp"
   "./src/rendering.cpp"
   "./src/DenseSLAMSystem.cpp")
+
+
 
 # Iterate over each SE_VOXEL_IMPLEMENTATION and compile the se-denseslam
 # library for it.
@@ -58,6 +75,7 @@ foreach(voxel_impl ${SUPEREIGHT_VOXEL_IMPLS})
     ${se_src})
   target_include_directories(${lib_name} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include/se>
     $<INSTALL_INTERFACE:include>
     ${EIGEN3_INCLUDE_DIR})
   target_compile_options(${lib_name} PUBLIC ${compile_flags})
@@ -74,6 +92,9 @@ foreach(voxel_impl ${SUPEREIGHT_VOXEL_IMPLS})
     INCLUDES DESTINATION include)
   install(
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include)
+  install(
+    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
     DESTINATION include)
 
   # Populate the list of libraries that are part of se-denseslam.

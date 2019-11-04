@@ -29,10 +29,8 @@ se_voxel_impl
       └─ MyVoxel_additional_source_2.cpp
 ```
 
-Additionally, in `se_voxel_impl/CMakeLists.txt` `MyVoxel` should be appended to
-`SUPEREIGHT_VOXEL_IMPLS`. Finally, the line `#include
-<se/voxel_implementations/MyVoxel/MyVoxel.hpp>` must be added to
-`se_denseslam/include/se/voxel_implementations.hpp`. This is enough for
-compiling the pipeline in `se_denseslam` using `MyVoxel` as the template
-parameter.
+Finally in `se_voxel_impl/CMakeLists.txt` `MyVoxel` should be appended to
+`SUPEREIGHT_VOXEL_IMPLS`. This is enough for compiling the pipeline in
+`se_denseslam` using `MyVoxel` as the template parameter since `MyVoxel.hpp` is
+automatically included in a generated header in `se_denseslam`.
 
