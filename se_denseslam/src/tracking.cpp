@@ -222,11 +222,10 @@ void reduceKernel(float*                 out,
                   const Eigen::Vector2i& size) {
 
   TICK();
-  int block_index;
 #ifdef OLDREDUCE
-#pragma omp parallel for private (block_index)
+#pragma omp parallel for
 #endif
-  for (block_index = 0; block_index < 8; block_index++) {
+  for (int block_index = 0; block_index < 8; block_index++) {
     new_reduce(block_index, out, J, J_size, size);
   }
 

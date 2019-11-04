@@ -76,14 +76,13 @@ size_t TSDF::buildAllocationList(
 
 
 #ifdef _OPENMP
-  std::atomic<unsigned int> voxel_count;
+  std::atomic<unsigned int> voxel_count (0);
 #else
-  unsigned int voxel_count;
+  unsigned int voxel_count = 0;
 #endif
 
   const Eigen::Vector3f camera_pos = T_wc.topRightCorner<3, 1>();
   const int num_steps = ceil(band * inverse_voxel_size);
-  voxel_count = 0;
 #pragma omp parallel for
   for (int y = 0; y < image_size.y(); ++y) {
     for (int x = 0; x < image_size.x(); ++x) {

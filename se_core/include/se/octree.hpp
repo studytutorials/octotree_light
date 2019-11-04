@@ -922,24 +922,24 @@ std::sort(keys, keys+num_elem);
 template <typename T>
 bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
 
-  int leaves_level = max_level_ - log2(blockSide);
+  const int leaves_level = max_level_ - log2(blockSide);
   nodes_buffer_.reserve(num_tasks);
 
 #pragma omp parallel for
   for (int i = 0; i < num_tasks; i++){
     Node<T> ** n = &root_;
-    key_t myKey = keyops::code(keys[i]);
-    int myLevel = keyops::level(keys[i]);
-    if(myLevel < target_level) continue;
+    const key_t myKey = keyops::code(keys[i]);
+    const int myLevel = keyops::level(keys[i]);
+    if (myLevel < target_level) continue;
 
     int edge = size_/2;
     for (int level = 1; level <= target_level; ++level){
-      int index = child_id(myKey, level, max_level_);
+      const int index = child_id(myKey, level, max_level_);
       Node<T> * parent = *n;
       n = &(*n)->child(index);
 
-      if(!(*n)){
-        if(level == leaves_level){
+      if (!(*n)) {
+        if (level == leaves_level) {
           *n = block_buffer_.acquire_block();
           (*n)->parent() = parent;
           (*n)->side_ = edge;
@@ -947,8 +947,7 @@ bool Octree<T>::allocate_level(key_t* keys, int num_tasks, int target_level){
           static_cast<VoxelBlock<T> *>(*n)->active(true);
           static_cast<VoxelBlock<T> *>(*n)->code_ = myKey | level;
           parent->children_mask_ = parent->children_mask_ | (1 << index);
-        }
-        else  {
+        } else {
           *n = nodes_buffer_.acquire_block();
           (*n)->parent() = parent;
           (*n)->code_ = myKey | level;

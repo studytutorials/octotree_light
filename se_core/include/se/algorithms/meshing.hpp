@@ -193,7 +193,6 @@ namespace algorithms {
     {
 
       using namespace meshing;
-      std::stringstream points, polygons;
       std::vector<se::VoxelBlock<FieldType>*> blocklist;
       std::mutex lck;
       const int size = volume.size();
@@ -203,26 +202,26 @@ namespace algorithms {
 
 
 #pragma omp parallel for
-      for(size_t i = 0; i < blocklist.size(); i++){
+      for (size_t i = 0; i < blocklist.size(); i++) {
         se::VoxelBlock<FieldType> * leaf = static_cast<se::VoxelBlock<FieldType> *>(blocklist[i]);
-        int edge = se::VoxelBlock<FieldType>::side;
-        int x, y, z ;
+        const int edge = se::VoxelBlock<FieldType>::side;
         const Eigen::Vector3i& start = leaf->coordinates();
         const Eigen::Vector3i top =
           (leaf->coordinates() + Eigen::Vector3i::Constant(edge)).cwiseMin(
               Eigen::Vector3i::Constant(size-1));
-        for(x = start(0); x < top(0); x++){
-          for(y = start(1); y < top(1); y++){
-            for(z = start(2); z < top(2); z++){
+        for (int x = start(0); x < top(0); x++) {
+          for (int y = start(1); y < top(1); y++) {
+            for (int z = start(2); z < top(2); z++) {
 
-              uint8_t index = meshing::compute_index(volume, leaf, inside, x, y, z);
+              const uint8_t index = meshing::compute_index(volume, leaf, inside, x, y, z);
 
-                int * edges = triTable[index];
-              for(unsigned int e = 0; edges[e] != -1 && e < 16; e += 3){
+              int * edges = triTable[index];
+              for (unsigned int e = 0; edges[e] != -1 && e < 16; e += 3) {
                 Eigen::Vector3f v1 = interp_vertexes(volume, select, x, y, z, edges[e]);
                 Eigen::Vector3f v2 = interp_vertexes(volume, select, x, y, z, edges[e+1]);
                 Eigen::Vector3f v3 = interp_vertexes(volume, select, x, y, z, edges[e+2]);
-                if(checkVertex(v1, dim) || checkVertex(v2, dim) || checkVertex(v3, dim)) continue;
+                if (checkVertex(v1, dim) || checkVertex(v2, dim) || checkVertex(v3, dim))
+                  continue;
                 Triangle temp = Triangle();
                 temp.vertexes[0] = v1;
                 temp.vertexes[1] = v2;

@@ -86,14 +86,12 @@ size_t OFusion::buildAllocationList(
       - se::math::log2_const(se::Octree<OFusion::VoxelType>::blockSide);
 
 #ifdef _OPENMP
-  std::atomic<unsigned int> voxel_count;
-  std::atomic<unsigned int> leaves_count;
+  std::atomic<unsigned int> voxel_count (0);
 #else
-  unsigned int voxel_count;
+  unsigned int voxel_count = 0;
 #endif
 
   const Eigen::Vector3f camera_pos = T_wc.topRightCorner<3, 1>();
-  voxel_count = 0;
 #pragma omp parallel for
   for (int y = 0; y < image_size.y(); ++y) {
     for (int x = 0; x < image_size.x(); ++x) {
