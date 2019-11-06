@@ -49,9 +49,6 @@
 #include <se/image/image.hpp>
 #include <se/ray_iterator.hpp>
 
-/* Raycasting implementations */
-#include "voxel_implementations.hpp"
-
 
 
 template <typename T>
