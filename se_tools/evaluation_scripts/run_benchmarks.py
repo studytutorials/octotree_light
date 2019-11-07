@@ -1,8 +1,8 @@
 #!/usr/bin/python2
-from _run import * 
+from _run import *
 from systemsettings import *
 from datasets import *
-import numpy as np 
+import numpy as np
 
 TUM_RGBD_FR1 = [TUM_RGBD_FR1_XYZ, TUM_RGBD_FR1_DESK]
 TUM_RGBD_FR2 = [TUM_RGBD_FR2_DESK]
@@ -48,10 +48,10 @@ if __name__ == "__main__":
             # Iterate over list of volume resolution values in voxels.
             for resol in [512]:
                 # Iterate over map types.
-                for version in ['sdf', 'ofusion']:
+                for version in ['tsdf', 'multirestsdf', 'ofusion']:
                     kernel_data = []
                     # occupancy maps need a lower noise threshold in general.
-                    if version == 'ofusion':
+                    if version in ['ofusion']:
                         mu = 0.01
                     else:
                         mu = 0.1
@@ -75,7 +75,7 @@ if __name__ == "__main__":
                     kernel_data.append(res)
                     data = res['data']
                     f.write('{:<15} {:<15} {:<15.4f} {:<15.4f} {:<15.4f} {:<15.4f} {:<15.4f} {:<15.4f} {:<}\n'
-                            .format(res['sequence'], 
+                            .format(res['sequence'],
                             res['implementation'],
                             float(res['ate_mean']),
                             float(data['preprocessing']['mean']),
