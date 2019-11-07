@@ -6,10 +6,10 @@ There is a minimal example voxel implementation in
 `se_voxel_impl/src/ExampleVoxelImpl`. Voxel implementations consist of at least
 one header and one source file which are compiled into a static library. They
 must have the same folder structure as `ExampleVoxelImpl`, with the folders and
-header having the same name as the class. All source files matching the pattern
-`se_voxel_impl/src/ExampleVoxelImpl/ExampleVoxelImpl*.cpp` will be included in
-the resulting library. Any number of source files conforming to this pattern can
-be added, as well as any number of headers.
+header having the same name as the class. All `.cpp` files inside
+`se_voxel_impl/src/ExampleVoxelImpl/` will be included in the resulting
+library. Any number of source files can be added, as well as any number of
+headers.
 
 ### Example
 Below is an example of a valid file/folder structure:
@@ -20,13 +20,13 @@ se_voxel_impl
 │     └─ voxel_implementations
 │        └─ MyVoxel
 │           ├─ MyVoxel.hpp
-│           ├─ MyVoxel_additional_header_1.hpp
-│           └─ MyVoxel_additional_header_2.hpp
+│           ├─ additional_header_1.hpp
+│           └─ additional_header_2.hpp
 └─ src
    └─ MyVoxel
       ├─ MyVoxel.cpp
-      ├─ MyVoxel_additional_source_1.cpp
-      └─ MyVoxel_additional_source_2.cpp
+      ├─ additional_source_1.cpp
+      └─ additional_source_2.cpp
 ```
 
 Finally in `se_voxel_impl/CMakeLists.txt` `MyVoxel` should be appended to

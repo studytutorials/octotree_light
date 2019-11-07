@@ -47,7 +47,7 @@ foreach(voxel_impl ${SUPEREIGHT_VOXEL_IMPLS})
   set(lib_name "${PROJECT_NAME}-${voxel_impl_lc}")
 
   # Find the source files to compile.
-  file(GLOB lib_src "./src/${voxel_impl}/${voxel_impl}*.cpp")
+  file(GLOB lib_src "./src/${voxel_impl}/*.cpp")
 
   # Add the static library.
   add_library(${lib_name} STATIC
