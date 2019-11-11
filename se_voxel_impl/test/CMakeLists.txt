@@ -19,5 +19,12 @@ include_directories(
     ${SOPHUS_INCLUDE_DIR}
 )
 
+# Build the dependencies inside the test build directory.
+add_subdirectory(../../se_shared se_shared)
+add_subdirectory(../../se_core se_core)
+add_subdirectory(../../se_voxel_impl se_voxel_impl)
+
+# Build the tests.
 add_subdirectory(multiscale_esdf_moving_sphere)
 add_subdirectory(multiscale_tsdf_moving_camera)
+

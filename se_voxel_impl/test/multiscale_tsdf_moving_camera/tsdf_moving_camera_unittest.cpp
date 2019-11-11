@@ -14,7 +14,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include <stdio.h>
-#include "../../include/se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
+#include "se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
 
 // Truncation distance and maximum weight
 #define MAX_DIST 2.f
