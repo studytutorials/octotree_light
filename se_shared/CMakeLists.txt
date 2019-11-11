@@ -18,7 +18,7 @@ list(APPEND SUPEREIGHT_SHARED_LIBS se-shared)
 
 
 # lodepng third-party shared library.
-add_library(lodepng SHARED src/lodepng.cpp)
+add_library(lodepng STATIC src/lodepng.cpp)
 target_include_directories(lodepng PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
