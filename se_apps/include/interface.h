@@ -128,7 +128,7 @@ class DepthReader {
           continue;
         }
         // Data line read, split on spaces
-        const std::vector<std::string> line_data = splitString(line, ' ');
+        const std::vector<std::string> line_data = split_string(line, ' ');
         const size_t num_cols = line_data.size();
         if (num_cols < 7) {
           std::cout << "Invalid ground truth file format."
@@ -796,7 +796,7 @@ class OpenNIDepthReader: public DepthReader {
 
     Eigen::Vector4f getK() {
       return Eigen::Vector4f::Constant(0.f);
-    } 
+    }
 
     uint2 getinputSize() {
       return make_uint2(0);

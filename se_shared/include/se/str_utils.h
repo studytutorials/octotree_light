@@ -13,7 +13,7 @@
  * \param[in] ignore_consec Treat consecutive delimiters as a single delimiter.
  * \return The vector containing the substrings.
  */
-static std::vector<std::string> splitString(
+static std::vector<std::string> split_string(
     const std::string& s,
     const char         delim,
     const bool         ignore_consec = false) {

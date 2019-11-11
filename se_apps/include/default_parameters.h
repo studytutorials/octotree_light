@@ -291,7 +291,7 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         break;
       case 'G': // -G (--gt-transform)
         // Split argument into substrings
-        tokens = splitString(optarg, ',');
+        tokens = split_string(optarg, ',');
         switch (tokens.size()) {
           case 3:
             // Translation
