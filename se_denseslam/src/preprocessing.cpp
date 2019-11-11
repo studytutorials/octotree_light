@@ -310,9 +310,7 @@ void downsampleImageKernel(const uint8_t*         input_RGB,
       b /= ratio * ratio;
 
       // Combine into a uint32_t by adding an alpha channel with 100% opacity.
-      // It is stored in big-endian order in all common CPUs so the alpha
-      // channel is stored in the MSB and the red channel in the LSB.
-      const uint32_t pixel = (255 << 24) + (b << 16) + (g <<  8) +  r;
+      const uint32_t pixel = to_rgba(r, g, b, 255);
       output_RGBA[x_out + output_RGBA.width() * y_out] = pixel;
     }
   }
