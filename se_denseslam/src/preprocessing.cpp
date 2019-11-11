@@ -38,6 +38,8 @@
 
 #include <cassert>
 
+#include <se/image_utils.hpp>
+
 
 
 void bilateralFilterKernel(se::Image<float>&         out,
