@@ -210,7 +210,7 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
   config.input_file = default_input_file;
   config.log_file = default_log_file;
   config.groundtruth_file = default_groundtruth_file;
-  config.gt_transform = default_gt_transform;
+  config.T_BC = default_gt_transform;
 
   config.mu = default_mu;
   config.fps = default_fps;
@@ -297,14 +297,14 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
             // Translation
             gt_transform_tran = Eigen::Vector3f(std::stof(tokens[0]),
                 std::stof(tokens[1]), std::stof(tokens[2]));
-            config.gt_transform.topRightCorner<3,1>() = gt_transform_tran;
+            config.T_BC.topRightCorner<3,1>() = gt_transform_tran;
             break;
           case 4:
             // Rotation
             // Create a quaternion and get the equivalent rotation matrix
             gt_transform_quat = Eigen::Quaternionf(std::stof(tokens[3]),
                 std::stof(tokens[0]), std::stof(tokens[1]), std::stof(tokens[2]));
-            config.gt_transform.block<3,3>(0,0) = gt_transform_quat.toRotationMatrix();
+            config.T_BC.block<3,3>(0,0) = gt_transform_quat.toRotationMatrix();
             break;
           case 7:
             // Translation and rotation
@@ -312,8 +312,8 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
                 std::stof(tokens[1]), std::stof(tokens[2]));
             gt_transform_quat = Eigen::Quaternionf(std::stof(tokens[6]),
                 std::stof(tokens[3]), std::stof(tokens[4]), std::stof(tokens[5]));
-            config.gt_transform.topRightCorner<3,1>() = gt_transform_tran;
-            config.gt_transform.block<3,3>(0,0) = gt_transform_quat.toRotationMatrix();
+            config.T_BC.topRightCorner<3,1>() = gt_transform_tran;
+            config.T_BC.block<3,3>(0,0) = gt_transform_quat.toRotationMatrix();
             break;
           default:
             std::cerr << "Invalid number of parameters for argument gt-transform. Valid parameters are:\n"
@@ -325,7 +325,7 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
             break;
         }
         std::cerr << "using the groundtruth transform\n"
-          << config.gt_transform << std::endl;
+          << config.T_BC << std::endl;
         break;
       case 'h': // -h (--bayesian)
         config.bayesian = true;

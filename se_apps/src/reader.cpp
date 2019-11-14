@@ -164,7 +164,7 @@ DepthReader *createReader(Configuration *config, std::string filename) {
   reader_config.blocking_read = config->blocking_read;
   reader_config.data_path = config->input_file;
   reader_config.groundtruth_path = config->groundtruth_file;
-  reader_config.transform = config->gt_transform;
+  reader_config.transform = config->T_BC;
 
   struct stat st;
   lstat(filename.c_str(), &st);

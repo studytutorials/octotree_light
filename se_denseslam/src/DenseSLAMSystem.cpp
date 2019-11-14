@@ -62,7 +62,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
 DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
                                  const Eigen::Vector3i& volumeResolution,
                                  const Eigen::Vector3f& volumeDimensions,
-                                 const Eigen::Matrix4f& initPose,
+                                 const Eigen::Matrix4f& init_T_WC,
                                  std::vector<int> & pyramid,
                                  const Configuration& config) :
   computation_size_(inputSize),
@@ -73,12 +73,12 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
   rgba_(computation_size_.x(), computation_size_.y())
   {
 
-    this->init_pose_ = initPose.block<3,1>(0,3);
+    this->init_position_M_ = init_T_WC.block<3,1>(0,3);
     this->volume_dimension_ = volumeDimensions;
     this->volume_resolution_ = volumeResolution;
     this->mu_ = config.mu;
-    pose_ = initPose;
-    raycast_pose_ = initPose;
+    T_WC_ = init_T_WC;
+    raycast_T_WC_ = init_T_WC;
 
     this->iterations_.clear();
     for (std::vector<int>::iterator it = pyramid.begin();
@@ -86,7 +86,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
       this->iterations_.push_back(*it);
     }
 
-    viewPose_ = &pose_;
+    render_T_WC_ = &T_WC_;
 
     if (getenv("KERNEL_TIMINGS"))
       print_kernel_timing = true;
@@ -180,8 +180,8 @@ bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k,
 		localimagesize /= 2;;
 	}
 
-	old_pose_ = pose_;
-	const Eigen::Matrix4f projectReference = getCameraMatrix(k) * raycast_pose_.inverse();
+	previous_T_WC_ = T_WC_;
+	const Eigen::Matrix4f projectReference = getCameraMatrix(k) * raycast_T_WC_.inverse();
 
 	for (int level = iterations_.size() - 1; level >= 0; --level) {
     Eigen::Vector2i localimagesize(
@@ -190,18 +190,18 @@ bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k,
 		for (int i = 0; i < iterations_[level]; ++i) {
 
       trackKernel(tracking_result_.data(), input_vertex_[level], input_normal_[level],
-          vertex_, normal_, pose_, projectReference,
+          vertex_, normal_, T_WC_, projectReference,
           dist_threshold, normal_threshold);
 
 			reduceKernel(reduction_output_.data(), tracking_result_.data(), computation_size_,
 					localimagesize);
 
-			if (updatePoseKernel(pose_, reduction_output_.data(), icp_threshold))
+			if (updatePoseKernel(T_WC_, reduction_output_.data(), icp_threshold))
 				break;
 
 		}
 	}
-	return checkPoseKernel(pose_, old_pose_, reduction_output_.data(),
+	return checkPoseKernel(T_WC_, previous_T_WC_, reduction_output_.data(),
       computation_size_, track_threshold);
 }
 
@@ -210,10 +210,10 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned in
   bool doRaycast = false;
 
   if(frame > 2) {
-    raycast_pose_ = pose_;
+    raycast_T_WC_ = T_WC_;
     float step = volume_dimension_.x() / volume_resolution_.x();
     raycastKernel(volume_, vertex_, normal_,
-        raycast_pose_ * getInverseCameraMatrix(k), nearPlane,
+        raycast_T_WC_ * getInverseCameraMatrix(k), nearPlane,
         farPlane, mu, step, step*BLOCK_SIDE);
     doRaycast = true;
   }
@@ -234,13 +234,13 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
         * computation_size_.x() * computation_size_.y();
     allocation_list_.reserve(total);
 
-    const Sophus::SE3f& T_cw = Sophus::SE3f(pose_).inverse();
+    const Sophus::SE3f& T_CW = Sophus::SE3f(T_WC_).inverse();
     const Eigen::Matrix4f& K = getCameraMatrix(k);
     const size_t allocated = VoxelImpl::buildAllocationList(
         allocation_list_.data(),
         allocation_list_.capacity(),
         *volume_._map_index,
-        pose_,
+        T_WC_,
         getCameraMatrix(k),
         float_depth_.data(),
         computation_size_,
@@ -250,7 +250,7 @@ bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
 
     VoxelImpl::integrate(
         *volume_._map_index,
-        T_cw,
+        T_CW,
         K,
         float_depth_,
         mu,
@@ -275,10 +275,10 @@ void DenseSLAMSystem::renderVolume(unsigned char* out,
 	if (frame % raycast_rendering_rate == 0) {
     const float step = volume_dimension_.x() / volume_resolution_.x();
 		renderVolumeKernel(volume_, out, outputSize,
-	*(this->viewPose_) * getInverseCameraMatrix(k), nearPlane,
+	*(this->render_T_WC_) * getInverseCameraMatrix(k), nearPlane,
 	farPlane * 2.0f, mu_, step, largestep,
-        this->viewPose_->topRightCorner<3, 1>(), ambient,
-        !(this->viewPose_->isApprox(raycast_pose_)), vertex_,
+        this->render_T_WC_->topRightCorner<3, 1>(), ambient,
+        !(this->render_T_WC_->isApprox(raycast_T_WC_)), vertex_,
         normal_);
   }
 }
@@ -356,5 +356,5 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
     };
 
     se::algorithms::marching_cube(*volume_._map_index, select, inside, mesh);
-    writeVtkMesh(filename.c_str(), mesh, this->init_pose_);
+    writeVtkMesh(filename.c_str(), mesh, this->init_position_M_);
 }

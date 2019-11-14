@@ -62,14 +62,14 @@ class DenseSLAMSystem {
 
   private:
     Eigen::Vector2i computation_size_;
-    Eigen::Matrix4f pose_;
-    Eigen::Matrix4f *viewPose_;
+    Eigen::Matrix4f T_WC_;
+    Eigen::Matrix4f *render_T_WC_;
     Eigen::Vector3f volume_dimension_;
     Eigen::Vector3i volume_resolution_;
     std::vector<int> iterations_;
     bool tracked_;
     bool integrated_;
-    Eigen::Vector3f init_pose_;
+    Eigen::Vector3f init_position_M_;
     float mu_;
     bool need_render_ = false;
     Configuration config_;
@@ -93,8 +93,8 @@ class DenseSLAMSystem {
     se::Image<float> float_depth_;
     se::Image<uint32_t> rgba_;
     std::vector<TrackData>  tracking_result_;
-    Eigen::Matrix4f old_pose_;
-    Eigen::Matrix4f raycast_pose_;
+    Eigen::Matrix4f previous_T_WC_;
+    Eigen::Matrix4f raycast_T_WC_;
 
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -126,14 +126,14 @@ class DenseSLAMSystem {
      * reconstructed volume in voxels.
      * \param[in] volume_dimension_ The x, y and z dimensions of the
      * reconstructed volume in meters.
-     * \param[in] initPose The initial camera pose encoded in a 4x4 matrix.
+     * \param[in] init_T_WC The initial camera pose encoded in a 4x4 matrix.
      * \param[in] pyramid See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
     DenseSLAMSystem(const Eigen::Vector2i& inputSize,
                     const Eigen::Vector3i& volume_resolution_,
                     const Eigen::Vector3f& volume_dimension_,
-                    const Eigen::Matrix4f& initPose,
+                    const Eigen::Matrix4f& init_T_WC,
                     std::vector<int> &     pyramid,
                     const Configuration&   config_);
 
@@ -350,9 +350,9 @@ class DenseSLAMSystem {
     Eigen::Vector3f getPosition() {
       //std::cerr << "InitPose =" << _initPose.x << "," << _initPose.y  <<"," << _initPose.z << "    ";
       //std::cerr << "pose =" << pose.data[0].w << "," << pose.data[1].w  <<"," << pose.data[2].w << "    ";
-      float xt = pose_(0, 3) - init_pose_.x();
-      float yt = pose_(1, 3) - init_pose_.y();
-      float zt = pose_(2, 3) - init_pose_.z();
+      float xt = T_WC_(0, 3) - init_position_M_.x();
+      float yt = T_WC_(1, 3) - init_position_M_.y();
+      float zt = T_WC_(2, 3) - init_position_M_.z();
       return Eigen::Vector3f(xt, yt, zt);
     }
 
@@ -362,43 +362,43 @@ class DenseSLAMSystem {
      * \return A vector containing the x, y and z coordinates of the camera.
      */
     Eigen::Vector3f getInitPos(){
-      return init_pose_;
+      return init_position_M_;
     }
 
     /**
      * Get the current camera pose.
      *
-     * \return The current camera pose encoded in a 4x4 matrix.
+     * \return The current camera pose T_WC encoded in a 4x4 matrix.
      */
     Eigen::Matrix4f getPose() {
-      return pose_;
+      return T_WC_;
     }
 
     /**
      * Set the current camera pose.
      *
-     * @note The value of the DenseSLAMSystem::init_pose_ member is added to
-     * the position encoded in `pose`.
+     * @note The value of the DenseSLAMSystem::init_position_M_ member is added
+     * to the position encoded in `pose`.
      *
-     * \param[in] pose The desired camera pose encoded in a 4x4 matrix.
+     * \param[in] T_WC The desired camera pose encoded in a 4x4 matrix.
      */
-    void setPose(const Eigen::Matrix4f pose) {
-      pose_ = pose;
-      pose_.block<3,1>(0,3) += init_pose_;
+    void setPose(const Eigen::Matrix4f T_WC) {
+      T_WC_ = T_WC;
+      T_WC_.block<3,1>(0,3) += init_position_M_;
     }
 
     /**
      * Set the camera pose used to render the 3D reconstruction.
      *
-     * \param[in] value The desired camera pose encoded in a 4x4 matrix.
+     * \param[in] T_WC The desired camera pose encoded in a 4x4 matrix.
      */
-    void setViewPose(Eigen::Matrix4f *value = NULL) {
-      if (value == NULL){
-        viewPose_ = &pose_;
+    void setViewPose(Eigen::Matrix4f *T_WC = NULL) {
+      if (T_WC == NULL){
+        render_T_WC_ = &T_WC_;
         need_render_ = false;
       }
       else {
-        viewPose_ = value;
+        render_T_WC_ = T_WC;
         need_render_ = true;
       }
     }
@@ -407,10 +407,10 @@ class DenseSLAMSystem {
      * Get the camera pose used to render the 3D reconstruction. The default
      * is the current frame's camera pose.
      *
-     * \return The current camera pose encoded in a 4x4 matrix.
+     * \return The current camera pose T_WC encoded in a 4x4 matrix.
      */
     Eigen::Matrix4f *getViewPose() {
-      return (viewPose_);
+      return (render_T_WC_);
     }
 
     /**

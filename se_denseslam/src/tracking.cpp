@@ -244,7 +244,7 @@ void trackKernel(TrackData*                        output,
                  const se::Image<Eigen::Vector3f>& ref_vertex,
                  const se::Image<Eigen::Vector3f>& ref_normal,
                  const Eigen::Matrix4f&            T_track,
-                 const Eigen::Matrix4f&            view,
+                 const Eigen::Matrix4f&            T_WC,
                  const float                       dist_threshold,
                  const float                       normal_threshold) {
 
@@ -266,7 +266,7 @@ void trackKernel(TrackData*                        output,
 
       const Eigen::Vector3f projected_vertex = (T_track *
           in_vertex[pixel.x() + pixel.y() * in_size.x()].homogeneous()).head<3>();
-      const Eigen::Vector3f projected_pos = (view * projected_vertex.homogeneous()).head<3>();
+      const Eigen::Vector3f projected_pos = (T_WC * projected_vertex.homogeneous()).head<3>();
       const Eigen::Vector2f proj_pixel(
           projected_pos.x() / projected_pos.z() + 0.5f,
           projected_pos.y() / projected_pos.z() + 0.5f);
@@ -315,7 +315,7 @@ void trackKernel(TrackData*                        output,
 
 
 
-bool updatePoseKernel(Eigen::Matrix4f& pose,
+bool updatePoseKernel(Eigen::Matrix4f& T_WC,
                       const float*     reduction_output,
                       float            icp_threshold) {
 
@@ -324,7 +324,7 @@ bool updatePoseKernel(Eigen::Matrix4f& pose,
   Eigen::Map<const Eigen::Matrix<float, 8, 32, Eigen::RowMajor> > values(reduction_output);
   Eigen::Matrix<float, 6, 1> x = solve(values.row(0).segment(1, 27));
   Eigen::Matrix4f delta = Sophus::SE3<float>::exp(x).matrix();
-  pose = delta * pose;
+  T_WC = delta * T_WC;
 
   if (x.norm() < icp_threshold)
     res = true;
@@ -335,8 +335,8 @@ bool updatePoseKernel(Eigen::Matrix4f& pose,
 
 
 
-bool checkPoseKernel(Eigen::Matrix4f&       pose,
-                     Eigen::Matrix4f&       old_pose,
+bool checkPoseKernel(Eigen::Matrix4f&       T_WC,
+                     Eigen::Matrix4f&       previous_T_WC,
                      const float*           reduction_output,
                      const Eigen::Vector2i& image_size,
                      float                  track_threshold) {
@@ -347,7 +347,7 @@ bool checkPoseKernel(Eigen::Matrix4f&       pose,
 
   if ((std::sqrt(values(0, 0) / values(0, 28)) > 2e-2)
       || (values(0, 28) / (image_size.x() * image_size.y()) < track_threshold)) {
-    pose = old_pose;
+    T_WC = previous_T_WC;
     return false;
   } else {
     return true;

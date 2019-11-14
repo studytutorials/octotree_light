@@ -128,26 +128,32 @@ struct Configuration {
    */
   std::string log_file;
 
-  /*
-   * The path to a text file containing the ground truth poses. Each line of
-   * the file should correspond to a single pose. The pose should be encoded in
-   * the format `tx ty tz qx qy qz qw` where `tx`, `ty` and `tz` are the
+  /**
+   * The path to a text file containing the ground truth poses T_WC. Each line
+   * of the file should correspond to a single pose. The pose should be encoded
+   * in the format `tx ty tz qx qy qz qw` where `tx`, `ty` and `tz` are the
    * position coordinates and `qx`, `qy`, `qz` and `qw` the orientation
    * quaternion. Each line in the file should be in the format `... tx ty tz qx
    * qy qz qw`, that is the pose is encoded in the last 7 columns of the line.
-   * The other columns of the file are ignored.  Lines beginning with # are
+   * The other columns of the file are ignored. Lines beginning with # are
    * comments.
    * <br>\em Default: ""
+   *
+   * \note It is assumed that the ground truth poses are the camera frame C
+   * expressed in the world frame W. The camera frame is assumed to be z
+   * forward, x right with respect to the image. If the ground truth poses do
+   * not adhere to this assumption then the ground truth transformation
+   * Configuration::T_BC should be set appropriately.
    */
   std::string groundtruth_file;
 
   /**
-   * A 4x4 transformation matrix applied to all poses read from the ground
-   * truth file.
-   *
+   * A 4x4 transformation matrix post-multiplied with all poses read from the
+   * ground truth file. It is used if the ground truth poses are in some frame
+   * B other than the camera frame C.
    * <br>\em Default: Eigen::Matrix4f::Identity()
    */
-  Eigen::Matrix4f gt_transform;
+  Eigen::Matrix4f T_BC;
 
   /**
    * The intrinsic camera parameters. camera.x, camera.y, camera.z and

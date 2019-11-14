@@ -115,7 +115,7 @@ class DepthReader {
 
     }
 
-    inline bool readNextPose(Eigen::Matrix4f& pose) {
+    inline bool readNextPose(Eigen::Matrix4f& T_WC) {
       std::string line;
       while (true) {
         std::getline(_gt_file,line);
@@ -143,12 +143,12 @@ class DepthReader {
                                  std::stof(line_data[num_cols-4]),
                                  std::stof(line_data[num_cols-3]),
                                  std::stof(line_data[num_cols-2]));
-        pose = Eigen::Matrix4f::Identity();
-        pose.block<3,3>(0,0) = quat.toRotationMatrix();
-        pose.block<3,1>(0,3) = tran;
+        Eigen::Matrix4f T_WB = Eigen::Matrix4f::Identity();
+        T_WB.block<3,3>(0,0) = quat.toRotationMatrix();
+        T_WB.block<3,1>(0,3) = tran;
         _pose_num++;
         // Apply the transform to the pose
-        pose = pose * _transform ;
+        T_WC = T_WB * _T_BC ;
         return true;
       }
     }
@@ -163,7 +163,7 @@ class DepthReader {
     std::string _data_path;
     std::string _groundtruth_path;
     std::ifstream _gt_file;
-    Eigen::Matrix4f _transform;
+    Eigen::Matrix4f _T_BC;
 };
 
 static const float SceneK[3][3] = { { 481.20, 0.00, 319.50 }, { 0.00, -480.00,
@@ -297,7 +297,7 @@ class RawDepthReader: public DepthReader {
         // Copy configuration
         _data_path = config.data_path;
         _groundtruth_path = config.groundtruth_path;
-        _transform = config.transform;
+        _T_BC = config.transform;
         // Open ground truth association file if supplied
         if (_groundtruth_path != "") {
           _gt_file.open(_groundtruth_path.c_str());
@@ -464,15 +464,15 @@ class RawDepthReader: public DepthReader {
      *
      * \param[out] rgb_image The RGB frame.
      * \param[out] depth_image The depth frame.
-     * \param[out] pose The ground truth pose.
+     * \param[out] T_WC The ground truth pose.
      * \return true on success, false on failure to read.
      */
     inline bool readNextData(uchar3*          rgb_image,
                              uint16_t*        depth_image,
-                             Eigen::Matrix4f& pose) {
+                             Eigen::Matrix4f& T_WC) {
       bool res;
       // _pose_num is incremented inside readNextPose()
-      res = readNextPose(pose);
+      res = readNextPose(T_WC);
       // _frame is incremented inside readNextDepthFrame()
       res = res && readNextDepthFrame(rgb_image, depth_image);
       return res;

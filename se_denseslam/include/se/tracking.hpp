@@ -66,20 +66,20 @@ void trackKernel(TrackData*                        output,
                  const se::Image<Eigen::Vector3f>& ref_vertex,
                  const se::Image<Eigen::Vector3f>& ref_normal,
                  const Eigen::Matrix4f&            Ttrack,
-                 const Eigen::Matrix4f&            view,
+                 const Eigen::Matrix4f&            T_WC,
                  const float                       dist_threshold,
                  const float                       normal_threshold);
 
 
 
-bool updatePoseKernel(Eigen::Matrix4f& pose,
+bool updatePoseKernel(Eigen::Matrix4f& T_WC,
                       const float*     reduction_output,
                       const float      icp_threshold);
 
 
 
-bool checkPoseKernel(Eigen::Matrix4f&       pose,
-                     Eigen::Matrix4f&       old_pose,
+bool checkPoseKernel(Eigen::Matrix4f&       T_WC,
+                     Eigen::Matrix4f&       previous_T_WC,
                      const float*           reduction_output,
                      const Eigen::Vector2i& image_size,
                      const float            track_threshold);
