@@ -148,7 +148,7 @@ class DepthReader {
         pose.block<3,1>(0,3) = tran;
         _pose_num++;
         // Apply the transform to the pose
-        pose = _transform * pose;
+        pose = pose * _transform ;
         return true;
       }
     }
