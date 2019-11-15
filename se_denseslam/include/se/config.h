@@ -32,9 +32,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <se/utils/math_utils.h>
-#include <vector>
+#include <ostream>
 #include <string>
+#include <vector>
+
+#include <Eigen/Dense>
+
+#include <se/utils/math_utils.h>
+
+
 
 struct Configuration {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -214,5 +220,47 @@ struct Configuration {
    */
   bool bilateral_filter;
 };
+
+
+
+static std::ostream& operator<<(std::ostream& out, const Configuration& config) {
+  out << "Input file:              " << config.input_file << "\n";
+  out << "Volume extent:           " << config.volume_size.x() << "x"
+                                     << config.volume_size.y() << "x"
+                                     << config.volume_size.z() << " meters\n";
+  out << "Volume size:             " << config.volume_resolution.x() << "x"
+                                     << config.volume_resolution.y() << "x"
+                                     << config.volume_resolution.z() << " voxels\n";
+  out << "Initial position factor: " << config.initial_pos_factor.x() << " "
+                                     << config.initial_pos_factor.y() << " "
+                                     << config.initial_pos_factor.z() << "\n";
+  out << "Compute size ratio:      " << config.compute_size_ratio << "\n";
+  out << "Camera parameters:       " << config.camera.x() << " "
+                                     << config.camera.y() << " "
+                                     << config.camera.z() << " "
+                                     << config.camera.w() << "\n";
+  out << "Mu:                      " << config.mu << "\n";
+  out << "Filter depth:            " << (config.bilateral_filter
+                                        ? "true" : "false") << "\n";
+  out << "Tracking rate:           " << config.tracking_rate << "\n";
+  out << "Integration rate:        " << config.integration_rate << "\n";
+  out << "Rendering rate:          " << config.rendering_rate << "\n";
+  out << "ICP pyramid levels:     ";
+  for (const auto& level : config.pyramid) {
+    out << " " << level;
+  }
+  out << "\n";
+  out << "ICP threshold:           " << config.icp_threshold << "\n";
+  out << "Ground truth file:       " << config.groundtruth_file << "\n";
+  out << "Ground truth T_BC:\n"      << config.T_BC << "\n";
+  out << "Output mesh file:        " << config.dump_volume_file << "\n";
+  out << "Log file:                " << config.log_file << "\n";
+  out << "Hide GUI:                " << (config.no_gui
+                                        ? "true" : "false") << "\n";
+  out << "Blocking read:           " << (config.blocking_read
+                                        ? "true" : "false") << "\n";
+  out << "FPS:                     " << config.fps << "\n";
+  return out;
+}
 
 #endif

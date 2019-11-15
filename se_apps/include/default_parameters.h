@@ -45,14 +45,6 @@ const std::string default_log_file = "";
 const std::string default_groundtruth_file = "";
 const Eigen::Matrix4f default_gt_transform = Eigen::Matrix4f::Identity();
 
-inline std::string pyramid2str(std::vector<int> v) {
-  std::ostringstream ss;
-  for (std::vector<int>::iterator it = v.begin(); it != v.end(); it++)
-    ss << *it << " ";
-  return ss.str();
-
-}
-
 static std::string short_options = "a:qc:d:f:g:G:hi:l:m:k:o:p:r:s:t:v:y:z:FC:M";
 
 static struct option long_options[] =
@@ -239,8 +231,6 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         break;
       case 'c':  //   -c  (--compute-size-ratio)
         config.compute_size_ratio = atoi(optarg);
-        std::cerr << "update compute_size_ratio to "
-          << config.compute_size_ratio << std::endl;
         if ((config.compute_size_ratio != 1)
             && (config.compute_size_ratio != 2)
             && (config.compute_size_ratio != 4)
@@ -253,8 +243,6 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         break;
       case 'd':
         config.dump_volume_file = optarg;
-        std::cerr << "update dump_volume_file to "
-          << config.dump_volume_file << std::endl;
         break;
       case 'e':
         //config.invert_y = true;
@@ -273,8 +261,6 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         break;
       case 'g': // -g (--ground-truth)
         config.groundtruth_file = optarg;
-        std::cerr << "using the groundtruth file " << config.groundtruth_file
-          << std::endl;
         break;
       case 'G': // -G (--gt-transform)
         // Split argument into substrings
@@ -311,13 +297,9 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
             flagErr++;
             break;
         }
-        std::cerr << "using the groundtruth transform\n"
-          << config.T_BC << std::endl;
         break;
       case 'i':    //   -i  (--input-file)
         config.input_file = optarg;
-        std::cerr << "update input_file to " << config.input_file
-          << std::endl;
         struct stat st;
         if (stat(config.input_file.c_str(), &st) != 0) {
           std::cerr << "ERROR: --input-file (-i) does not exist (was "
@@ -328,38 +310,24 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
       case 'k':    //   -k  (--camera)
         config.camera = atof4(optarg);
         config.camera_overrided = true;
-        std::cerr << "update camera to " << config.camera.x() << ","
-          << config.camera.y() << "," << config.camera.z() << ","
-          << config.camera.w() << std::endl;
         break;
       case 'o':    //   -o  (--log-file)
         config.log_file = optarg;
-        std::cerr << "update log_file to " << config.log_file
-          << std::endl;
         break;
       case 'l':  //   -l (--icp-threshold)
         config.icp_threshold = atof(optarg);
-        std::cerr << "update icp_threshold to " << config.icp_threshold
-          << std::endl;
         break;
       case 'm':   // -m  (--mu)
         config.mu = atof(optarg);
-        std::cerr << "update mu to " << config.mu << std::endl;
         break;
       case 'p':    //   -p  (--init-pose)
         config.initial_pos_factor = atof3(optarg);
-        std::cerr << "update init_poseFactors to "
-          << config.initial_pos_factor.x() << ","
-          << config.initial_pos_factor.y() << ","
-          << config.initial_pos_factor.z() << std::endl;
         break;
       case 'q':
         config.no_gui = true;
         break;
       case 'r':    //   -r  (--integration-rate)
         config.integration_rate = atoi(optarg);
-        std::cerr << "update integration_rate to "
-          << config.integration_rate << std::endl;
         if (config.integration_rate < 1) {
           std::cerr
             << "ERROR: --integration-rate (-r) must >= 1 (was "
@@ -369,9 +337,6 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         break;
       case 's':    //   -s  (--map-size)
         config.volume_size = atof3(optarg);
-        std::cerr << "update map_size to " << config.volume_size.x()
-          << "mx" << config.volume_size.y() << "mx"
-          << config.volume_size.z() << "m" << std::endl;
         if ((config.volume_size.x() <= 0) || (config.volume_size.y() <= 0)
             || (config.volume_size.z() <= 0)) {
           std::cerr
@@ -382,20 +347,12 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         break;
       case 't':    //   -t  (--tracking-rate)
         config.tracking_rate = atof(optarg);
-        std::cerr << "update tracking_rate to " << config.tracking_rate
-          << std::endl;
         break;
       case 'z':    //   -z  (--rendering-rate)
         config.rendering_rate = atof(optarg);
-        std::cerr << "update rendering_rate to " << config.rendering_rate
-          << std::endl;
         break;
       case 'v':    //   -v  (--volumetric-size)
         config.volume_resolution = atoi3(optarg);
-        std::cerr << "update volumetric_size to "
-          << config.volume_resolution.x() << "x"
-          << config.volume_resolution.y() << "x"
-          << config.volume_resolution.z() << std::endl;
         if ((config.volume_resolution.x() <= 0)
             || (config.volume_resolution.y() <= 0)
             || (config.volume_resolution.z() <= 0)) {
@@ -414,12 +371,9 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
                     config.pyramid.push_back(atof(s.c_str()));
                   }
                 }
-                std::cerr << "update pyramid levels to " << pyramid2str(config.pyramid)
-                  << std::endl;
                 break;
       case 'F':
                 config.bilateral_filter = true;
-                std::cerr << "using bilateral filter" << std::endl;
                 break;
       case 0:
       case '?':
@@ -438,6 +392,8 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
       << " in command line options\n";
     exit(1);
   }
+
+  std::cout << config;
   return config;
 }
 
