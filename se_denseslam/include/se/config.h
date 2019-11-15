@@ -83,8 +83,6 @@ struct Configuration {
    */
   Eigen::Vector3f volume_size;
 
-  int voxel_block_size;
-
   /**
    * The position of the first pose inside the volume. The coordinates are
    * expressed as fractions [0, 1] of the volume's extent. The default value of
@@ -215,21 +213,6 @@ struct Configuration {
    * <br>\em Default: false
    */
   bool bilateral_filter;
-
-  /* UNUSED */
-  bool coloured_voxels;
-
-  /*
-   * UNUSED
-   * <br>\em Default: false
-   */
-  bool multi_resolution;
-
-  /*
-   * UNUSED
-   * <br>\em Default: false
-   */
-  bool bayesian;
 };
 
 #endif

@@ -42,9 +42,6 @@ const bool default_bilateral_filter = false;
 const std::string default_dump_volume_file = "";
 const std::string default_input_file = "";
 const std::string default_log_file = "";
-const int default_color_integration = false;
-const int default_multi_resolution = false;
-const bool default_bayesian = false;
 const std::string default_groundtruth_file = "";
 const Eigen::Matrix4f default_gt_transform = Eigen::Matrix4f::Identity();
 
@@ -60,11 +57,9 @@ static std::string short_options = "a:qc:d:f:g:G:hi:l:m:k:o:p:r:s:t:v:y:z:FC:M";
 
 static struct option long_options[] =
 {
-  {"quaternion",         required_argument, 0, 'a'},
   {"block-read",         no_argument, 0, 'b'},
   {"compute-size-ratio", required_argument, 0, 'c'},
   {"dump-volume",        required_argument, 0, 'd'},
-  {"invert-y",           no_argument, 0, 'e'},
   {"fps",                required_argument, 0, 'f'},
   {"input-file",         required_argument, 0, 'i'},
   {"camera",             required_argument, 0, 'k'},
@@ -81,9 +76,6 @@ static struct option long_options[] =
   {"rendering-rate",     required_argument, 0, 'z'},
   {"voxel-block-size",   required_argument, 0, 'B'},
   {"bilateral-filter",   no_argument, 0, 'F'},
-  {"colour-voxels",      no_argument, 0, 'C'},
-  {"multi-res",          no_argument, 0, 'M'},
-  {"bayesian",           no_argument, 0, 'h'},
   {"ground-truth",       required_argument, 0, 'g'},
   {"gt-transform",       required_argument, 0, 'G'},
   {0, 0, 0, 0}
@@ -93,11 +85,9 @@ inline
 void print_arguments() {
   std::cerr << "-b  (--block-read)                        : default is False: Block on read " << std::endl;
   std::cerr << "-c  (--compute-size-ratio)                : default is " << default_compute_size_ratio << "   (same size)      " << std::endl;
-  std::cerr << "-e  (--invert-y)                          : default is False: Block on read " << std::endl;
   std::cerr << "-d  (--dump-volume) <filename>            : Output volume file              " << std::endl;
   std::cerr << "-f  (--fps)                               : default is " << default_fps       << std::endl;
   std::cerr << "-F  (--bilateral-filter                   : default is disabled"               << std::endl;
-  std::cerr << "-h  (--bayesian                           : default is disabled"               << std::endl;
   std::cerr << "-i  (--input-file) <filename>             : Input camera file               " << std::endl;
   std::cerr << "-k  (--camera)                            : default is defined by input     " << std::endl;
   std::cerr << "-l  (--icp-threshold)                     : default is " << default_icp_threshold << std::endl;
@@ -203,8 +193,6 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
   config.volume_resolution = default_volume_resolution;
   config.volume_size = default_volume_size;
   config.initial_pos_factor = default_initial_pos_factor;
-  //initial_pose_quant.setIdentity();
-  //invert_y = false;
 
   config.dump_volume_file = default_dump_volume_file;
   config.input_file = default_input_file;
@@ -220,7 +208,6 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
   config.render_volume_fullsize = default_render_volume_fullsize;
   config.camera_overrided = false;
   config.bilateral_filter = default_bilateral_filter;
-  config.bayesian = default_bayesian;
 
   config.pyramid.clear();
   for (int i = 0; i < DEFAULT_ITERATION_COUNT; i++) {
@@ -326,9 +313,6 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         }
         std::cerr << "using the groundtruth transform\n"
           << config.T_BC << std::endl;
-        break;
-      case 'h': // -h (--bayesian)
-        config.bayesian = true;
         break;
       case 'i':    //   -i  (--input-file)
         config.input_file = optarg;
@@ -436,14 +420,6 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
       case 'F':
                 config.bilateral_filter = true;
                 std::cerr << "using bilateral filter" << std::endl;
-                break;
-      case 'C':
-                config.coloured_voxels = true;
-                std::cerr << "using coloured voxels" << std::endl;
-                break;
-      case 'M':
-                config.multi_resolution = true;
-                std::cerr << "using multi-resolution integration" << std::endl;
                 break;
       case 0:
       case '?':
