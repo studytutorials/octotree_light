@@ -204,22 +204,7 @@ bool DenseSLAMSystem::track(const Eigen::Vector4f& k,
       computation_size_, track_threshold);
 }
 
-bool DenseSLAMSystem::raycast(const Eigen::Vector4f& k,
-                              float                  mu,
-                              unsigned int           frame) {
 
-  bool doRaycast = false;
-
-  if(frame > 2) {
-    raycast_T_WC_ = T_WC_;
-    float step = volume_dimension_.x() / volume_resolution_.x();
-    raycastKernel(volume_, vertex_, normal_,
-        raycast_T_WC_ * getInverseCameraMatrix(k), nearPlane,
-        farPlane, mu, step, step*BLOCK_SIDE);
-    doRaycast = true;
-  }
-  return doRaycast;
-}
 
 bool DenseSLAMSystem::integrate(const Eigen::Vector4f& k,
                                 unsigned int           integration_rate,
@@ -261,6 +246,27 @@ bool DenseSLAMSystem::integrate(const Eigen::Vector4f& k,
     return false;
   }
 }
+
+
+
+bool DenseSLAMSystem::raycast(const Eigen::Vector4f& k,
+                              float                  mu,
+                              unsigned int           frame) {
+
+  bool doRaycast = false;
+
+  if(frame > 2) {
+    raycast_T_WC_ = T_WC_;
+    float step = volume_dimension_.x() / volume_resolution_.x();
+    raycastKernel(volume_, vertex_, normal_,
+        raycast_T_WC_ * getInverseCameraMatrix(k), nearPlane,
+        farPlane, mu, step, step*BLOCK_SIDE);
+    doRaycast = true;
+  }
+  return doRaycast;
+}
+
+
 
 void DenseSLAMSystem::dump_volume(std::string ) {
 
