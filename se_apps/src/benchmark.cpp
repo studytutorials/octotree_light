@@ -123,8 +123,11 @@ int main(int argc, char ** argv) {
 
     timings[2] = std::chrono::steady_clock::now();
 
-    tracked = pipeline.track(camera, config.icp_threshold,
-        config.tracking_rate, frame);
+    if (frame % config.tracking_rate == 0) {
+      tracked = pipeline.track(camera, config.icp_threshold);
+    } else {
+      tracked = false;
+    }
 
 
     timings[3] = std::chrono::steady_clock::now();
@@ -136,26 +139,29 @@ int main(int argc, char ** argv) {
     float zt = pose(2, 3) - init_pose.z();
 
 
-    // Integrate only if tracking was successful or it is one of the first
-    // 4 frames.
-    if (tracked || (frame <=3)) {
-      integrated = pipeline.integrate(camera, config.integration_rate,
-          config.mu, frame);
+    // Integrate only if tracking was successful every integration_rate frames
+    // or it is one of the first 4 frames.
+    if ((tracked && (frame % config.integration_rate == 0)) || frame <= 3) {
+        integrated = pipeline.integrate(camera, config.mu, frame);
     } else {
       integrated = false;
     }
 
     timings[4] = std::chrono::steady_clock::now();
 
-    pipeline.raycast(camera, config.mu, frame);
+    if (frame > 2) {
+      pipeline.raycast(camera, config.mu);
+    }
 
     timings[5] = std::chrono::steady_clock::now();
 
     pipeline.renderDepth( (unsigned char*)depthRender, Eigen::Vector2i(computationSize.x, computationSize.y));
     pipeline.renderTrack( (unsigned char*)trackRender, Eigen::Vector2i(computationSize.x, computationSize.y));
-    pipeline.renderVolume((unsigned char*)volumeRender,
-        Eigen::Vector2i(computationSize.x, computationSize.y), frame,
-        config.rendering_rate, camera, 0.75 * config.mu);
+    if (frame % config.rendering_rate == 0) {
+      pipeline.renderVolume((unsigned char*)volumeRender,
+          Eigen::Vector2i(computationSize.x, computationSize.y),
+          camera, 0.75 * config.mu);
+    }
 
     timings[6] = std::chrono::steady_clock::now();
 

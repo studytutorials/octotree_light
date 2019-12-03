@@ -261,9 +261,12 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
     timings[2] = std::chrono::steady_clock::now();
 
     if (config->groundtruth_file == "") {
-      // No ground truth used, call track.
-      tracked = pipeline->track(camera, config->icp_threshold,
-          config->tracking_rate, frame);
+      // No ground truth used, call track every tracking_rate frames.
+      if (frame % config->tracking_rate == 0) {
+        tracked = pipeline->track(camera, config->icp_threshold);
+      } else {
+        tracked = false;
+      }
     } else {
       // Set the pose to the ground truth.
       pipeline->setPose(gt_pose);
@@ -276,18 +279,21 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
     timings[3] = std::chrono::steady_clock::now();
 
-    // Integrate only if tracking was successful or it is one of the
-    // first 4 frames.
-    if (tracked || (frame <= 3)) {
-      integrated = pipeline->integrate(camera,
-          config->integration_rate, config->mu, frame);
+    // Integrate only if tracking was successful every integration_rate frames
+    // or it is one of the first 4 frames.
+    if ((tracked && (frame % config->integration_rate == 0)) || frame <= 3) {
+        integrated = pipeline->integrate(camera, config->mu, frame);
     } else {
       integrated = false;
     }
 
     timings[4] = std::chrono::steady_clock::now();
 
-    raycasted = pipeline->raycast(camera, config->mu, frame);
+    if (frame > 2) {
+      raycasted = pipeline->raycast(camera, config->mu);
+    } else {
+      raycasted = false;
+    }
 
     timings[5] = std::chrono::steady_clock::now();
   }
@@ -295,9 +301,10 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
     pipeline->renderRGBA((uint8_t*) RGBARender, pipeline->getComputationResolution());
     pipeline->renderDepth((unsigned char*)depthRender, pipeline->getComputationResolution());
     pipeline->renderTrack((unsigned char*)trackRender, pipeline->getComputationResolution());
-    pipeline->renderVolume((unsigned char*)volumeRender, pipeline->getComputationResolution(),
-        (processFrame ? reader->getFrameNumber() - frameOffset : 0),
-        config->rendering_rate, camera, 0.75 * config->mu);
+    if (frame % config->rendering_rate == 0) {
+      pipeline->renderVolume((unsigned char*)volumeRender, pipeline->getComputationResolution(),
+          camera, 0.75 * config->mu);
+    }
     timings[6] = std::chrono::steady_clock::now();
   }
 

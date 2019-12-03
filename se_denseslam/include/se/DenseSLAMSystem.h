@@ -175,17 +175,13 @@ class DenseSLAMSystem {
      * obtained from all of the previous frames. This is the second stage of
      * the pipeline.
      *
-     * \param[in] k The intrinsic camera parameters. See
-     * ::Configuration.camera for details.
+     * \param[in] k The intrinsic camera parameters. See ::Configuration.camera
+     * for details.
      * \param[in] icp_threshold The ICP convergence threshold.
-     * \param[in] tracking_rate Process a frame every tracking_rate frames.
-     * \param[in] frame The index of the current frame (starts from 0).
      * \return true if the camera pose was updated and false if it wasn't.
      */
     bool track(const Eigen::Vector4f& k,
-               const float            icp_threshold,
-               const unsigned         tracking_rate,
-               const unsigned         frame);
+               const float            icp_threshold);
 
     /**
      * Integrate the 3D reconstruction resulting from the current frame to the
@@ -193,17 +189,12 @@ class DenseSLAMSystem {
      *
      * \param[in] k The intrinsic camera parameters. See
      * ::Configuration.camera for details.
-     * \param[in] integration_rate Integrate a 3D reconstruction every
-     * integration_rate frames. Should not be less than the tracking_rate used
-     * in tracking().
      * \param[in] mu TSDF truncation bound. See ::Configuration.mu for more
      * details.
      * \param[in] frame The index of the current frame (starts from 0).
-     * \return true if the current 3D reconstruction was added to the octree
-     * and false if it wasn't.
+     * \return true (does not fail).
      */
     bool integrate(const Eigen::Vector4f& k,
-                   unsigned               integration_rate,
                    float                  mu,
                    unsigned               frame);
 
@@ -220,12 +211,10 @@ class DenseSLAMSystem {
      * ::Configuration.camera for details.
      * \param[in] mu TSDF truncation bound. See ::Configuration.mu for more
      * details.
-     * \param[in] frame The index of the current frame (starts from 0).
-     * \return true if raycasting was performed and false if it wasn't.
+     * \return true (does not fail).
      */
     bool raycast(const Eigen::Vector4f& k,
-                 float                  mu,
-                 unsigned int           frame);
+                 float                  mu);
 
     /*
      * TODO Implement this.
@@ -247,19 +236,15 @@ class DenseSLAMSystem {
      * layout is rgbwrgbwrgbw.
      * \param[in] outputSize The dimensions of the output array (width and
      * height in pixels).
-     * \param[in] frame The index of the current frame (starts from 0).
-     * \param[in] rate Render the 3D reconstruction every rate frames.
      * \param[in] k The intrinsic camera parameters. See
      * ::Configuration.camera for details.
      * \param[in] mu TSDF truncation bound. See ::Configuration.mu for more
      * details.
      */
-    void renderVolume(unsigned char*         out,
-                      const Eigen::Vector2i& outputSize,
-                      int                    frame,
-                      int                    rate,
+    void renderVolume(unsigned char*         output,
+                      const Eigen::Vector2i& output_size,
                       const Eigen::Vector4f& k,
-                      float                  mu);
+                      const float            mu);
 
     /**
      * Render the output of the tracking algorithm. The meaning of the colors is as follows:
