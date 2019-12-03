@@ -33,133 +33,133 @@ PerfStats Stats;
 
 int main(int argc, char ** argv) {
 
-	Configuration config = parseArgs(argc, argv);
+  Configuration config = parseArgs(argc, argv);
 
-	// ========= CHECK ARGS =====================
+  // ========= CHECK ARGS =====================
 
-	std::ostream* logstream = &std::cout;
-	std::ofstream logfilestream;
-	assert(config.compute_size_ratio > 0);
-	assert(config.integration_rate > 0);
-	assert(config.volume_size.x() > 0);
-	assert(config.volume_resolution.x() > 0);
+  std::ostream* logstream = &std::cout;
+  std::ofstream logfilestream;
+  assert(config.compute_size_ratio > 0);
+  assert(config.integration_rate > 0);
+  assert(config.volume_size.x() > 0);
+  assert(config.volume_resolution.x() > 0);
 
-	if (config.log_file != "") {
-		logfilestream.open(config.log_file.c_str());
-		logstream = &logfilestream;
-	}
-	if (config.input_file == "") {
-		std::cerr << "No input found." << std::endl;
-		print_arguments();
-		exit(1);
-	}
+  if (config.log_file != "") {
+    logfilestream.open(config.log_file.c_str());
+    logstream = &logfilestream;
+  }
+  if (config.input_file == "") {
+    std::cerr << "No input found." << std::endl;
+    print_arguments();
+    exit(1);
+  }
 
-	// ========= READER INITIALIZATION  =========
+  // ========= READER INITIALIZATION  =========
 
-	DepthReader * reader;
+  DepthReader * reader;
 
-	if (is_file(config.input_file)) {
-		reader = new RawDepthReader(config.input_file, config.fps,
-				config.blocking_read);
+  if (is_file(config.input_file)) {
+    reader = new RawDepthReader(config.input_file, config.fps,
+        config.blocking_read);
 
-	} else {
-		reader = new SceneDepthReader(config.input_file, config.fps,
-				config.blocking_read);
-	}
+  } else {
+    reader = new SceneDepthReader(config.input_file, config.fps,
+        config.blocking_read);
+  }
 
-	std::cout.precision(10);
-	std::cerr.precision(10);
+  std::cout.precision(10);
+  std::cerr.precision(10);
 
   Eigen::Vector3f init_pose = config.initial_pos_factor.cwiseProduct(config.volume_size);
-	const uint2 inputSize = reader->getinputSize();
-	std::cerr << "input Size is = " << inputSize.x << "," << inputSize.y
-			<< std::endl;
+  const uint2 inputSize = reader->getinputSize();
+  std::cerr << "input Size is = " << inputSize.x << "," << inputSize.y
+    << std::endl;
 
-	//  =========  BASIC PARAMETERS  (input size / computation size )  =========
+  //  =========  BASIC PARAMETERS  (input size / computation size )  =========
 
-	const uint2 computationSize = make_uint2(
-			inputSize.x / config.compute_size_ratio,
-			inputSize.y / config.compute_size_ratio);
+  const uint2 computationSize = make_uint2(
+      inputSize.x / config.compute_size_ratio,
+      inputSize.y / config.compute_size_ratio);
   Eigen::Vector4f camera = reader->getK() / config.compute_size_ratio;
 
-	if (config.camera_overrided)
-		camera = config.camera / config.compute_size_ratio;
-	//  =========  BASIC BUFFERS  (input / output )  =========
+  if (config.camera_overrided)
+    camera = config.camera / config.compute_size_ratio;
+  //  =========  BASIC BUFFERS  (input / output )  =========
 
-	// Construction Scene reader and input buffer
-	uint16_t* inputDepth = (uint16_t*) malloc(
-			sizeof(uint16_t) * inputSize.x * inputSize.y);
-	uchar4* depthRender = (uchar4*) malloc(
-			sizeof(uchar4) * computationSize.x * computationSize.y);
-	uchar4* trackRender = (uchar4*) malloc(
-			sizeof(uchar4) * computationSize.x * computationSize.y);
-	uchar4* volumeRender = (uchar4*) malloc(
-			sizeof(uchar4) * computationSize.x * computationSize.y);
+  // Construction Scene reader and input buffer
+  uint16_t* inputDepth = (uint16_t*) malloc(
+      sizeof(uint16_t) * inputSize.x * inputSize.y);
+  uchar4* depthRender = (uchar4*) malloc(
+      sizeof(uchar4) * computationSize.x * computationSize.y);
+  uchar4* trackRender = (uchar4*) malloc(
+      sizeof(uchar4) * computationSize.x * computationSize.y);
+  uchar4* volumeRender = (uchar4*) malloc(
+      sizeof(uchar4) * computationSize.x * computationSize.y);
 
-	uint frame = 0;
+  uint frame = 0;
 
-	DenseSLAMSystem pipeline(
+  DenseSLAMSystem pipeline(
       Eigen::Vector2i(computationSize.x, computationSize.y),
       config.volume_resolution, config.volume_size,
       init_pose,
       config.pyramid, config);
 
-	std::chrono::time_point<std::chrono::steady_clock> timings[7];
-	timings[0] = std::chrono::steady_clock::now();
+  std::chrono::time_point<std::chrono::steady_clock> timings[7];
+  timings[0] = std::chrono::steady_clock::now();
 
-	*logstream
-			<< "frame\tacquisition\tpreprocessing\ttracking\tintegration\traycasting\trendering\tcomputation\ttotal    \tX          \tY          \tZ         \ttracked   \tintegrated"
-			<< std::endl;
-	logstream->setf(std::ios::fixed, std::ios::floatfield);
+  *logstream
+    << "frame\tacquisition\tpreprocessing\ttracking\tintegration\traycasting\trendering\tcomputation\ttotal    \tX          \tY          \tZ         \ttracked   \tintegrated"
+    << std::endl;
+  logstream->setf(std::ios::fixed, std::ios::floatfield);
 
-    while (reader->readNextDepthFrame(inputDepth)) {
+  while (reader->readNextDepthFrame(inputDepth)) {
 
-		bool tracked = false, integrated = false;
+    bool tracked = false, integrated = false;
 
-		timings[1] = std::chrono::steady_clock::now();
+    timings[1] = std::chrono::steady_clock::now();
 
-		pipeline.preprocessDepth(inputDepth,
-          Eigen::Vector2i(inputSize.x, inputSize.y), config.bilateral_filter);
+    pipeline.preprocessDepth(inputDepth,
+        Eigen::Vector2i(inputSize.x, inputSize.y), config.bilateral_filter);
 
-		timings[2] = std::chrono::steady_clock::now();
+    timings[2] = std::chrono::steady_clock::now();
 
-		tracked = pipeline.track(camera, config.icp_threshold,
-				config.tracking_rate, frame);
+    tracked = pipeline.track(camera, config.icp_threshold,
+        config.tracking_rate, frame);
 
 
-		timings[3] = std::chrono::steady_clock::now();
+    timings[3] = std::chrono::steady_clock::now();
 
     Eigen::Matrix4f pose = pipeline.getPose();
 
-		float xt = pose(0, 3) - init_pose.x();
-		float yt = pose(1, 3) - init_pose.y();
-		float zt = pose(2, 3) - init_pose.z();
+    float xt = pose(0, 3) - init_pose.x();
+    float yt = pose(1, 3) - init_pose.y();
+    float zt = pose(2, 3) - init_pose.z();
 
 
-		// Integrate only if tracking was successful or it is one of the first
-		// 4 frames.
-		if (tracked || (frame <=3)) {
-			integrated = pipeline.integrate(camera, config.integration_rate,
-					config.mu, frame);
-		} else {
-			integrated = false;
-		}
+    // Integrate only if tracking was successful or it is one of the first
+    // 4 frames.
+    if (tracked || (frame <=3)) {
+      integrated = pipeline.integrate(camera, config.integration_rate,
+          config.mu, frame);
+    } else {
+      integrated = false;
+    }
 
-		timings[4] = std::chrono::steady_clock::now();
+    timings[4] = std::chrono::steady_clock::now();
 
-		pipeline.raycast(camera, config.mu, frame);
+    pipeline.raycast(camera, config.mu, frame);
 
-		timings[5] = std::chrono::steady_clock::now();
+    timings[5] = std::chrono::steady_clock::now();
 
-		pipeline.renderDepth( (unsigned char*)depthRender, Eigen::Vector2i(computationSize.x, computationSize.y));
-		pipeline.renderTrack( (unsigned char*)trackRender, Eigen::Vector2i(computationSize.x, computationSize.y));
-		pipeline.renderVolume((unsigned char*)volumeRender,
+    pipeline.renderDepth( (unsigned char*)depthRender, Eigen::Vector2i(computationSize.x, computationSize.y));
+    pipeline.renderTrack( (unsigned char*)trackRender, Eigen::Vector2i(computationSize.x, computationSize.y));
+    pipeline.renderVolume((unsigned char*)volumeRender,
         Eigen::Vector2i(computationSize.x, computationSize.y), frame,
-				config.rendering_rate, camera, 0.75 * config.mu);
+        config.rendering_rate, camera, 0.75 * config.mu);
 
-		timings[6] = std::chrono::steady_clock::now();
+    timings[6] = std::chrono::steady_clock::now();
 
-		*logstream << frame << "\t"
+    *logstream << frame << "\t"
       << std::chrono::duration<double>(timings[1] - timings[0]).count() << "\t" //  acquisition
       << std::chrono::duration<double>(timings[2] - timings[1]).count() << "\t"     //  preprocessing
       << std::chrono::duration<double>(timings[3] - timings[2]).count() << "\t"     //  tracking
@@ -172,15 +172,15 @@ int main(int argc, char ** argv) {
       << tracked << "        \t" << integrated // tracked and integrated flags
       << std::endl;
 
-		frame++;
-		timings[0] = std::chrono::steady_clock::now();
-	}
+    frame++;
+    timings[0] = std::chrono::steady_clock::now();
+  }
 
-    std::shared_ptr<se::Octree<VoxelImpl::VoxelType> > map_ptr;
-    pipeline.getMap(map_ptr);
-    map_ptr->save("test.bin");
+  std::shared_ptr<se::Octree<VoxelImpl::VoxelType> > map_ptr;
+  pipeline.getMap(map_ptr);
+  map_ptr->save("test.bin");
 
-    // ==========     DUMP VOLUME      =========
+  // ==========     DUMP VOLUME      =========
 
   if (config.dump_volume_file != "") {
     auto s = std::chrono::steady_clock::now();
@@ -189,13 +189,13 @@ int main(int argc, char ** argv) {
     std::cout << "Mesh generated in " << (e - s).count() << " seconds" << std::endl;
   }
 
-	//  =========  FREE BASIC BUFFERS  =========
+  //  =========  FREE BASIC BUFFERS  =========
 
-	free(inputDepth);
-	free(depthRender);
-	free(trackRender);
-	free(volumeRender);
-	return 0;
+  free(inputDepth);
+  free(depthRender);
+  free(trackRender);
+  free(volumeRender);
+  return 0;
 
 }
 
