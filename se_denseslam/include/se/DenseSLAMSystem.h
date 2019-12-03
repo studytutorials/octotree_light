@@ -149,9 +149,9 @@ class DenseSLAMSystem {
      * bilateral filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessing(const uint16_t*        input_depth,
-                       const Eigen::Vector2i& input_size,
-                       const bool             filter_depth);
+    bool preprocess(const uint16_t*        input_depth,
+                    const Eigen::Vector2i& input_size,
+                    const bool             filter_depth);
 
     /**
      * Preprocess a pair of depth and RGB frames and add them to the pipeline.
@@ -167,10 +167,10 @@ class DenseSLAMSystem {
      * bilateral filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessing(const uint16_t*        input_depth,
-                       const uint8_t*         input_RGB,
-                       const Eigen::Vector2i& input_size,
-                       const bool             filter_depth);
+    bool preprocess(const uint16_t*        input_depth,
+                    const uint8_t*         input_RGB,
+                    const Eigen::Vector2i& input_size,
+                    const bool             filter_depth);
 
     /**
      * Update the camera pose. Create a 3D reconstruction from the current
@@ -186,10 +186,10 @@ class DenseSLAMSystem {
      * \param[in] frame The index of the current frame (starts from 0).
      * \return true if the camera pose was updated and false if it wasn't.
      */
-    bool tracking(const Eigen::Vector4f& k,
-                  const float            icp_threshold,
-                  const unsigned         tracking_rate,
-                  const unsigned         frame);
+    bool track(const Eigen::Vector4f& k,
+               const float            icp_threshold,
+               const unsigned         tracking_rate,
+               const unsigned         frame);
 
     /**
      * Integrate the 3D reconstruction resulting from the current frame to the
@@ -206,10 +206,10 @@ class DenseSLAMSystem {
      * \return true if the current 3D reconstruction was added to the octree
      * and false if it wasn't.
      */
-    bool integration(const Eigen::Vector4f& k,
-                     unsigned               integration_rate,
-                     float                  mu,
-                     unsigned               frame);
+    bool integrate(const Eigen::Vector4f& k,
+                   unsigned               integration_rate,
+                   float                  mu,
+                   unsigned               frame);
 
     /**
      * Raycast the map from the current pose to create a point cloud (vertex
@@ -227,9 +227,9 @@ class DenseSLAMSystem {
      * \param[in] frame The index of the current frame (starts from 0).
      * \return true if raycasting was performed and false if it wasn't.
      */
-    bool raycasting(const Eigen::Vector4f& k,
-                    float                  mu,
-                    unsigned int           frame);
+    bool raycast(const Eigen::Vector4f& k,
+                 float                  mu,
+                 unsigned int           frame);
 
     /*
      * TODO Implement this.

@@ -118,12 +118,12 @@ int main(int argc, char ** argv) {
 
 		timings[1] = std::chrono::steady_clock::now();
 
-		pipeline.preprocessing(inputDepth,
+		pipeline.preprocess(inputDepth,
           Eigen::Vector2i(inputSize.x, inputSize.y), config.bilateral_filter);
 
 		timings[2] = std::chrono::steady_clock::now();
 
-		tracked = pipeline.tracking(camera, config.icp_threshold,
+		tracked = pipeline.track(camera, config.icp_threshold,
 				config.tracking_rate, frame);
 
 
@@ -139,7 +139,7 @@ int main(int argc, char ** argv) {
 		// Integrate only if tracking was successful or it is one of the first
 		// 4 frames.
 		if (tracked || (frame <=3)) {
-			integrated = pipeline.integration(camera, config.integration_rate,
+			integrated = pipeline.integrate(camera, config.integration_rate,
 					config.mu, frame);
 		} else {
 			integrated = false;
@@ -147,7 +147,7 @@ int main(int argc, char ** argv) {
 
 		timings[4] = std::chrono::steady_clock::now();
 
-		pipeline.raycasting(camera, config.mu, frame);
+		pipeline.raycast(camera, config.mu, frame);
 
 		timings[5] = std::chrono::steady_clock::now();
 

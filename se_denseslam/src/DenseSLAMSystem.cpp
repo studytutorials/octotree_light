@@ -126,9 +126,9 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
 
 
 
-bool DenseSLAMSystem::preprocessing(const uint16_t*        input_depth,
-                                    const Eigen::Vector2i& input_size,
-                                    const bool             filter_depth){
+bool DenseSLAMSystem::preprocess(const uint16_t*        input_depth,
+                                 const Eigen::Vector2i& input_size,
+                                 const bool             filter_depth){
 
     mm2metersKernel(float_depth_, input_depth, input_size);
 
@@ -144,11 +144,12 @@ bool DenseSLAMSystem::preprocessing(const uint16_t*        input_depth,
 
 
 
-bool DenseSLAMSystem::preprocessing(const uint16_t*        input_depth,
-                                    const uint8_t*         input_RGB,
-                                    const Eigen::Vector2i& input_size,
-                                    const bool             filter_depth) {
-  preprocessing(input_depth, input_size, filter_depth);
+bool DenseSLAMSystem::preprocess(const uint16_t*        input_depth,
+                                 const uint8_t*         input_RGB,
+                                 const Eigen::Vector2i& input_size,
+                                 const bool             filter_depth) {
+
+  preprocess(input_depth, input_size, filter_depth);
 
   downsampleImageKernel(input_RGB, input_size, rgba_);
 
@@ -157,8 +158,10 @@ bool DenseSLAMSystem::preprocessing(const uint16_t*        input_depth,
 
 
 
-bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k,
-    float icp_threshold, unsigned tracking_rate, unsigned frame) {
+bool DenseSLAMSystem::track(const Eigen::Vector4f& k,
+                            float                  icp_threshold,
+                            unsigned               tracking_rate,
+                            unsigned               frame) {
 
 	if (frame % tracking_rate != 0)
 		return false;
@@ -205,7 +208,9 @@ bool DenseSLAMSystem::tracking(const Eigen::Vector4f& k,
       computation_size_, track_threshold);
 }
 
-bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned int frame) {
+bool DenseSLAMSystem::raycast(const Eigen::Vector4f& k,
+                              float                  mu,
+                              unsigned int           frame) {
 
   bool doRaycast = false;
 
@@ -220,10 +225,10 @@ bool DenseSLAMSystem::raycasting(const Eigen::Vector4f& k, float mu, unsigned in
   return doRaycast;
 }
 
-bool DenseSLAMSystem::integration(const Eigen::Vector4f& k,
-                                  unsigned int           integration_rate,
-                                  float                  mu,
-                                  unsigned int           frame) {
+bool DenseSLAMSystem::integrate(const Eigen::Vector4f& k,
+                                unsigned int           integration_rate,
+                                float                  mu,
+                                unsigned int           frame) {
 
   if (((frame % integration_rate) == 0) || (frame <= 3)) {
 

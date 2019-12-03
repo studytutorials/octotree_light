@@ -252,15 +252,15 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 		timings[1] = std::chrono::steady_clock::now();
 
-		pipeline->preprocessing(inputDepth, (uint8_t*) inputRGB,
+		pipeline->preprocess(inputDepth, (uint8_t*) inputRGB,
 			Eigen::Vector2i(inputSize.x, inputSize.y),
 			config->bilateral_filter);
 
 		timings[2] = std::chrono::steady_clock::now();
 
 		if (config->groundtruth_file == "") {
-			// No ground truth used, call tracking.
-			tracked = pipeline->tracking(camera, config->icp_threshold,
+			// No ground truth used, call track.
+			tracked = pipeline->track(camera, config->icp_threshold,
 					config->tracking_rate, frame);
 		} else {
 			// Set the pose to the ground truth.
@@ -277,7 +277,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 		// Integrate only if tracking was successful or it is one of the
 		// first 4 frames.
 		if (tracked || (frame <= 3)) {
-			integrated = pipeline->integration(camera,
+			integrated = pipeline->integrate(camera,
 					config->integration_rate, config->mu, frame);
 		} else {
 			integrated = false;
@@ -285,7 +285,7 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 		timings[4] = std::chrono::steady_clock::now();
 
-		raycasted = pipeline->raycasting(camera, config->mu, frame);
+		raycasted = pipeline->raycast(camera, config->mu, frame);
 
 		timings[5] = std::chrono::steady_clock::now();
 	}
