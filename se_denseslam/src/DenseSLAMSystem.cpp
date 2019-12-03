@@ -126,9 +126,9 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
 
 
 
-bool DenseSLAMSystem::preprocess(const uint16_t*        input_depth,
-                                 const Eigen::Vector2i& input_size,
-                                 const bool             filter_depth){
+bool DenseSLAMSystem::preprocessDepth(const uint16_t*        input_depth,
+                                      const Eigen::Vector2i& input_size,
+                                      const bool             filter_depth){
 
     mm2metersKernel(float_depth_, input_depth, input_size);
 
@@ -144,12 +144,8 @@ bool DenseSLAMSystem::preprocess(const uint16_t*        input_depth,
 
 
 
-bool DenseSLAMSystem::preprocess(const uint16_t*        input_depth,
-                                 const uint8_t*         input_RGB,
-                                 const Eigen::Vector2i& input_size,
-                                 const bool             filter_depth) {
-
-  preprocess(input_depth, input_size, filter_depth);
+bool DenseSLAMSystem::preprocessColor(const uint8_t*         input_RGB,
+                                      const Eigen::Vector2i& input_size) {
 
   downsampleImageKernel(input_RGB, input_size, rgba_);
 

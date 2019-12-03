@@ -252,9 +252,11 @@ int processAll(DepthReader *reader, bool processFrame, bool renderImages,
 
 		timings[1] = std::chrono::steady_clock::now();
 
-		pipeline->preprocess(inputDepth, (uint8_t*) inputRGB,
+		pipeline->preprocessDepth(inputDepth,
 			Eigen::Vector2i(inputSize.x, inputSize.y),
 			config->bilateral_filter);
+		pipeline->preprocessColor((uint8_t*) inputRGB,
+			Eigen::Vector2i(inputSize.x, inputSize.y));
 
 		timings[2] = std::chrono::steady_clock::now();
 

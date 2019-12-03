@@ -138,7 +138,7 @@ class DenseSLAMSystem {
                     const Configuration&   config_);
 
     /**
-     * Preprocess a single depth measurement frame and add it to the pipeline.
+     * Preprocess a single depth frame and add it to the pipeline.
      * This is the first stage of the pipeline.
      *
      * \param[in] input_depth Pointer to the depth frame data. Each pixel is
@@ -149,16 +149,14 @@ class DenseSLAMSystem {
      * bilateral filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocess(const uint16_t*        input_depth,
-                    const Eigen::Vector2i& input_size,
-                    const bool             filter_depth);
+    bool preprocessDepth(const uint16_t*        input_depth,
+                         const Eigen::Vector2i& input_size,
+                         const bool             filter_depth);
 
     /**
-     * Preprocess a pair of depth and RGB frames and add them to the pipeline.
+     * Preprocess an RGB frame and add it to the pipeline.
      * This is the first stage of the pipeline.
      *
-     * \param[in] input_depth Pointer to the depth frame data. Each pixel is
-     * represented by a single uint16_t.
      * \param[in] input_RGB Pointer to the RGB frame data, 3 channels, 8 bits
      * per channel.
      * \param[in] input_size Size of the depth and RGB frames in pixels (width
@@ -167,10 +165,8 @@ class DenseSLAMSystem {
      * bilateral filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocess(const uint16_t*        input_depth,
-                    const uint8_t*         input_RGB,
-                    const Eigen::Vector2i& input_size,
-                    const bool             filter_depth);
+    bool preprocessColor(const uint8_t*         input_RGB,
+                         const Eigen::Vector2i& input_size);
 
     /**
      * Update the camera pose. Create a 3D reconstruction from the current

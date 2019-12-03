@@ -118,7 +118,7 @@ int main(int argc, char ** argv) {
 
 		timings[1] = std::chrono::steady_clock::now();
 
-		pipeline.preprocess(inputDepth,
+		pipeline.preprocessDepth(inputDepth,
           Eigen::Vector2i(inputSize.x, inputSize.y), config.bilateral_filter);
 
 		timings[2] = std::chrono::steady_clock::now();
