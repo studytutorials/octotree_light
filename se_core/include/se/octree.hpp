@@ -653,9 +653,14 @@ std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos,
                                         const int              min_scale,
                                         FieldSelector          select) const {
 
+  // The return type of the select() function. Since it can be a lambda
+  // function, an argument needs to be passed to it before deducing the return
+  // type.
+  typedef decltype(select(T::initValue())) select_t;
+
   int iter = 0;
   int scale = min_scale;
-  float points[8] = { select(T::initValue()) };
+  select_t points[8] = { select(T::initValue()) };
   Eigen::Vector3f factor;
   while (iter < 3) {
     const int stride = 1 << scale;
@@ -701,10 +706,16 @@ std::pair<float, int> Octree<T>::interp_checked(
 
   auto select_weight = [](const auto& val) { return val.y; };
 
+  // The return types of the select() and select_weight() functions. Since they
+  // can be lambda functions, an argument needs to be passed to the, before
+  // deducing the return type.
+  typedef decltype(select(T::initValue())) select_t;
+  typedef decltype(select_weight(T::initValue())) select_weight_t;
+
   int iter = 0;
   int scale = min_scale;
-  float points[8] = { select(T::initValue()) };
-  float weights[8];
+  select_t points[8] = { select(T::initValue()) };
+  select_weight_t weights[8];
   Eigen::Vector3f factor;
   while (iter < 3) {
     const int stride = 1 << scale;

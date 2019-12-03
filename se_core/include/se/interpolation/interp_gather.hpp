@@ -48,12 +48,13 @@ namespace se {
 
 
     template <typename FieldType, typename FieldSelector>
-    inline void gather_local(const se::VoxelBlock<FieldType>* block,
-                             const Eigen::Vector3i&           base,
-                             const int                        scale,
-                             const int                        stride,
-                             FieldSelector                    select,
-                             float                            points[8]) {
+    inline void gather_local(
+        const se::VoxelBlock<FieldType>*         block,
+        const Eigen::Vector3i&                   base,
+        const int                                scale,
+        const int                                stride,
+        FieldSelector                            select,
+        decltype(select(FieldType::initValue())) points[8]) {
 
       if (!block) {
         points[0] = select(FieldType::empty());
@@ -79,13 +80,13 @@ namespace se {
 
 
     template <typename FieldType, typename FieldSelector>
-    inline void gather_4(const se::VoxelBlock<FieldType>* block,
-                         const Eigen::Vector3i&           base,
-                         const int                        scale,
-                         const int                        stride,
-                         FieldSelector                    select,
-                         const unsigned int               offsets[4],
-                         float                            points[8]) {
+    inline void gather_4(const se::VoxelBlock<FieldType>*         block,
+                         const Eigen::Vector3i&                   base,
+                         const int                                scale,
+                         const int                                stride,
+                         FieldSelector                            select,
+                         const unsigned int                       offsets[4],
+                         decltype(select(FieldType::initValue())) points[8]) {
 
       if (!block) {
         points[offsets[0]] = select(FieldType::empty());
@@ -103,13 +104,13 @@ namespace se {
 
 
     template <typename FieldType, typename FieldSelector>
-    inline void gather_2(const se::VoxelBlock<FieldType>* block,
-                         const Eigen::Vector3i&           base,
-                         const int                        scale,
-                         const int                        stride,
-                         FieldSelector                    select,
-                         const unsigned int               offsets[2],
-                         float                            points[8]) {
+    inline void gather_2(const se::VoxelBlock<FieldType>*         block,
+                         const Eigen::Vector3i&                   base,
+                         const int                                scale,
+                         const int                                stride,
+                         FieldSelector                            select,
+                         const unsigned int                       offsets[2],
+                         decltype(select(FieldType::initValue())) points[8]) {
 
       if (!block) {
         points[offsets[0]] = select(FieldType::empty());
@@ -125,11 +126,12 @@ namespace se {
     template <typename FieldType,
               template<typename FieldT> class MapIndex,
               class FieldSelector>
-    inline int gather_points(const MapIndex<FieldType>& fetcher,
-                             const Eigen::Vector3i&     base,
-                             const int                  scale,
-                             FieldSelector              select,
-                             float                      points[8]) {
+    inline int gather_points(
+        const MapIndex<FieldType>&               fetcher,
+        const Eigen::Vector3i&                   base,
+        const int                                scale,
+        FieldSelector                            select,
+        decltype(select(FieldType::initValue())) points[8]) {
 
       const int stride = 1 << scale;
       unsigned int blockSize = se::VoxelBlock<FieldType>::side;

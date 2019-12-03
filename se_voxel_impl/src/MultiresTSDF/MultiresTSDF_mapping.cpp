@@ -170,6 +170,14 @@ float interp(const se::Octree<MultiresTSDF::VoxelType>&     octree,
              FieldSelector                                  select,
              bool&                                          valid) {
 
+  auto select_weight = [](const auto& val) { return val.y; };
+
+  // The return types of the select() and select_weight() functions. Since they
+  // can be lambda functions, an argument needs to be passed to the, before
+  // deducing the return type.
+  typedef decltype(select(MultiresTSDF::VoxelType::initValue())) select_t;
+  typedef decltype(select_weight(MultiresTSDF::VoxelType::initValue())) select_weight_t;
+
   // Compute base point in parent block
   const int side = se::VoxelBlock<MultiresTSDF::VoxelType>::side >> (scale + 1);
   const int stride = 1 << (scale + 1);
@@ -178,12 +186,11 @@ float interp(const se::Octree<MultiresTSDF::VoxelType>&     octree,
   Eigen::Vector3i base = stride * (vox.cast<float>() / stride - offset).cast<int>().cwiseMax(Eigen::Vector3i::Zero());
   base = (base.array() == side - 1).select(base - Eigen::Vector3i::Constant(1), base);
 
-  float points[8];
+  select_t points[8];
   internal::gather_points(
       octree, block->coordinates() + base, scale + 1, select, points);
 
-  auto select_weight = [](const auto& val) { return val.y; };
-  float weights[8];
+  select_weight_t weights[8];
   internal::gather_points(
       octree, block->coordinates() + base, scale + 1, select_weight, weights);
   for (int i = 0; i < 8; ++i) {
