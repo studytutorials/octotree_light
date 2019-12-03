@@ -188,7 +188,8 @@ public:
    * \return signed distance function value at voxel position (x, y, z)
    */
   template <typename FieldSelect>
-  std::pair<float, int> interp(const Eigen::Vector3f& pos, FieldSelect f) const;
+  std::pair<float, int> interp(const Eigen::Vector3f& pos,
+                               FieldSelect            f) const;
 
   /*! \brief Interp voxel value at voxel position  (x,y,z)
    * \param pos three-dimensional coordinates in which each component belongs
@@ -198,11 +199,14 @@ public:
    */
 
   template <typename FieldSelect>
-  std::pair<float, int> interp(const Eigen::Vector3f& pos, const int stride, FieldSelect f) const;
+  std::pair<float, int> interp(const Eigen::Vector3f& pos,
+                               const int              stride,
+                               FieldSelect            f) const;
 
   template <typename FieldSelect>
   std::pair<float, int> interp_checked(const Eigen::Vector3f& pos,
-      const int stride, FieldSelect f) const;
+                                       const int              stride,
+                                       FieldSelect            f) const;
 
 
   /*! \brief Compute the gradient at voxel position  (x,y,z)
@@ -631,34 +635,44 @@ VoxelBlock<T> * Octree<T>::insert(const int x, const int y, const int z) {
   return static_cast<VoxelBlock<T> * >(insert(x, y, z, max_level_));
 }
 
-template <typename T>
-template <typename FieldSelector>
-std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos, FieldSelector select) const {
-  return interp(pos, 0, select);
-}
+
 
 template <typename T>
 template <typename FieldSelector>
-std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos, const int min_scale,
-    FieldSelector select) const {
+std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos,
+                                        FieldSelector          select) const {
+
+  return interp(pos, 0, select);
+}
+
+
+
+template <typename T>
+template <typename FieldSelector>
+std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos,
+                                        const int              min_scale,
+                                        FieldSelector          select) const {
 
   int iter = 0;
   int scale = min_scale;
   float points[8] = { select(T::initValue()) };
   Eigen::Vector3f factor;
-  while(iter < 3) {
+  while (iter < 3) {
     const int stride = 1 << scale;
-    const Eigen::Vector3f scaled_pos = 1.f/stride * pos - _offset;
-    factor =  math::fracf(scaled_pos);
+    const Eigen::Vector3f scaled_pos = 1.f / stride * pos - _offset;
+    factor = math::fracf(scaled_pos);
     const Eigen::Vector3i base = stride * scaled_pos.cast<int>();
-    const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
-    if(((lower + Eigen::Vector3i::Constant(stride)).array() >= size_).any()) {
+    const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Zero());
+    if (((lower + Eigen::Vector3i::Constant(stride)).array() >= size_).any()) {
       return {select(T::initValue()), scale};
     }
 
     int res = internal::gather_points(*this, lower, scale, select, points);
-    if(res == scale) break;
-    else scale = res;
+    if (res == scale) {
+      break;
+    } else {
+      scale = res;
+    }
     iter++;
   }
 
@@ -676,37 +690,47 @@ std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& pos, const int mi
           * factor(1)) * factor(2)), scale};
 }
 
+
+
 template <typename T>
 template <typename FieldSelector>
-std::pair<float, int> Octree<T>::interp_checked(const Eigen::Vector3f& pos,
-    const int min_scale, FieldSelector select) const {
+std::pair<float, int> Octree<T>::interp_checked(
+    const Eigen::Vector3f& pos,
+    const int              min_scale,
+    FieldSelector          select) const {
+
+  auto select_weight = [](const auto& val) { return val.y; };
 
   int iter = 0;
   int scale = min_scale;
   float points[8] = { select(T::initValue()) };
-  float   weights[8];
+  float weights[8];
   Eigen::Vector3f factor;
-  while(iter < 3) {
+  while (iter < 3) {
     const int stride = 1 << scale;
-    const Eigen::Vector3f scaled_pos = 1.f/stride * pos - _offset;
+    const Eigen::Vector3f scaled_pos = 1.f / stride * pos - _offset;
     factor =  math::fracf(scaled_pos);
     const Eigen::Vector3i base = stride * scaled_pos.cast<int>();
-    const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Constant(0));
-    if(((lower + Eigen::Vector3i::Constant(stride)).array() >= size_).any()) {
+    const Eigen::Vector3i lower = base.cwiseMax(Eigen::Vector3i::Zero());
+    if (((lower + Eigen::Vector3i::Constant(stride)).array() >= size_).any()) {
       return {select(T::initValue()), -1};
     }
 
     int res = internal::gather_points(*this, lower, scale, select, points);
-    internal::gather_points(*this, lower, scale, [](const auto& val) {
-        return val.y; }, weights);
+    internal::gather_points(*this, lower, scale, select_weight, weights);
 
-    if(res == scale) break;
-    else scale = res;
+    if (res == scale) {
+      break;
+    } else {
+      scale = res;
+    }
     iter++;
   }
 
-  for(int i = 0; i < 8; ++i) {
-    if(weights[i] == 0) return {select(T::initValue()), -1};
+  for (int i = 0; i < 8; ++i) {
+    if (weights[i] == 0) {
+      return {select(T::initValue()), -1};
+    }
   }
 
   return {(((points[0] * (1 - factor(0))
@@ -721,6 +745,8 @@ std::pair<float, int> Octree<T>::interp_checked(const Eigen::Vector3f& pos,
           + points[7] * factor(0))
           * factor(1)) * factor(2)), scale};
 }
+
+
 
 template <typename T>
 template <typename FieldSelector>
