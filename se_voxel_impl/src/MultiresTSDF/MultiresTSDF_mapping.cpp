@@ -160,38 +160,41 @@ void propagate_up(se::Node<MultiresTSDF::VoxelType>* node, const int max_depth,
   node->timestamp(timestamp);
 }
 
+
+
 template <typename FieldSelector>
-float interp(const se::Octree<MultiresTSDF::VoxelType>& octree,
+float interp(const se::Octree<MultiresTSDF::VoxelType>&     octree,
              const se::VoxelBlock<MultiresTSDF::VoxelType>* block,
-             const Eigen::Vector3i& vox,
-             const int scale,
-             FieldSelector select,
-             bool& valid) {
+             const Eigen::Vector3i&                         vox,
+             const int                                      scale,
+             FieldSelector                                  select,
+             bool&                                          valid) {
 
   // Compute base point in parent block
-  const int side   = se::VoxelBlock<MultiresTSDF::VoxelType>::side >> (scale + 1);
+  const int side = se::VoxelBlock<MultiresTSDF::VoxelType>::side >> (scale + 1);
   const int stride = 1 << (scale + 1);
 
   const Eigen::Vector3f& offset = se::Octree<MultiresTSDF::VoxelType>::_offset;
-  Eigen::Vector3i base = stride * (vox.cast<float>()/stride - offset).cast<int>().cwiseMax(Eigen::Vector3i::Constant(0));
+  Eigen::Vector3i base = stride * (vox.cast<float>() / stride - offset).cast<int>().cwiseMax(Eigen::Vector3i::Zero());
   base = (base.array() == side - 1).select(base - Eigen::Vector3i::Constant(1), base);
 
   float points[8];
-  internal::gather_points(octree, block->coordinates() + base, scale + 1,
-      select, points);
+  internal::gather_points(
+      octree, block->coordinates() + base, scale + 1, select, points);
 
+  auto select_weight = [](const auto& val) { return val.y; };
   float weights[8];
-  internal::gather_points(octree, block->coordinates() + base, scale + 1,
-      [](const auto& val) { return val.y; }, weights);
-  for(int i = 0; i < 8; ++i) {
-    if(weights[i] == 0) {
+  internal::gather_points(
+      octree, block->coordinates() + base, scale + 1, select_weight, weights);
+  for (int i = 0; i < 8; ++i) {
+    if (weights[i] == 0) {
       valid = false;
       return select(MultiresTSDF::VoxelType::initValue());
     }
   }
   valid = true;
 
-  const Eigen::Vector3f vox_f  = vox.cast<float>() + offset * (stride/2);
+  const Eigen::Vector3f vox_f  = vox.cast<float>() + offset * (stride / 2);
   const Eigen::Vector3f base_f = base.cast<float>() + offset*(stride);
   const Eigen::Vector3f factor = (vox_f - base_f) / stride;
 
@@ -206,6 +209,8 @@ float interp(const se::Octree<MultiresTSDF::VoxelType>& octree,
   const float val = v_0 * (1 - factor.z()) + v_1 * factor.z();
   return val;
 }
+
+
 
 /**
  * Update the subgrids of a voxel block starting from a given scale
