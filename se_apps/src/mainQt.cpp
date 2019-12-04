@@ -37,10 +37,10 @@ PerfStats Stats;
 PowerMonitor* powerMonitor = nullptr;
 static uint16_t* input_depth = nullptr;
 static uchar3* input_rgb = nullptr;
-static uchar4* rgba_render = nullptr;
-static uchar4* depth_render = nullptr;
-static uchar4* track_render = nullptr;
-static uchar4* volume_render = nullptr;
+static uint32_t* rgba_render = nullptr;
+static uint32_t* depth_render = nullptr;
+static uint32_t* track_render = nullptr;
+static uint32_t* volume_render = nullptr;
 static DepthReader* reader = nullptr;
 static DenseSLAMSystem* pipeline = nullptr;
 
@@ -70,7 +70,7 @@ void qtLinkKinectQt(int               argc,
 void storeStats(
     int                                                 frame,
     std::chrono::time_point<std::chrono::steady_clock>* timings,
-    float3                                              pos,
+    const Eigen::Vector3f&                              position,
     bool                                                tracked,
     bool                                                integrated) {
 
@@ -83,9 +83,9 @@ void storeStats(
   Stats.sample("rendering",    std::chrono::duration<double>(timings[6] - timings[5]).count(), PerfStats::TIME);
   Stats.sample("computation",  std::chrono::duration<double>(timings[5] - timings[1]).count(), PerfStats::TIME);
   Stats.sample("total",        std::chrono::duration<double>(timings[6] - timings[0]).count(), PerfStats::TIME);
-  Stats.sample("X", pos.x, PerfStats::DISTANCE);
-  Stats.sample("Y", pos.y, PerfStats::DISTANCE);
-  Stats.sample("Z", pos.z, PerfStats::DISTANCE);
+  Stats.sample("X", position.x(), PerfStats::DISTANCE);
+  Stats.sample("Y", position.y(), PerfStats::DISTANCE);
+  Stats.sample("Z", position.z(), PerfStats::DISTANCE);
   Stats.sample("tracked", tracked, PerfStats::INT);
   Stats.sample("integrated", integrated, PerfStats::INT);
 }
@@ -103,27 +103,26 @@ int main(int argc, char** argv) {
   reader = createReader(&config);
 
   //  =========  BASIC PARAMETERS  (input size / computation size )  =========
-  uint2 input_size = (reader != nullptr)
-      ? reader->getinputSize()
-      : make_uint2(640, 480);
-  const uint2 computation_size = make_uint2(
-      input_size.x / config.compute_size_ratio,
-      input_size.y / config.compute_size_ratio);
+  Eigen::Vector2i input_size = (reader != nullptr)
+      ? Eigen::Vector2i(reader->getinputSize().x, reader->getinputSize().y)
+      : Eigen::Vector2i(640, 480);
+  const Eigen::Vector2i computation_size
+      = input_size / config.compute_size_ratio;
 
   //  =========  BASIC BUFFERS  (input / output )  =========
 
   // Construction Scene reader and input buffer
-  input_depth =   new uint16_t[input_size.x * input_size.y];
-  input_rgb =     new   uchar3[input_size.x * input_size.y];
-  rgba_render =   new   uchar4[computation_size.x * computation_size.y];
-  depth_render =  new   uchar4[computation_size.x * computation_size.y];
-  track_render =  new   uchar4[computation_size.x * computation_size.y];
-  volume_render = new   uchar4[computation_size.x * computation_size.y];
+  input_depth =   new uint16_t[input_size.x() * input_size.y()];
+  input_rgb =     new   uchar3[input_size.x() * input_size.y()];
+  rgba_render =   new uint32_t[computation_size.x() * computation_size.y()];
+  depth_render =  new uint32_t[computation_size.x() * computation_size.y()];
+  track_render =  new uint32_t[computation_size.x() * computation_size.y()];
+  volume_render = new uint32_t[computation_size.x() * computation_size.y()];
 
   init_position = config.initial_pos_factor.cwiseProduct(config.volume_size);
   pipeline = new DenseSLAMSystem(
-      Eigen::Vector2i(computation_size.x, computation_size.y),
-      Eigen::Vector3i::Constant(static_cast<int>(config.volume_resolution.x())),
+      computation_size,
+      Eigen::Vector3i::Constant(config.volume_resolution.x()),
       Eigen::Vector3f::Constant(config.volume_size.x()),
       init_position,
       config.pyramid, config);
@@ -215,11 +214,10 @@ int processAll(DepthReader*   reader,
   bool integrated = false;
   bool raycasted = false;
   std::chrono::time_point<std::chrono::steady_clock> timings[7];
-  float3 pos;
   int frame = 0;
-  const uint2 input_size = (reader != nullptr)
-      ? reader->getinputSize()
-      : make_uint2(640, 480);
+  const Eigen::Vector2i input_size = (reader != nullptr)
+      ? Eigen::Vector2i(reader->getinputSize().x, reader->getinputSize().y)
+      : Eigen::Vector2i(640, 480);
   Eigen::Vector4f camera = (reader != nullptr)
       ? reader->getK()
       : Eigen::Vector4f::Constant(0.0f);
@@ -261,11 +259,9 @@ int processAll(DepthReader*   reader,
 
     timings[1] = std::chrono::steady_clock::now();
 
-    pipeline->preprocessDepth(input_depth,
-        Eigen::Vector2i(input_size.x, input_size.y),
+    pipeline->preprocessDepth(input_depth, input_size,
         config->bilateral_filter);
-    pipeline->preprocessColor((uint8_t*) input_rgb,
-        Eigen::Vector2i(input_size.x, input_size.y));
+    pipeline->preprocessColor((uint8_t*) input_rgb, input_size);
 
     timings[2] = std::chrono::steady_clock::now();
 
@@ -282,8 +278,6 @@ int processAll(DepthReader*   reader,
       tracked = true;
     }
 
-    Eigen::Vector3f tmp = pipeline->getPosition();
-    pos = make_float3(tmp.x(), tmp.y(), tmp.z());
     pose = pipeline->getPose();
 
     timings[3] = std::chrono::steady_clock::now();
@@ -323,7 +317,8 @@ int processAll(DepthReader*   reader,
   float xt = pose(0, 3) - init_position.x();
   float yt = pose(1, 3) - init_position.y();
   float zt = pose(2, 3) - init_position.z();
-  storeStats(frame, timings, pos, tracked, integrated);
+  const Eigen::Vector3f position = pipeline->getPosition();
+  storeStats(frame, timings, position, tracked, integrated);
   if (config->no_gui){
     *log_stream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
   }

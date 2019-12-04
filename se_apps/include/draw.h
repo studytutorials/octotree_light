@@ -11,6 +11,8 @@
 
 #include <cstdint>
 
+#include <Eigen/Dense>
+
 #ifdef __APPLE__
 #include <GLUT/glut.h>
 #else
@@ -23,11 +25,6 @@ template<typename T> struct gl;
 
 template<> struct gl<uchar3> {
 	static const int format = GL_RGB;
-	static const int type = GL_UNSIGNED_BYTE;
-};
-
-template<> struct gl<uchar4> {
-	static const int format = GL_RGBA;
 	static const int type = GL_UNSIGNED_BYTE;
 };
 
@@ -54,19 +51,19 @@ template<> struct gl<uint32_t> {
 
 
 template<typename T>
-void drawit(const T*    scene,
-    const uint2 size) {
+void drawit(const T*               scene,
+            const Eigen::Vector2i& size) {
 
-  static uint2 lastsize = { 0, 0 };
+  static Eigen::Vector2i lastsize (0, 0);
   char * t = (char*) "toto";
   int g = 1;
-  if (lastsize.x != size.x || lastsize.y != size.y) {
+  if (lastsize.x() != size.x() || lastsize.y() != size.y()) {
     lastsize = size;
     glutInit(&g, &t);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 
     glutInitWindowPosition(100, 100);
-    glutInitWindowSize(size.x, size.y);
+    glutInitWindowSize(size.x(), size.y());
     glutCreateWindow(" ");
   }
 
@@ -74,8 +71,8 @@ void drawit(const T*    scene,
   glRasterPos2i(-1, 1);
   glPixelZoom(1, -1);
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, size.x);
-  glDrawPixels(size.x, size.y, gl<T>::format, gl<T>::type, scene);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, size.x());
+  glDrawPixels(size.x(), size.y(), gl<T>::format, gl<T>::type, scene);
   glutSwapBuffers();
 
 }
@@ -83,20 +80,20 @@ void drawit(const T*    scene,
 
 
 template<typename A, typename B, typename C, typename D, typename E>
-void drawthem(const A*    scene1,
-              const B*    scene2,
-              const C*    scene3,
-              const D*    scene4,
+void drawthem(const A*               scene1,
+              const B*               scene2,
+              const C*               scene3,
+              const D*               scene4,
               const E*,
-              const uint2 size_s1,
-              const uint2 size_s2,
-              const uint2 size_s3,
-              const uint2 size_s4) {
+              const Eigen::Vector2i& size_s1,
+              const Eigen::Vector2i& size_s2,
+              const Eigen::Vector2i& size_s3,
+              const Eigen::Vector2i& size_s4) {
 
-  static uint2 lastsize = { 0, 0 };
+  static Eigen::Vector2i lastsize (0, 0);
   char * t = (char*) "toto";
   int g = 1;
-  if (lastsize.x != size_s2.x || lastsize.y != size_s2.y) {
+  if (lastsize.x() != size_s2.x() || lastsize.y() != size_s2.y()) {
     lastsize = size_s2;
     glutInit(&g, &t);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
@@ -113,17 +110,17 @@ void drawthem(const A*    scene1,
   glClear(GL_COLOR_BUFFER_BIT);
 
   glRasterPos2i(0, 480);
-  glPixelZoom(320.0 / size_s1.x, -240.0 / size_s1.y);
-  glDrawPixels(size_s1.x, size_s1.y, gl<A>::format, gl<A>::type, scene1);
+  glPixelZoom(320.0 / size_s1.x(), -240.0 / size_s1.y());
+  glDrawPixels(size_s1.x(), size_s1.y(), gl<A>::format, gl<A>::type, scene1);
   glRasterPos2i(320, 480);
-  glPixelZoom(320.0 / size_s2.x, -240.0 / size_s2.y);
-  glDrawPixels(size_s2.x, size_s2.y, gl<B>::format, gl<B>::type, scene2);
+  glPixelZoom(320.0 / size_s2.x(), -240.0 / size_s2.y());
+  glDrawPixels(size_s2.x(), size_s2.y(), gl<B>::format, gl<B>::type, scene2);
   glRasterPos2i(0, 240);
-  glPixelZoom(320.0 / size_s3.x, -240.0 / size_s3.y);
-  glDrawPixels(size_s3.x, size_s3.y, gl<C>::format, gl<C>::type, scene3);
+  glPixelZoom(320.0 / size_s3.x(), -240.0 / size_s3.y());
+  glDrawPixels(size_s3.x(), size_s3.y(), gl<C>::format, gl<C>::type, scene3);
   glRasterPos2i(320, 240);
-  glPixelZoom(320.0 / size_s4.x, -240.0 / size_s4.y);
-  glDrawPixels(size_s4.x, size_s4.y, gl<D>::format, gl<D>::type, scene4);
+  glPixelZoom(320.0 / size_s4.x(), -240.0 / size_s4.y());
+  glDrawPixels(size_s4.x(), size_s4.y(), gl<D>::format, gl<D>::type, scene4);
   glutSwapBuffers();
 
 }
