@@ -28,7 +28,9 @@
 #include <interface.h>
 #include <PowerMonitor.h>
 #ifndef __QT__
+#ifndef SE_BENCHMARK_APP
 #include <draw.h>
+#endif
 #endif
 
 
@@ -132,6 +134,11 @@ int main(int argc, char** argv) {
     log_stream = &log_file_stream;
   }
 
+#ifdef SE_BENCHMARK_APP
+  *log_stream << "frame\tacquisition\tpreprocessing\ttracking\tintegration"
+      << "\traycasting\trendering\tcomputation\ttotal    "
+      << "\tX          \tY          \tZ         \ttracked   \tintegrated\n";
+#endif
   log_stream->setf(std::ios::fixed, std::ios::floatfield);
 
   //temporary fix to test rendering fullsize
@@ -149,10 +156,12 @@ int main(int argc, char** argv) {
       exit(1);
     }
     while (processAll(reader, true, true, &config, false) == 0) {
+#ifndef SE_BENCHMARK_APP
       drawthem(rgba_render,   computation_size,
                depth_render,  computation_size,
                track_render,  computation_size,
                volume_render, computation_size);
+#endif
     }
 #endif
   } else {
@@ -175,6 +184,7 @@ int main(int argc, char** argv) {
         PerfStats::TIME);
   }
 
+#ifndef SE_BENCHMARK_APP
   //if (config.log_file != "") {
   //  std::ofstream logStream(config.log_file.c_str());
   //  Stats.print_all_data(logStream);
@@ -191,6 +201,7 @@ int main(int argc, char** argv) {
   //std::cout << ",";
   Stats.print_all_data(std::cout, false);
   std::cout << "}" << std::endl;
+#endif
 
   //  =========  FREE BASIC BUFFERS  =========
 
@@ -320,6 +331,21 @@ int processAll(DepthReader*   reader,
   if (config->no_gui){
     *log_stream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
   }
+
+#ifdef SE_BENCHMARK_APP
+  *log_stream << frame << "\t"
+    << std::chrono::duration<double>(timings[1] - timings[0]).count() << "\t" // acquisition
+    << std::chrono::duration<double>(timings[2] - timings[1]).count() << "\t" // preprocessing
+    << std::chrono::duration<double>(timings[3] - timings[2]).count() << "\t" // tracking
+    << std::chrono::duration<double>(timings[4] - timings[3]).count() << "\t" // integration
+    << std::chrono::duration<double>(timings[5] - timings[4]).count() << "\t" // raycasting
+    << std::chrono::duration<double>(timings[6] - timings[5]).count() << "\t" // rendering
+    << std::chrono::duration<double>(timings[5] - timings[1]).count() << "\t" // computation
+    << std::chrono::duration<double>(timings[6] - timings[0]).count() << "\t" // total
+    << xt << "\t" << yt << "\t" << zt << "\t" // position
+    << tracked << "        \t" << integrated // tracked and integrated flags
+    << "\n";
+#endif
 
   //if (config->no_gui && (config->log_file == ""))
   //  Stats.print();

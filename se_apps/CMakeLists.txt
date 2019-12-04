@@ -31,8 +31,10 @@ function(add_version lib_name libraries)
 
   #  ------ BENCHMARK --------
   add_executable(${lib_name}-benchmark
-    src/benchmark.cpp
-    src/PowerMonitor.cpp)
+    src/main.cpp
+    src/PowerMonitor.cpp
+    src/reader.cpp)
+  target_compile_definitions(${lib_name}-benchmark PUBLIC -DSE_BENCHMARK_APP)
   target_link_libraries(${lib_name}-benchmark
     ${lib_name}
     ${main_common_libraries})
@@ -42,7 +44,7 @@ function(add_version lib_name libraries)
   #  ------ MAIN --------
   if (GLUT_FOUND)
     add_executable(${lib_name}-main
-      src/mainQt.cpp
+      src/main.cpp
       src/PowerMonitor.cpp
       src/reader.cpp)
     target_include_directories(${lib_name}-main PUBLIC
@@ -83,7 +85,7 @@ function(add_version lib_name libraries)
     add_definitions(-D_FILE_OFFSET_BITS=64 -fPIC)
 
     add_executable(${lib_name}-qt
-      src/mainQt.cpp
+      src/main.cpp
       src/PowerMonitor.cpp
       ${qt_srcs}
       src/reader.cpp)
