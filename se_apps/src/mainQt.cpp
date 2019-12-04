@@ -113,19 +113,12 @@ int main(int argc, char** argv) {
   //  =========  BASIC BUFFERS  (input / output )  =========
 
   // Construction Scene reader and input buffer
-  //we could allocate a more appropriate amount of memory (less) but this makes life hard if we switch up resolution later;
-  input_depth =
-    (uint16_t*) malloc(sizeof(uint16_t) * input_size.x * input_size.y);
-  input_rgb =
-    (uchar3*) malloc(sizeof(uchar3) * input_size.x * input_size.y);
-  rgba_render =
-    (uchar4*) malloc(sizeof(uchar4) * computation_size.x * computation_size.y);
-  depth_render =
-    (uchar4*) malloc(sizeof(uchar4) * computation_size.x * computation_size.y);
-  track_render =
-    (uchar4*) malloc(sizeof(uchar4) * computation_size.x * computation_size.y);
-  volume_render =
-    (uchar4*) malloc(sizeof(uchar4) * computation_size.x * computation_size.y);
+  input_depth =   new uint16_t[input_size.x * input_size.y];
+  input_rgb =     new   uchar3[input_size.x * input_size.y];
+  rgba_render =   new   uchar4[computation_size.x * computation_size.y];
+  depth_render =  new   uchar4[computation_size.x * computation_size.y];
+  track_render =  new   uchar4[computation_size.x * computation_size.y];
+  volume_render = new   uchar4[computation_size.x * computation_size.y];
 
   init_position = config.initial_pos_factor.cwiseProduct(config.volume_size);
   pipeline = new DenseSLAMSystem(
@@ -201,12 +194,13 @@ int main(int argc, char** argv) {
 
   //  =========  FREE BASIC BUFFERS  =========
 
-  free(input_depth);
-  free(rgba_render);
-  free(depth_render);
-  free(track_render);
-  free(volume_render);
-
+  delete pipeline;
+  delete input_depth;
+  delete input_rgb;
+  delete rgba_render;
+  delete depth_render;
+  delete track_render;
+  delete volume_render;
 }
 
 int processAll(DepthReader*   reader,
