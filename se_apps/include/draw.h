@@ -79,16 +79,11 @@ void drawit(const T*               scene,
 
 
 
-template<typename A, typename B, typename C, typename D, typename E>
-void drawthem(const A*               scene1,
-              const B*               scene2,
-              const C*               scene3,
-              const D*               scene4,
-              const E*,
-              const Eigen::Vector2i& size_s1,
-              const Eigen::Vector2i& size_s2,
-              const Eigen::Vector2i& size_s3,
-              const Eigen::Vector2i& size_s4) {
+template<typename A, typename B, typename C, typename D>
+void drawthem(const A* scene1, const Eigen::Vector2i& size_s1,
+              const B* scene2, const Eigen::Vector2i& size_s2,
+              const C* scene3, const Eigen::Vector2i& size_s3,
+              const D* scene4, const Eigen::Vector2i& size_s4) {
 
   static Eigen::Vector2i lastsize (0, 0);
   char * t = (char*) "toto";

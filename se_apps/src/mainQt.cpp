@@ -149,9 +149,10 @@ int main(int argc, char** argv) {
       exit(1);
     }
     while (processAll(reader, true, true, &config, false) == 0) {
-      drawthem(rgba_render, depth_render, track_render, volume_render,
-          track_render,
-          computation_size, computation_size, computation_size, computation_size);
+      drawthem(rgba_render,   computation_size,
+               depth_render,  computation_size,
+               track_render,  computation_size,
+               volume_render, computation_size);
     }
 #endif
   } else {
