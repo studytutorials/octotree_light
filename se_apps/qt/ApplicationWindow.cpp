@@ -415,6 +415,7 @@ void ApplicationWindow::fileMenuSlot(QAction *action) {
 		QStringList strings;
 		viewers->addDefConfig(viewerID, "Performance", true, strings);
 	}
+		break;
 	case LOOP_SEQ: {
 		if (loopCallback)
 			(loopCallback)(action->isChecked());
@@ -472,9 +473,7 @@ void ApplicationWindow::setDumpFunction(const char *label,
 		}
 	}
 }
-void ApplicationWindow::callDumpFunction(QAction *sender) {
-	int req = sender->data().toInt();
-
+void ApplicationWindow::callDumpFunction(QAction *) {
 }
 void ApplicationWindow::setFilenamePointer(std::string *filename) {
 	video_file = filename;
@@ -703,7 +702,6 @@ strcpy(first,
 QString newEntry = QString::number(
 		type == INT ? *((int *) value) : *((float*) value));
 QString num = newEntry;
-bool duplicate = false;
 while (*tmp) {
 	if (!((*tmp >= 48 && *tmp <= 57) || *tmp == 46)) {
 		newEntry += *tmp;
@@ -734,7 +732,7 @@ ButtonChoices *container = new ButtonChoices(this, label, variable, INT,
 QMenu *menu = container->button()->menu();
 
 QActionGroup *group = container->actionGroup;
-for (int i = 0; i < entries.size(); i++) {
+for (size_t i = 0; i < entries.size(); i++) {
 	QAction *res = new QAction(entries[i], this);
 	res->setData(values[i]);
 	res->setCheckable(true);
@@ -755,7 +753,7 @@ ButtonChoices *container = new ButtonChoices(this, label, variable, FLOAT,
 
 QMenu *menu = container->button()->menu();
 QActionGroup *group = container->actionGroup;
-for (int i = 0; i < entries.size(); i++) {
+for (size_t i = 0; i < entries.size(); i++) {
 	QAction *res = new QAction(entries[i], this);
 	res->setData(values[i]);
 	res->setCheckable(true);
@@ -1042,7 +1040,7 @@ for (int i = 0; i < words.length(); i++) {
 void ApplicationWindow::useOpenNI() {
 
 }
-void ApplicationWindow::closeEvent(QCloseEvent *event) {
+void ApplicationWindow::closeEvent(QCloseEvent *) {
 exit(0);
 }
 

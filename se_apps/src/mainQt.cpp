@@ -213,7 +213,6 @@ int processAll(DepthReader*   reader,
   static bool first_frame = true;
   bool tracked = false;
   bool integrated = false;
-  bool raycasted = false;
   std::chrono::time_point<std::chrono::steady_clock> timings[7];
   int frame = 0;
   const Eigen::Vector2i input_size = (reader != nullptr)
@@ -294,9 +293,7 @@ int processAll(DepthReader*   reader,
     timings[4] = std::chrono::steady_clock::now();
 
     if (frame > 2) {
-      raycasted = pipeline->raycast(camera, config->mu);
-    } else {
-      raycasted = false;
+      pipeline->raycast(camera, config->mu);
     }
 
     timings[5] = std::chrono::steady_clock::now();
