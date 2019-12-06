@@ -54,69 +54,95 @@ template<typename T>
 void drawit(const T*               scene,
             const Eigen::Vector2i& size) {
 
-  static Eigen::Vector2i lastsize (0, 0);
-  char * t = (char*) "toto";
-  int g = 1;
-  if (lastsize.x() != size.x() || lastsize.y() != size.y()) {
-    lastsize = size;
-    glutInit(&g, &t);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+  static Eigen::Vector2i last_size (0, 0);
+  if (last_size.x() != size.x() || last_size.y() != size.y()) {
+    int argc = 1;
+    char* argv = (char*) "supereight";
+    glutInit(&argc, &argv);
 
-    glutInitWindowPosition(100, 100);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(size.x(), size.y());
-    glutCreateWindow(" ");
+    glutCreateWindow("supereight display");
+
+    last_size = size;
   }
 
   glClear(GL_COLOR_BUFFER_BIT);
-  glRasterPos2i(-1, 1);
-  glPixelZoom(1, -1);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, size.x());
-  glDrawPixels(size.x(), size.y(), gl<T>::format, gl<T>::type, scene);
-  glutSwapBuffers();
 
+  if (scene != nullptr) {
+    glRasterPos2i(-1, 1);
+    glPixelZoom(1, -1);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, size.x());
+    glDrawPixels(size.x(), size.y(), gl<T>::format, gl<T>::type, scene);
+  }
+
+  glutSwapBuffers();
 }
 
 
 
 template<typename A, typename B, typename C, typename D>
-void drawthem(const A* scene1, const Eigen::Vector2i& size_s1,
-              const B* scene2, const Eigen::Vector2i& size_s2,
-              const C* scene3, const Eigen::Vector2i& size_s3,
-              const D* scene4, const Eigen::Vector2i& size_s4) {
+void drawthem(const A* scene_1, const Eigen::Vector2i& size_1,
+              const B* scene_2, const Eigen::Vector2i& size_2,
+              const C* scene_3, const Eigen::Vector2i& size_3,
+              const D* scene_4, const Eigen::Vector2i& size_4) {
 
-  static Eigen::Vector2i lastsize (0, 0);
-  char * t = (char*) "toto";
-  int g = 1;
-  if (lastsize.x() != size_s2.x() || lastsize.y() != size_s2.y()) {
-    lastsize = size_s2;
-    glutInit(&g, &t);
+  constexpr int rows = 2;
+  constexpr int cols = 2;
+  const int col_width  = size_2.x();
+  const int row_height = size_2.y();
+  const int width  = cols * col_width;
+  const int height = rows * row_height;
+
+  static Eigen::Vector2i last_size (0, 0);
+  if (last_size.x() != size_2.x() || last_size.y() != size_2.y()) {
+    int argc = 1;
+    char* argv = (char*) "supereight";
+    glutInit(&argc, &argv);
+
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowSize(320 * 2, 240 * 2);
+    glutInitWindowSize(width, height);
+    glutCreateWindow("supereight display");
 
-    glutCreateWindow("Kfusion Display");
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glMatrixMode(GL_PROJECTION);
-
-    gluOrtho2D(0.0, (GLfloat) 640, 0.0, (GLfloat) 480);
+    gluOrtho2D(0.0, (GLdouble) width, 0.0, (GLdouble) height);
     glMatrixMode(GL_MODELVIEW);
 
+    last_size = size_2;
   }
+
   glClear(GL_COLOR_BUFFER_BIT);
 
-  glRasterPos2i(0, 480);
-  glPixelZoom(320.0 / size_s1.x(), -240.0 / size_s1.y());
-  glDrawPixels(size_s1.x(), size_s1.y(), gl<A>::format, gl<A>::type, scene1);
-  glRasterPos2i(320, 480);
-  glPixelZoom(320.0 / size_s2.x(), -240.0 / size_s2.y());
-  glDrawPixels(size_s2.x(), size_s2.y(), gl<B>::format, gl<B>::type, scene2);
-  glRasterPos2i(0, 240);
-  glPixelZoom(320.0 / size_s3.x(), -240.0 / size_s3.y());
-  glDrawPixels(size_s3.x(), size_s3.y(), gl<C>::format, gl<C>::type, scene3);
-  glRasterPos2i(320, 240);
-  glPixelZoom(320.0 / size_s4.x(), -240.0 / size_s4.y());
-  glDrawPixels(size_s4.x(), size_s4.y(), gl<D>::format, gl<D>::type, scene4);
-  glutSwapBuffers();
+  if (scene_1 != nullptr) {
+    glRasterPos2i(0 * col_width, 2 * row_height);
+    glPixelZoom((float)  col_width  / size_1.x(),
+                (float) -row_height / size_1.y());
+    glDrawPixels(size_1.x(), size_1.y(), gl<A>::format, gl<A>::type, scene_1);
+  }
 
+  if (scene_2 != nullptr) {
+    glRasterPos2i(1 * col_width, 2 * row_height);
+    glPixelZoom((float)  col_width  / size_2.x(),
+                (float) -row_height / size_2.y());
+    glDrawPixels(size_2.x(), size_2.y(), gl<B>::format, gl<B>::type, scene_2);
+  }
+
+  if (scene_3 != nullptr) {
+    glRasterPos2i(0 * col_width, 1 * row_height);
+    glPixelZoom((float)  col_width  / size_3.x(),
+                (float) -row_height / size_3.y());
+    glDrawPixels(size_3.x(), size_3.y(), gl<C>::format, gl<C>::type, scene_3);
+  }
+
+  if (scene_4 != nullptr) {
+    glRasterPos2i(1 * col_width, 1 * row_height);
+    glPixelZoom((float)  col_width  / size_4.x(),
+                (float) -row_height / size_4.y());
+    glDrawPixels(size_4.x(), size_4.y(), gl<D>::format, gl<D>::type, scene_4);
+  }
+
+  glutSwapBuffers();
 }
 
