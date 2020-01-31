@@ -54,8 +54,8 @@ template<typename T>
 void drawit(const T*               scene,
             const Eigen::Vector2i& size) {
 
-  static Eigen::Vector2i last_size (0, 0);
-  if (last_size.x() != size.x() || last_size.y() != size.y()) {
+  // Create a GLUT window if one does not exist yet.
+  if (glutGetWindow() == 0) {
     int argc = 1;
     char* argv = (char*) "supereight";
     glutInit(&argc, &argv);
@@ -63,8 +63,6 @@ void drawit(const T*               scene,
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(size.x(), size.y());
     glutCreateWindow("supereight display");
-
-    last_size = size;
   }
 
   glClear(GL_COLOR_BUFFER_BIT);
@@ -95,8 +93,8 @@ void drawthem(const A* scene_1, const Eigen::Vector2i& size_1,
   const int width  = cols * col_width;
   const int height = rows * row_height;
 
-  static Eigen::Vector2i last_size (0, 0);
-  if (last_size.x() != size_2.x() || last_size.y() != size_2.y()) {
+  // Create a GLUT window if one does not exist yet.
+  if (glutGetWindow() == 0) {
     int argc = 1;
     char* argv = (char*) "supereight";
     glutInit(&argc, &argv);
@@ -109,8 +107,6 @@ void drawthem(const A* scene_1, const Eigen::Vector2i& size_1,
     glMatrixMode(GL_PROJECTION);
     gluOrtho2D(0.0, (GLdouble) width, 0.0, (GLdouble) height);
     glMatrixMode(GL_MODELVIEW);
-
-    last_size = size_2;
   }
 
   glClear(GL_COLOR_BUFFER_BIT);
