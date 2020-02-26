@@ -46,34 +46,6 @@
  *
 *****************************************************************************/
 
-static inline int __float_as_int(float value){
-
-  union float_as_int {
-    float f;
-    int i;
-  };
-
-  float_as_int u;
-  u.f = value;
-  return u.i;
-}
-
-
-
-static inline float __int_as_float(int value){
-
-  union int_as_float {
-    int i;
-    float f;
-  };
-
-  int_as_float u;
-  u.i = value;
-  return u.f;
-}
-
-
-
 template <typename T>
 class se::ray_iterator {
   public:
@@ -184,31 +156,31 @@ class se::ray_iterator {
         // been scaled between [1, 2]. Still digging why this is the case.
         unsigned int differing_bits = 0;
         if ((step_mask & 1) != 0) {
-          differing_bits |= __float_as_int(pos_.x()) ^ __float_as_int(pos_.x() + scale_exp2_);
+          differing_bits |= floatAsInt(pos_.x()) ^ floatAsInt(pos_.x() + scale_exp2_);
         }
         if ((step_mask & 2) != 0) {
-          differing_bits |= __float_as_int(pos_.y()) ^ __float_as_int(pos_.y() + scale_exp2_);
+          differing_bits |= floatAsInt(pos_.y()) ^ floatAsInt(pos_.y() + scale_exp2_);
         }
         if ((step_mask & 4) != 0) {
-          differing_bits |= __float_as_int(pos_.z()) ^ __float_as_int(pos_.z() + scale_exp2_);
+          differing_bits |= floatAsInt(pos_.z()) ^ floatAsInt(pos_.z() + scale_exp2_);
         }
 
         // Get the scale at which the two differs. Here's there are different subtlelties related to how fp are stored.
         // MIND BLOWN: differing bit (i.e. the MSB) extracted using the
         // exponent part of the fp representation.
-        scale_ = (__float_as_int((float)differing_bits) >> 23) - 127; // position of the highest bit
-        scale_exp2_ = __int_as_float((scale_ - CAST_STACK_DEPTH + 127) << 23); // exp2f(scale - s_max)
+        scale_ = (floatAsInt((float)differing_bits) >> 23) - 127; // position of the highest bit
+        scale_exp2_ = intAsFloat((scale_ - CAST_STACK_DEPTH + 127) << 23); // exp2f(scale - s_max)
         const StackEntry&  e = stack_[scale_];
         parent_ = e.parent;
         t_max_ = e.t_max;
 
         // Round cube position and extract child slot index.
-        const int shx = __float_as_int(pos_.x()) >> scale_;
-        const int shy = __float_as_int(pos_.y()) >> scale_;
-        const int shz = __float_as_int(pos_.z()) >> scale_;
-        pos_.x() = __int_as_float(shx << scale_);
-        pos_.y() = __int_as_float(shy << scale_);
-        pos_.z() = __int_as_float(shz << scale_);
+        const int shx = floatAsInt(pos_.x()) >> scale_;
+        const int shy = floatAsInt(pos_.y()) >> scale_;
+        const int shz = floatAsInt(pos_.z()) >> scale_;
+        pos_.x() = intAsFloat(shx << scale_);
+        pos_.y() = intAsFloat(shy << scale_);
+        pos_.z() = intAsFloat(shz << scale_);
         idx_  = (shx & 1) | ((shy & 1) << 1) | ((shz & 1) << 2);
 
         h_ = 0.0f;
@@ -360,6 +332,34 @@ class se::ray_iterator {
     float tc_max_;
     float h_;
     STATE state_;
+
+
+
+    static inline int floatAsInt(const float value) {
+
+      union float_as_int {
+        float f;
+        int i;
+      };
+
+      float_as_int u;
+      u.f = value;
+      return u.i;
+    }
+
+
+
+    static inline float intAsFloat(const int value) {
+
+      union int_as_float {
+        int i;
+        float f;
+      };
+
+      int_as_float u;
+      u.i = value;
+      return u.f;
+    }
 };
 #endif
 
