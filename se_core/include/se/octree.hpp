@@ -64,7 +64,7 @@ namespace se {
 #define SAMPLE_POINT_POSITION 0.5f
 
 template <typename T>
-class ray_iterator;
+class VoxelBlockRayIterator;
 
 template <typename T>
 class node_iterator;
@@ -286,7 +286,7 @@ private:
   MemoryPool<VoxelBlock<T> > block_buffer_;
   MemoryPool<Node<T> > nodes_buffer_;
 
-  friend class ray_iterator<T>;
+  friend class VoxelBlockRayIterator<T>;
   friend class node_iterator<T>;
 
   // Allocation specific variables

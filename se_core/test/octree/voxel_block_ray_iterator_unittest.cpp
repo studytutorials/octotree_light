@@ -29,7 +29,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "octree.hpp"
-#include "ray_iterator.hpp"
+#include "voxel_block_ray_iterator.hpp"
 #include "gtest/gtest.h"
 #include <vector>
 
@@ -72,7 +72,7 @@ class RayIteratorTest : public ::testing::Test {
 };
 
 TEST_F(RayIteratorTest, FetchAlongRay) {
-  se::ray_iterator<TestVoxelT> it(oct_, p_, dir_, 0.4, 4.0f);
+  se::VoxelBlockRayIterator<TestVoxelT> it(oct_, p_, dir_, 0.4, 4.0f);
   int i = 0;
   se::VoxelBlock<TestVoxelT> * current;
   while(current = it.next()) {

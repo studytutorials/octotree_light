@@ -35,7 +35,7 @@
  */
 
 #include <se/DenseSLAMSystem.h>
-#include <se/ray_iterator.hpp>
+#include <se/voxel_block_ray_iterator.hpp>
 #include <se/algorithms/meshing.hpp>
 #include <se/geometry/octree_collision.hpp>
 #include <se/io/vtk-io.h>

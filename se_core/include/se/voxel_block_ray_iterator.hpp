@@ -28,21 +28,21 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SE_RAY_ITERATOR_HPP
-#define SE_RAY_ITERATOR_HPP
+#ifndef VOXEL_BLOCK_RAY_ITERATOR_HPP
+#define VOXEL_BLOCK_RAY_ITERATOR_HPP
 #include "octree.hpp"
 #include "Eigen/Dense"
 
 
 
 template <typename T>
-class se::ray_iterator {
+class se::VoxelBlockRayIterator {
   public:
-    ray_iterator(const Octree<T>&       map,
-                 const Eigen::Vector3f& origin,
-                 const Eigen::Vector3f& direction,
-                 const float            near_plane,
-                 const float            far_plane)
+    VoxelBlockRayIterator(const Octree<T>&       map,
+                          const Eigen::Vector3f& origin,
+                          const Eigen::Vector3f& direction,
+                          const float            near_plane,
+                          const float            far_plane)
         : map_(map) {
 
       pos_ = Eigen::Vector3f::Ones();
@@ -180,8 +180,8 @@ class se::ray_iterator {
      * \brief The distance along the ray until the current se::VoxelBlock is
      * entered.
      *
-     * \note Returns the same value as se::ray_iterator::tmin() if
-     * se::ray_iterator::next() has not been called yet.
+     * \note Returns the same value as se::VoxelBlockRayIterator::tmin() if
+     * se::VoxelBlockRayIterator::next() has not been called yet.
      *
      * \return The distance in meters.
      */
@@ -195,8 +195,8 @@ class se::ray_iterator {
      * \brief The distance along the ray until the current se::VoxelBlock is
      * exited.
      *
-     * \warning Returns an undefined value if se::ray_iterator::next() has not
-     * been called yet.
+     * \warning Returns an undefined value if se::VoxelBlockRayIterator::next()
+     * has not been called yet.
      *
      * \return The distance in meters.
      */
