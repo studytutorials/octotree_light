@@ -1,50 +1,39 @@
 /*
-    Copyright (c) 2009-2011, NVIDIA Corporation
-    Copyright 2016 Emanuele Vespa, Imperial College London
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions are met:
+ * Copyright (c) 2009-2011, NVIDIA Corporation
+ * Copyright 2016 Emanuele Vespa, Imperial College London
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived from this
+ * software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
 
-    1. Redistributions of source code must retain the above copyright notice, this
-    list of conditions and the following disclaimer.
-
-    2. Redistributions in binary form must reproduce the above copyright notice,
-    this list of conditions and the following disclaimer in the documentation
-    and/or other materials provided with the distribution.
-
-    3. Neither the name of the copyright holder nor the names of its contributors
-    may be used to endorse or promote products derived from this software without
-    specific prior written permission.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-    SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-    OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-*/
 #ifndef SE_RAY_ITERATOR_HPP
 #define SE_RAY_ITERATOR_HPP
 #include "octree.hpp"
 #include "Eigen/Dense"
 
-/*****************************************************************************
- *
- *
- * Ray iterator implementation
- *
- * A modified version of the ray-caster introduced in the paper:
- * https://research.nvidia.com/publication/efficient-sparse-voxel-octrees
- *
- * Original code available at:
- * https://code.google.com/p/efficient-sparse-voxel-octrees/
- *
- *
-*****************************************************************************/
+
 
 template <typename T>
 class se::ray_iterator {
@@ -69,6 +58,7 @@ class se::ray_iterator {
         stack_[i] = {0, nullptr, 0.f};
       }
 
+      // Ensure all elements of direction_ are non-zero.
       const float epsilon = exp2f(-log2(map_.size_));
       direction_.x() = fabsf(direction.x()) < epsilon ?
           copysignf(epsilon, direction.x()) : direction.x();
@@ -77,19 +67,18 @@ class se::ray_iterator {
       direction_.z() = fabsf(direction.z()) < epsilon ?
           copysignf(epsilon, direction.z()) : direction.z();
 
-      /* Scaling the origin to reside between coordinates [1,2] */
+      // Scale the origin to be in the interval [1, 2].
       const Eigen::Vector3f scaled_origin = origin / map_.dim_ +
           Eigen::Vector3f::Ones();
 
-      /* Precomputing the ray coefficients */
+      // Precompute the ray coefficients.
       t_coef_ = -1.f * direction_.cwiseAbs().cwiseInverse();
       t_bias_ = t_coef_.cwiseProduct(scaled_origin);
 
 
-      /* Build the octant mask to to mirror the coordinate system such that
-       * each ray component points in negative coordinates. The octree is
-       * assumed to reside at coordinates [1, 2]
-       */
+      // Build the octant mask to to mirror the coordinate system such that
+      // each ray component points in negative coordinates. The octree is
+      // assumed to reside at coordinates [1, 2]
       octant_mask_ = 7;
       if (direction_.x() > 0.0f) {
         octant_mask_ ^= 1;
@@ -113,9 +102,7 @@ class se::ray_iterator {
       t_min_ = t_min_init_;
       t_max_ = t_max_init_;
 
-      /*
-       * Initialise the ray position
-       */
+      // Initialise the ray position.
       if (1.5f * t_coef_.x() - t_bias_.x() > t_min_) {
         idx_ ^= 1;
         pos_.x() = 1.5f;
@@ -132,7 +119,7 @@ class se::ray_iterator {
 
 
 
-    /*! \brief Return the next se::VoxelBlock along the ray.
+    /*! \brief Return a pointer to the next se::VoxelBlock along the ray.
      *
      * \return A pointer to an se::VoxelBlock or nullptr if all se::VoxelBlock
      * along the ray have been iterated through.
@@ -168,8 +155,9 @@ class se::ray_iterator {
 
 
     /*!
-     * \brief Returns the minimum distance in meters to be travelled along
-     * the ray to intersect the voxel cube.
+     * \brief The distance along the ray until the map is entered.
+     *
+     * \return The distance in meters.
      */
     float tmin() const {
       return t_min_init_ * map_.dim_;
@@ -178,8 +166,9 @@ class se::ray_iterator {
 
 
     /*!
-     * \brief Returns the minimum distance in meters to be travelled along
-     * the ray to exit the voxel cube.
+     * \brief The distance along the ray until the map is exited.
+     *
+     * \return The distance in meters.
      */
     float tmax() const {
       return t_max_init_ * map_.dim_;
@@ -188,8 +177,13 @@ class se::ray_iterator {
 
 
     /*!
-     * \brief Returns the minimum distance in meters to be travelled along
-     * the ray to reach the currently intersected leaf.
+     * \brief The distance along the ray until the current se::VoxelBlock is
+     * entered.
+     *
+     * \note Returns the same value as se::ray_iterator::tmin() if
+     * se::ray_iterator::next() has not been called yet.
+     *
+     * \return The distance in meters.
      */
     float tcmin() const {
       return t_min_ * map_.dim_;
@@ -198,8 +192,13 @@ class se::ray_iterator {
 
 
     /*!
-     * \brief Returns the minimum distance in meters to be travelled along
-     * the ray to exit the currently intersected grid.
+     * \brief The distance along the ray until the current se::VoxelBlock is
+     * exited.
+     *
+     * \warning Returns an undefined value if se::ray_iterator::next() has not
+     * been called yet.
+     *
+     * \return The distance in meters.
      */
     float tcmax() const {
       return tc_max_ * map_.dim_;
@@ -249,6 +248,8 @@ class se::ray_iterator {
 
 
 
+    /*! \brief Reinterpret the binary representation of a float as an int.
+     */
     static inline int floatAsInt(const float value) {
 
       union float_as_int {
@@ -263,6 +264,8 @@ class se::ray_iterator {
 
 
 
+    /*! \brief Reinterpret the binary representation of an int as a float.
+     */
     static inline float intAsFloat(const int value) {
 
       union int_as_float {
