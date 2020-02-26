@@ -161,6 +161,7 @@ class se::ray_iterator {
         }
         advance_ray();
       }
+      state_ = FINISHED;
       return nullptr;
     }
 
