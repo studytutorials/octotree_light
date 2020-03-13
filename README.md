@@ -24,6 +24,13 @@ The core library is released under the BSD 3-clause Licence. There are part of
 the this software that are released under MIT licence, see individual headers
 for which licence applies.
 
+# Contributing
+Create a pull request against the `devel` branch and add Nils Funk and Sotiris
+Papatheodorou as reviewers. Once any potential issues are approved and the pull
+request is accepted, it will be rebased on the current `HEAD` of `devel`,
+fixing any conflicts and merged. The original pull request branch will be
+deleted after merging.
+
 # Project structure
 supereight is made of three main components:
 
