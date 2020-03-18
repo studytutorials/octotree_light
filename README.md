@@ -1,37 +1,30 @@
-# supereight: a fast octree library for Dense SLAM
-welcome to *supereight*: a high performance template octree library and a dense
+# supereight: a fast octree library for dense SLAM
+Welcome to *supereight*: a high performance template octree library and a dense
 volumetric SLAM pipeline implementation.
 
-# Related publications
+## Related publications
 This software implements the octree library and dense SLAM system presented in
 our paper
 [Efficient Octree-Based Volumetric SLAM Supporting Signed-Distance and
 Occupancy
 Mapping.](https://spiral.imperial.ac.uk/bitstream/10044/1/55715/2/EVespaRAL_final.pdf)
-If you publish work that relates to this software,
-please cite our paper as:
+If you publish work that relates to this software, please cite our paper as:
 
-`@ARTICLE{VespaRAL18,
-author={E. Vespa and N. Nikolov and M. Grimm and L. Nardi and P. H. J. Kelly
-and S. Leutenegger},
-journal={IEEE Robotics and Automation Letters},
-title={Efficient Octree-Based Volumetric SLAM Supporting Signed-Distance and
-Occupancy Mapping}, year={2018}, volume={3}, number={2}, pages={1144-1151},
-doi={10.1109/LRA.2018.2792537}, ISSN={}, month={April}}`
+``` bibtex
+@ARTICLE{VespaRAL18,
+  author  = {E. Vespa and N. Nikolov and M. Grimm and L. Nardi and P. H. J. Kelly and S. Leutenegger},
+  journal = {IEEE Robotics and Automation Letters},
+  title   = {Efficient Octree-Based Volumetric SLAM Supporting Signed-Distance and Occupancy Mapping},
+  year    = {2018},
+  volume  = {3},
+  number  = {2},
+  pages   = {1144--1151},
+  month   = {Apr},
+  doi     = {10.1109/LRA.2018.2792537},
+}
+```
 
-# Licence
-The core library is released under the BSD 3-clause Licence. There are part of
-the this software that are released under MIT licence, see individual headers
-for which licence applies.
-
-# Contributing
-Create a pull request against the `devel` branch and add Nils Funk and Sotiris
-Papatheodorou as reviewers. Once any potential issues are approved and the pull
-request is accepted, it will be rebased on the current `HEAD` of `devel`,
-fixing any conflicts and merged. The original pull request branch will be
-deleted after merging.
-
-# Project structure
+## Project structure
 supereight is made of three main components:
 
 * `se_core`: the main header only template octree library
@@ -51,36 +44,45 @@ supereight is made of three main components:
 * `se_tools`: related tools and scripts (e.g. for converting datasets and
   evaluating the pipeline)
 
-# Dependencies
+## Building
+### Installing the dependencies
 The following packages are required to build the `se-denseslam` library:
+
 * CMake >= 3.10
 * Eigen3
 * Sophus
-* OpenMP (optional)
+* OpenMP (optional for improved performance)
 * googletest (for unit tests)
 
 The benchmarking and GUI apps additionally require:
+
 * GLut
 * OpenGL
 * OpenNI2
 * PkgConfig/Qt5
-* Python/Numpy for evaluation scripts
+* Python/Numpy (for evaluation scripts)
 
-To install the dependencies run
-```
+To install the dependencies on Debian/Ubuntu run
+
+``` bash
 ./se_tools/install_dependencies.sh
 ```
 
-# Build
-From the project root:
-`make`
-This will create a build/ folder from which `cmake ..` is invoked.
+### Compiling
+From the project root run
 
-# Installation
-After building, supereight can be installed system-wide by running
+``` bash
+make
 ```
+
+### Installing
+After building, supereight can be optionally installed as a system-wide library
+by running
+
+``` bash
 sudo make install
 ```
+
 This will also install the appropriate `supereightConfig.cmake` file so that
 supereight can be used in a CMake project by adding `find_package(supereight)`.
 Executables using supereight should be linked against all the libraries in
@@ -90,21 +92,34 @@ variable.  More information about the variables defined by using
 `find_package(supereight)` along with usage examples can be found in
 [cmake/Config.cmake.in](cmake/Config.cmake.in).
 
-# Running unit tests
+### Running the unit tests
 The unit tests use googletest. It must be compiled with the same flags as
 supereight and the environment variable `GTEST_ROOT` set to the path which
 contains the googletest library. To compile and run the tests, assuming
 googletest was compiled in `~/googletest/googletest`, run:
-```
+
+``` bash
 GTEST_ROOT=~/googletest/googletest make test
 ```
 
-# Usage example
+### Generating the documentation
+To generate the Doxygen documentation in HTML format run
+
+``` bash
+make doc
+```
+
+Then open `doc/html/index.html` with a web browser.
+
+
+
+## Usage example
 To run one of the apps in se_apps you need to first produce an input file. We
 use SLAMBench 1.0 file format (https://github.com/pamela-project/slambench).
-The tool scene2raw can be used to produce an input sequence from the ICL-NUIM
-dataset:
-```
+The tool scene2raw can be used to produce an input sequence from the
+[ICL-NUIM](http://www.doc.ic.ac.uk/~ahanda/VaFRIC/iclnuim.html) dataset:
+
+``` bash
 mkdir living_room_traj2_loop
 cd living_room_traj2_loop
 wget http://www.doc.ic.ac.uk/~ahanda/living_room_traj2_loop.tgz
@@ -112,8 +127,26 @@ tar xzf living_room_traj2_loop.tgz
 cd ..
 build/se_tools/scene2raw living_room_traj2_loop living_room_traj2_loop/scene.raw
 ```
+
 Then it can be used as input to one of the apps
 
-```
+``` bash
 ./build/se_apps/se-denseslam-tsdf-main -i living_room_traj2_loop/scene.raw -s 4.8 -p 0.34,0.5,0.24 -z 4 -c 2 -r 1 -k 481.2,-480,320,240  > benchmark.log
 ```
+
+
+
+## Contributing
+Create a pull request against the `devel` branch and add Nils Funk and Sotiris
+Papatheodorou as reviewers. Once any potential issues are approved and the pull
+request is accepted, it will be rebased on the current `HEAD` of `devel`,
+fixing any conflicts and merged. The original pull request branch will be
+deleted after merging.
+
+
+
+## Licence
+The core library is released under the BSD 3-clause licence. There are parts of
+this software that are released under the MIT licence, see individual files for
+which licence applies.
+
