@@ -31,10 +31,10 @@
 
 #include "se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
 
-#include <se/utils/math_utils.h>
-#include <se/node.hpp>
-#include <se/octree.hpp>
-#include <se/utils/morton_utils.hpp>
+#include "se/utils/math_utils.h"
+#include "se/node.hpp"
+#include "se/octree.hpp"
+#include "se/utils/morton_utils.hpp"
 
 
 
@@ -51,7 +51,7 @@
  * \param depth_map input depth map
  * \param image_size dimensions of depth_map
  * \param volume_size discrete extent of the map, in number of voxels
- * \param voxelSize spacing between two consegutive voxels, in metric space
+ * \param voxelSize spacing between two consecutive voxels, in metric space
  * \param band maximum extent of the allocating region, per ray
  */
 size_t MultiresTSDF::buildAllocationList(

@@ -101,14 +101,14 @@ collision_status collides_with(const se::VoxelBlock<FieldType>* block,
  * input axis aligned bounding box bbox of extension side. The test function
  * test takes as input a voxel value and returns a collision_status. This is
  * used to distinguish between seen-empty voxels and occupied voxels.
- * \param map octree map
+ * \param octree octree map
  * \param bbox test bounding box lower bottom corner
  * \param side extension in number of voxels of the bounding box
  * \param test function that takes a voxel and returns a collision_status value
  */
 
 template <typename FieldType, typename TestVoxelF>
-collision_status collides_with(const Octree<FieldType>& map,
+collision_status collides_with(const Octree<FieldType>& octree,
     const Eigen::Vector3i bbox, const Eigen::Vector3i side, TestVoxelF test) {
 
   typedef struct stack_entry {
@@ -121,12 +121,12 @@ collision_status collides_with(const Octree<FieldType>& map,
   stack_entry stack[Octree<FieldType>::max_depth*8 + 1];
   size_t stack_idx = 0;
 
-  se::Node<FieldType>* node = map.root();
+  se::Node<FieldType>* node = octree.root();
   if(!node) return collision_status::unseen;
 
   stack_entry current;
   current.node_ptr = node;
-  current.side = map.size();
+  current.side = octree.size();
   current.coordinates = {0, 0, 0};
   stack[stack_idx++] = current;
   collision_status status = collision_status::empty;

@@ -72,8 +72,8 @@ namespace meshing {
     }
   }
 
-  template <typename Map, typename FieldSelector>
-    inline Eigen::Vector3f compute_intersection(const Map& volume, FieldSelector select,
+  template <typename OctreeT, typename FieldSelector>
+    inline Eigen::Vector3f compute_intersection(const OctreeT& volume, FieldSelector select,
         const Eigen::Vector3i& source, const Eigen::Vector3i& dest){
       const float voxelSize = volume.dim()/volume.size();
       Eigen::Vector3f s = Eigen::Vector3f(source(0) * voxelSize, source(1) * voxelSize, source(2) * voxelSize);
@@ -83,8 +83,8 @@ namespace meshing {
       return s + (0.0 - v1)*(d - s)/(v2-v1);
     }
 
-  template <typename Map, typename FieldSelector>
-    inline Eigen::Vector3f interp_vertexes(const Map& volume, FieldSelector select,
+  template <typename OctreeT, typename FieldSelector>
+    inline Eigen::Vector3f interp_vertexes(const OctreeT& volume, FieldSelector select,
         const unsigned x, const unsigned y, const unsigned z, const int edge){
       switch(edge){
         case 0:  return compute_intersection(volume, select, Eigen::Vector3i(x,   y, z),
@@ -129,8 +129,8 @@ namespace meshing {
       points[7] = cached->data(Eigen::Vector3i(x, y+1, z+1));
     }
 
-  template <typename FieldType, template <typename FieldT> class MapT, typename PointT>
-  inline void gather_points(const MapT<FieldType>& volume, PointT points[8],
+  template <typename FieldType, template <typename FieldT> class OctreeT, typename PointT>
+  inline void gather_points(const OctreeT<FieldType>& volume, PointT points[8],
                  const int x, const int y, const int z) {
                points[0] = volume.get_fine(x, y, z);
                points[1] = volume.get_fine(x+1, y, z);
@@ -142,15 +142,15 @@ namespace meshing {
                points[7] = volume.get_fine(x, y+1, z+1);
              }
 
-  template <typename FieldType, template <typename FieldT> class MapT,
+  template <typename FieldType, template <typename FieldT> class OctreeT,
   typename InsidePredicate>
-  uint8_t compute_index(const MapT<FieldType>& volume,
+  uint8_t compute_index(const OctreeT<FieldType>& volume,
   const se::VoxelBlock<FieldType>* cached, InsidePredicate inside,
   const unsigned x, const unsigned y, const unsigned z){
-    unsigned int blockSize =  se::VoxelBlock<FieldType>::side;
-    unsigned int local = ((x % blockSize == blockSize - 1) << 2) |
-      ((y % blockSize == blockSize - 1) << 1) |
-      ((z % blockSize) == blockSize - 1);
+    unsigned int block_size =  se::VoxelBlock<FieldType>::side;
+    unsigned int local = ((x % block_size == block_size - 1) << 2) |
+      ((y % block_size == block_size - 1) << 1) |
+      ((z % block_size) == block_size - 1);
 
     typename FieldType::VoxelData points[8];
     if(!local) gather_points(cached, points, x, y, z);

@@ -41,17 +41,17 @@
 namespace se {
   namespace functor {
 
-    template <typename FieldType, template <typename FieldT> class MapT,
+    template <typename FieldType, template <typename FieldT> class OctreeT,
               typename UpdateF>
 
       class axis_aligned {
         public:
-        axis_aligned(MapT<FieldType>& map, UpdateF f) : _map(map), _function(f),
+        axis_aligned(OctreeT<FieldType>& octree, UpdateF f) : octree_(octree), function_(f),
         _min(Eigen::Vector3i::Constant(0)),
-        _max(Eigen::Vector3i::Constant(map.size())){ }
+        _max(Eigen::Vector3i::Constant(octree.size())){ }
 
-        axis_aligned(MapT<FieldType>& map, UpdateF f, const Eigen::Vector3i min,
-            const Eigen::Vector3i max) : _map(map), _function(f),
+        axis_aligned(OctreeT<FieldType>& octree, UpdateF f, const Eigen::Vector3i min,
+            const Eigen::Vector3i max) : octree_(octree), function_(f),
         _min(min), _max(max){ }
 
         void update_block(se::VoxelBlock<FieldType> * block) {
@@ -66,7 +66,7 @@ namespace se {
               for (x = start(0); x < last(0); ++x) {
                 Eigen::Vector3i vox = Eigen::Vector3i(x, y, z);
                 VoxelBlockHandler<FieldType> handler = {block, vox};
-                _function(handler, vox);
+                function_(handler, vox);
               }
             }
           }
@@ -82,19 +82,19 @@ namespace se {
                  se::math::in(voxel(1), _min(1), _max(1)) &&
                  se::math::in(voxel(2), _min(2), _max(2)))) continue;
             NodeHandler<FieldType> handler = {node, i};
-            _function(handler, voxel);
+            function_(handler, voxel);
           }
         }
 
         void apply() {
 
-          auto& block_buffer = _map.pool().blockBuffer();
+          auto& block_buffer = octree_.pool().blockBuffer();
 #pragma omp parallel for
           for (unsigned int i = 0; i < block_buffer.size(); ++i) {
             update_block(block_buffer[i]);
           }
 
-          auto& node_buffer = _map.pool().nodeBuffer();
+          auto& node_buffer = octree_.pool().nodeBuffer();
 #pragma omp parallel for
           for (unsigned int i = 0; i < node_buffer.size(); ++i) {
             update_node(node_buffer[i]);
@@ -102,29 +102,29 @@ namespace se {
         }
 
       private:
-        MapT<FieldType>& _map;
-        UpdateF _function;
+        OctreeT<FieldType>& octree_;
+        UpdateF function_;
         Eigen::Vector3i _min;
         Eigen::Vector3i _max;
       };
 
     /*!
-     * \brief Applies a function object to each voxel/octant in the map.
-     * \param map Octree on which the function is going to be applied.
+     * \brief Applies a function object to each voxel/octant in the octree.
+     * \param octree Octree on which the function is going to be applied.
      * \param funct Update function to be applied.
      */
-    template <typename FieldType, template <typename FieldT> class MapT,
+    template <typename FieldType, template <typename FieldT> class OctreeT,
               typename UpdateF>
-    void axis_aligned_map(MapT<FieldType>& map, UpdateF funct) {
-    axis_aligned<FieldType, MapT, UpdateF> aa_functor(map, funct);
+    void axis_aligned_map(OctreeT<FieldType>& octree, UpdateF funct) {
+    axis_aligned<FieldType, OctreeT, UpdateF> aa_functor(octree, funct);
     aa_functor.apply();
     }
 
-    template <typename FieldType, template <typename FieldT> class MapT,
+    template <typename FieldType, template <typename FieldT> class OctreeT,
               typename UpdateF>
-    void axis_aligned_map(MapT<FieldType>& map, UpdateF funct,
+    void axis_aligned_map(OctreeT<FieldType>& octree, UpdateF funct,
         const Eigen::Vector3i& min, const Eigen::Vector3i& max) {
-    axis_aligned<FieldType, MapT, UpdateF> aa_functor(map, funct, min,  max);
+    axis_aligned<FieldType, OctreeT, UpdateF> aa_functor(octree, funct, min,  max);
     aa_functor.apply();
     }
   }

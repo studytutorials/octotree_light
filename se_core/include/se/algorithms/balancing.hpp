@@ -30,24 +30,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #ifndef BALANCING_HPP
 #define BALANCING_HPP
-#include <se/octree.hpp>
-#include <se/node_iterator.hpp>
+#include "se/octree.hpp"
+#include "se/node_iterator.hpp"
 #include <Eigen/Dense>
 #include <vector>
 #include <unordered_set>
 
 namespace se {
 /*! \brief Enforces 2:1 balance on the tree.
- *  \param map unbalanced octree to be balanced. 
+ *  \param octree unbalanced octree to be balanced. 
  *
  * */
 template <typename T>
-void balance(se::Octree<T>& map) {
+void balance(se::Octree<T>& octree) {
   std::unordered_set<key_t> octants;
   std::vector<key_t> alloc_buffer;
   Eigen::Matrix<int, 4, 6> N;
-  se::node_iterator<T> it(map);
-  int depth = se::math::log2_const(map.size());
+  se::node_iterator<T> it(octree);
+  int depth = se::math::log2_const(octree.size());
   while(se::Node<T>* n = it.next()) {
     int level = se::keyops::level(n->code_);
     if(level == 0) continue; // skip root
@@ -55,8 +55,8 @@ void balance(se::Octree<T>& map) {
         depth); 
     for(int i = 0; i < 6; ++i) {
       Eigen::Ref<Eigen::Matrix<int, 4, 1>> coords(N.col(i));
-      key_t key = map.hash(coords.x(), coords.y(), coords.z(), level - 1);
-      if(!map.fetch(coords.x(), coords.y(), coords.z()) && 
+      key_t key = octree.hash(coords.x(), coords.y(), coords.z(), level - 1);
+      if(!octree.fetch(coords.x(), coords.y(), coords.z()) && 
           octants.insert(key).second) {
         alloc_buffer.push_back(key);
       }
@@ -73,8 +73,8 @@ void balance(se::Octree<T>& map) {
       if(level == 0) continue; // skip root
       for(int i = 0; i < 6; ++i) {
         Eigen::Ref<Eigen::Matrix<int, 4, 1>> coords(N.col(i));
-        key_t key = map.hash(coords.x(), coords.y(), coords.z(), level - 1);
-        if(!map.fetch(coords.x(), coords.y(), coords.z()) && 
+        key_t key = octree.hash(coords.x(), coords.y(), coords.z(), level - 1);
+        if(!octree.fetch(coords.x(), coords.y(), coords.z()) && 
             octants.insert(key).second) {
           alloc_buffer.push_back(key);
         }
@@ -82,7 +82,7 @@ void balance(se::Octree<T>& map) {
     }
     end = alloc_buffer.size();
   }
-  map.allocate(alloc_buffer.data(), alloc_buffer.size());
+  octree.allocate(alloc_buffer.data(), alloc_buffer.size());
 }
 }
 #endif

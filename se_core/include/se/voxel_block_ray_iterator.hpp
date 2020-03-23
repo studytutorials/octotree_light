@@ -38,20 +38,20 @@
 template <typename T>
 class se::VoxelBlockRayIterator {
   public:
-    VoxelBlockRayIterator(const Octree<T>&       map,
+    VoxelBlockRayIterator(const Octree<T>&       octree,
                           const Eigen::Vector3f& origin,
                           const Eigen::Vector3f& direction,
                           const float            near_plane,
                           const float            far_plane)
-        : map_(map) {
+        : octree_(octree) {
 
       pos_ = Eigen::Vector3f::Ones();
       idx_ = 0;
-      parent_ = map_.root_;
+      parent_ = octree_.root_;
       child_ = nullptr;
       scale_exp2_ = 0.5f;
       scale_ = CAST_STACK_DEPTH - 1;
-      min_scale_ = CAST_STACK_DEPTH - log2(map_.size_ / Octree<T>::blockSide);
+      min_scale_ = CAST_STACK_DEPTH - log2(octree_.size_ / Octree<T>::blockSide);
       state_ = INIT;
 
       for(int i = 0 ; i < CAST_STACK_DEPTH; ++i) {
@@ -59,7 +59,7 @@ class se::VoxelBlockRayIterator {
       }
 
       // Ensure all elements of direction_ are non-zero.
-      const float epsilon = exp2f(-log2(map_.size_));
+      const float epsilon = exp2f(-log2(octree_.size_));
       direction_.x() = fabsf(direction.x()) < epsilon ?
           copysignf(epsilon, direction.x()) : direction.x();
       direction_.y() = fabsf(direction.y()) < epsilon ?
@@ -68,7 +68,7 @@ class se::VoxelBlockRayIterator {
           copysignf(epsilon, direction.z()) : direction.z();
 
       // Scale the origin to be in the interval [1, 2].
-      const Eigen::Vector3f scaled_origin = origin / map_.dim_ +
+      const Eigen::Vector3f scaled_origin = origin / octree_.dim_ +
           Eigen::Vector3f::Ones();
 
       // Precompute the ray coefficients.
@@ -97,8 +97,8 @@ class se::VoxelBlockRayIterator {
       t_min_init_ = (2.0f * t_coef_ - t_bias_).maxCoeff();
       t_max_init_ = (t_coef_ - t_bias_).minCoeff();
       h_ = t_max_init_;
-      t_min_init_ = fmaxf(t_min_init_, near_plane / map_.dim_);
-      t_max_init_ = fminf(t_max_init_, far_plane / map_.dim_ );
+      t_min_init_ = fmaxf(t_min_init_, near_plane / octree_.dim_);
+      t_max_init_ = fminf(t_max_init_, far_plane / octree_.dim_ );
       t_min_ = t_min_init_;
       t_max_ = t_max_init_;
 
@@ -155,23 +155,23 @@ class se::VoxelBlockRayIterator {
 
 
     /*!
-     * \brief The distance along the ray until the map is entered.
+     * \brief The distance along the ray until the octree is entered.
      *
      * \return The distance in meters.
      */
     float tmin() const {
-      return t_min_init_ * map_.dim_;
+      return t_min_init_ * octree_.dim_;
     }
 
 
 
     /*!
-     * \brief The distance along the ray until the map is exited.
+     * \brief The distance along the ray until the octree is exited.
      *
      * \return The distance in meters.
      */
     float tmax() const {
-      return t_max_init_ * map_.dim_;
+      return t_max_init_ * octree_.dim_;
     }
 
 
@@ -186,7 +186,7 @@ class se::VoxelBlockRayIterator {
      * \return The distance in meters.
      */
     float tcmin() const {
-      return t_min_ * map_.dim_;
+      return t_min_ * octree_.dim_;
     }
 
 
@@ -201,7 +201,7 @@ class se::VoxelBlockRayIterator {
      * \return The distance in meters.
      */
     float tcmax() const {
-      return tc_max_ * map_.dim_;
+      return tc_max_ * octree_.dim_;
     }
 
 
@@ -223,7 +223,7 @@ class se::VoxelBlockRayIterator {
 
 
 
-    const Octree<T>& map_;
+    const Octree<T>& octree_;
     Eigen::Vector3f origin_;
     Eigen::Vector3f direction_;
     Eigen::Vector3f pos_;

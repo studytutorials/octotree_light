@@ -32,7 +32,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <se/utils/math_utils.h>
+#include "se/utils/math_utils.h"
 #include <algorithm>
 
 template <typename T>
@@ -58,8 +58,8 @@ void savePointCloud(const T* in, const int num_points,
   f.close();
 }
 
-template <typename MapType, typename FieldSelector>
-void save3DSlice(const MapType& in, const Eigen::Vector3i& lower,
+template <typename OctreeT, typename FieldSelector>
+void save3DSlice(const OctreeT& in, const Eigen::Vector3i& lower,
     const Eigen::Vector3i& upper, FieldSelector select, const int scale, const char* filename){
   std::stringstream x_coordinates, y_coordinates, z_coordinates, scalars;
   std::ofstream f;

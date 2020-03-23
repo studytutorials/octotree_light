@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef ALGO_MAPPING_HPP
 #define ALGO_MAPPING_HPP
-#include <node.hpp>
+#include "node.hpp"
 
 inline float3 voxelToPos(const int3 p, const float voxelSize){
   return make_float3(p.x * voxelSize, p.y * voxelSize, p.z * voxelSize);

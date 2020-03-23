@@ -124,10 +124,10 @@ namespace se {
 
 
     template <typename FieldType,
-              template<typename FieldT> class MapIndex,
+              template<typename FieldT> class OctreeT,
               class FieldSelector>
     inline int gather_points(
-        const MapIndex<FieldType>&               fetcher,
+        const OctreeT<FieldType>&                fetcher,
         const Eigen::Vector3i&                   base,
         const int                                scale,
         FieldSelector                            select,

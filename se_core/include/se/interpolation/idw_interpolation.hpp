@@ -34,16 +34,16 @@
 namespace se {
   namespace internal {
 template <typename Precision, typename FieldType, 
-         template<typename FieldT> class MapIndex,
+         template<typename FieldT> class OctreeT,
          class FieldSelector>
 static inline std::pair<Precision, bool>
-    idw_interp(const MapIndex<FieldType>& map, const Eigen::Vector3f& pos, 
+    idw_interp(const OctreeT<FieldType>& octree, const Eigen::Vector3f& pos, 
         FieldSelector select) {
       std::pair<Precision, Eigen::Vector3i> samples[8];
 
       Node<FieldType> * stack[CAST_STACK_DEPTH] = {};
-      int max_depth = se::math::log2_const(map.size());
-      auto base_ptr = se::internal::fetch(stack, map.root(), max_depth, 
+      int max_depth = se::math::log2_const(octree.size());
+      auto base_ptr = se::internal::fetch(stack, octree.root(), max_depth, 
           pos.cast<int>());
       std::cout << "base octant: \n" << se::keyops::decode(base_ptr->code_) << std::endl;
 

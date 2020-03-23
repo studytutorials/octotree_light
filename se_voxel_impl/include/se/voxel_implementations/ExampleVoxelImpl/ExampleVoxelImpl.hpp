@@ -31,8 +31,8 @@
 #ifndef __EXAMPLE_VOXEL_IMPL_HPP
 #define __EXAMPLE_VOXEL_IMPL_HPP
 
-#include <se/octree.hpp>
-#include <se/continuous/volume_template.hpp>
+#include "se/octree.hpp"
+#include "se/continuous/volume_template.hpp"
 
 
 

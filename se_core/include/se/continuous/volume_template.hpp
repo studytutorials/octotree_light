@@ -31,8 +31,8 @@
 
 #include <iostream>
 #include <memory>
-#include <se/utils/memory_pool.hpp>
-#include <se/octree.hpp>
+#include "se/utils/memory_pool.hpp"
+#include "se/octree.hpp"
 #include <type_traits>
 #include <cstring>
 #include <Eigen/Dense>
@@ -44,7 +44,7 @@
  * Sparse, dynamically allocated storage accessed through the
  * appropriate indexer (octree/hash table).
  * */
-template <typename VoxelImpl, template<typename> class DiscreteMapT>
+template <typename VoxelImpl, template<typename> class DiscreteOctreeT>
 class VolumeTemplate {
 
   public:
@@ -52,7 +52,7 @@ class VolumeTemplate {
     typedef typename VoxelImpl::VoxelType::VoxelData VoxelData;
 
     VolumeTemplate(){};
-    VolumeTemplate(unsigned int r, float d, DiscreteMapT<VoxelType>* octree) :
+    VolumeTemplate(unsigned int r, float d, DiscreteOctreeT<VoxelType>* octree) :
       octree_(octree) {
         size_ = r;
         dim_ = d;
@@ -75,9 +75,9 @@ class VolumeTemplate {
       const float inverse_voxel_size = size_ / dim_;
       const Eigen::Vector4i scaled_pos = (inverse_voxel_size * p.homogeneous()).cast<int>();
         return octree_->get_fine(scaled_pos.x(),
-                                    scaled_pos.y(),
-                                    scaled_pos.z(),
-                                    scale);
+                                 scaled_pos.y(),
+                                 scaled_pos.z(),
+                                 scale);
     }
 
     VoxelData operator[](const Eigen::Vector3i& p) const {
@@ -96,7 +96,7 @@ class VolumeTemplate {
    * to the interval [0, _extent]
    * \param stride distance between neighbouring sampling point, in voxels.
    * Must be >= 1
-   * \return signed distance function value at voxel position (x, y, z)
+   * \return signed distance function value at voxel position (x,y,z)
    */
     template <typename FieldSelector>
     std::pair<float, int> interp(const Eigen::Vector3f& pos, const int h, FieldSelector select) const {
@@ -107,12 +107,11 @@ class VolumeTemplate {
 
     /*! \brief Compute gradient at metric position  (x,y,z)
      * \param pos three-dimensional coordinates in which each component belongs
-     * to the interval [0, _extent]
-     * \return signed distance function value at voxel position (x, y, z)
+     * to the interval [0, dim_]
+     * \return signed distance function value at voxel position (x,y,z)
      */
     template <typename FieldSelector>
     Eigen::Vector3f grad(const Eigen::Vector3f& pos, FieldSelector select) const {
-
       const float inverse_voxel_size = size_ / dim_;
       Eigen::Vector3f discrete_pos = inverse_voxel_size * pos;
       return octree_->grad(discrete_pos, 1.f, select);
@@ -120,10 +119,10 @@ class VolumeTemplate {
 
     /*! \brief Compute gradient at metric position  (x,y,z)
      * \param pos three-dimensional coordinates in which each component belongs
-     * to the interval [0, _extent]
+     * to the interval [0, dim_]
      * \param stride distance between neighbouring sampling point, in voxels.
      * Must be >= 1
-     * \return signed distance function value at voxel position (x, y, z)
+     * \return signed distance function value at voxel position (x,y,z)
      */
     template <typename FieldSelector>
     Eigen::Vector3f grad(const Eigen::Vector3f& pos,
@@ -138,7 +137,7 @@ class VolumeTemplate {
     float dim() const { return dim_; }
 
     std::vector<se::key_t> _allocationList;
-    DiscreteMapT<VoxelType> * octree_;
+    DiscreteOctreeT<VoxelType> * octree_;
 
   private:
     unsigned int size_;

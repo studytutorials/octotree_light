@@ -34,38 +34,38 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <se/DenseSLAMSystem.h>
-#include <se/voxel_block_ray_iterator.hpp>
-#include <se/algorithms/meshing.hpp>
-#include <se/geometry/octree_collision.hpp>
-#include <se/io/vtk-io.h>
-#include <se/io/ply_io.hpp>
-#include <se/algorithms/balancing.hpp>
-#include <se/functors/for_each.hpp>
-#include <se/timings.h>
-#include <se/perfstats.h>
+#include "se/DenseSLAMSystem.h"
+#include "se/voxel_block_ray_iterator.hpp"
+#include "se/algorithms/meshing.hpp"
+#include "se/geometry/octree_collision.hpp"
+#include "se/io/vtk-io.h"
+#include "se/io/ply_io.hpp"
+#include "se/algorithms/balancing.hpp"
+#include "se/functors/for_each.hpp"
+#include "se/timings.h"
+#include "se/perfstats.h"
 #include "se/rendering.hpp"
 
 
 extern PerfStats Stats;
 static bool print_kernel_timing = false;
 
-DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
-                                 const Eigen::Vector3i& volumeResolution,
-                                 const Eigen::Vector3f& volumeDimensions,
-                                 const Eigen::Vector3f& initPose,
+DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& input_size,
+                                 const Eigen::Vector3i& volume_resolution,
+                                 const Eigen::Vector3f& volume_dimensions,
+                                 const Eigen::Vector3f& init_pose,
                                  std::vector<int> & pyramid,
                                  const Configuration& config):
-      DenseSLAMSystem(inputSize, volumeResolution, volumeDimensions,
-          se::math::toMatrix4f(initPose), pyramid, config) { }
+      DenseSLAMSystem(input_size, volume_resolution, volume_dimensions,
+          se::math::toMatrix4f(init_pose), pyramid, config) { }
 
-DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
-                                 const Eigen::Vector3i& volumeResolution,
-                                 const Eigen::Vector3f& volumeDimensions,
+DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& input_size,
+                                 const Eigen::Vector3i& volume_resolution,
+                                 const Eigen::Vector3f& volume_dimensions,
                                  const Eigen::Matrix4f& init_T_WC,
                                  std::vector<int> & pyramid,
                                  const Configuration& config) :
-  computation_size_(inputSize),
+  computation_size_(input_size),
   config_(config),
   vertex_(computation_size_.x(), computation_size_.y()),
   normal_(computation_size_.x(), computation_size_.y()),
@@ -74,8 +74,8 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& inputSize,
   {
 
     this->init_position_M_ = init_T_WC.block<3,1>(0,3);
-    this->volume_dimension_ = volumeDimensions;
-    this->volume_resolution_ = volumeResolution;
+    this->volume_dimension_ = volume_dimensions;
+    this->volume_resolution_ = volume_resolution;
     this->mu_ = config.mu;
     T_WC_ = init_T_WC;
     raycast_T_WC_ = init_T_WC;
@@ -175,7 +175,7 @@ bool DenseSLAMSystem::track(const Eigen::Vector4f& k,
   }
 
   previous_T_WC_ = T_WC_;
-  const Eigen::Matrix4f projectReference = getCameraMatrix(k) * raycast_T_WC_.inverse();
+  const Eigen::Matrix4f project_reference = getCameraMatrix(k) * raycast_T_WC_.inverse();
 
   for (int level = iterations_.size() - 1; level >= 0; --level) {
     Eigen::Vector2i localimagesize(
@@ -184,7 +184,7 @@ bool DenseSLAMSystem::track(const Eigen::Vector4f& k,
     for (int i = 0; i < iterations_[level]; ++i) {
 
       trackKernel(tracking_result_.data(), input_vertex_[level], input_normal_[level],
-          vertex_, normal_, T_WC_, projectReference,
+          vertex_, normal_, T_WC_, project_reference,
           dist_threshold, normal_threshold);
 
       reduceKernel(reduction_output_.data(), tracking_result_.data(), computation_size_,

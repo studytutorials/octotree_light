@@ -21,15 +21,15 @@
 
 #include <Eigen/Dense>
 
-#include <se/DenseSLAMSystem.h>
-#include <se/perfstats.h>
+#include "se/DenseSLAMSystem.h"
+#include "se/perfstats.h"
 
-#include <default_parameters.h>
-#include <interface.h>
-#include <PowerMonitor.h>
+#include "default_parameters.h"
+#include "interface.h"
+#include "PowerMonitor.h"
 #ifndef __QT__
 #ifndef SE_BENCHMARK_APP
-#include <draw.h>
+#include "draw.h"
 #endif
 #endif
 

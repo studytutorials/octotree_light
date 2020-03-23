@@ -33,9 +33,9 @@
 
 #include <algorithm>
 
-#include <se/octree.hpp>
-#include <se/node.hpp>
-#include <se/functors/projective_functor.hpp>
+#include "se/octree.hpp"
+#include "se/node.hpp"
+#include "se/functors/projective_functor.hpp"
 
 
 
@@ -92,6 +92,6 @@ void TSDF::integrate(se::Octree<TSDF::VoxelType>& map,
 
   struct tsdf_update funct(depth.data(), depth_size, mu);
 
-  se::functor::projective_map(map, map._offset, T_cw, K, depth_size, funct);
+  se::functor::projective_octree(map, map._offset, T_cw, K, depth_size, funct);
 }
 

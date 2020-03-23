@@ -41,10 +41,10 @@
 
 #include <Eigen/Dense>
 
-#include <se/timings.h>
-#include <se/commons.h>
-#include <se/utils/math_utils.h>
-#include <se/image/image.hpp>
+#include "se/timings.h"
+#include "se/commons.h"
+#include "se/utils/math_utils.h"
+#include "se/image/image.hpp"
 
 
 

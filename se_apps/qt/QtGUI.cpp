@@ -8,11 +8,11 @@
  */
 
 #define EXTERNS TRUE
-#include <se/DenseSLAMSystem.h>
+#include "se/DenseSLAMSystem.h"
 #include <stdlib.h>
 #include "interface.h"
-#include <se/config.h>
-#include <se/perfstats.h>
+#include "se/config.h"
+#include "se/perfstats.h"
 #include <PowerMonitor.h>
 
 #include "ApplicationWindow.h"

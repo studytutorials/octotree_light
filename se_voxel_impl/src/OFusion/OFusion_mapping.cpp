@@ -33,9 +33,9 @@
 
 #include <algorithm>
 
-#include <se/node.hpp>
-#include <se/functors/projective_functor.hpp>
-#include <se/image/image.hpp>
+#include "se/node.hpp"
+#include "se/functors/projective_functor.hpp"
+#include "se/image/image.hpp"
 #include "OFusion_bspline_lookup.cc"
 
 
@@ -178,6 +178,6 @@ void OFusion::integrate(se::Octree<OFusion::VoxelType>& map,
 
   struct bfusion_update funct(depth.data(), depth_size, mu, timestamp, voxel_size);
 
-  se::functor::projective_map(map, map._offset, T_cw, K, depth_size, funct);
+  se::functor::projective_octree(map, map._offset, T_cw, K, depth_size, funct);
 }
 

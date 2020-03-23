@@ -42,13 +42,13 @@
 
 #include <Eigen/Dense>
 
-#include <se/commons.h>
-#include <se/perfstats.h>
-#include <se/timings.h>
-#include <se/config.h>
-#include <se/octree.hpp>
-#include <se/image/image.hpp>
-#include <se/continuous/volume_template.hpp>
+#include "se/commons.h"
+#include "se/perfstats.h"
+#include "se/timings.h"
+#include "se/config.h"
+#include "se/octree.hpp"
+#include "se/image/image.hpp"
+#include "se/continuous/volume_template.hpp"
 #include "voxel_implementations.hpp"
 #include "preprocessing.hpp"
 #include "tracking.hpp"
@@ -102,26 +102,26 @@ class DenseSLAMSystem {
     /**
      * Constructor using the initial camera position.
      *
-     * \param[in] inputSize The size (width and height) of the input frames.
+     * \param[in] input_size The size (width and height) of the input frames.
      * \param[in] volume_resolution_ The x, y and z resolution of the
      * reconstructed volume in voxels.
      * \param[in] volume_dimension_ The x, y and z dimensions of the
      * reconstructed volume in meters.
-     * \param[in] initPose The x, y and z coordinates of the initial camera
+     * \param[in] init_pose The x, y and z coordinates of the initial camera
      * position. The camera orientation is assumed to be aligned with the axes.
      * \param[in] pyramid See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
-    DenseSLAMSystem(const Eigen::Vector2i& inputSize,
+    DenseSLAMSystem(const Eigen::Vector2i& input_size,
                     const Eigen::Vector3i& volume_resolution_,
                     const Eigen::Vector3f& volume_dimension_,
-                    const Eigen::Vector3f& initPose,
+                    const Eigen::Vector3f& init_pose,
                     std::vector<int> &     pyramid,
                     const Configuration&   config_);
     /**
      * Constructor using the initial camera position.
      *
-     * \param[in] inputSize The size (width and height) of the input frames.
+     * \param[in] input_size The size (width and height) of the input frames.
      * \param[in] volume_resolution_ The x, y and z resolution of the
      * reconstructed volume in voxels.
      * \param[in] volume_dimension_ The x, y and z dimensions of the
@@ -130,7 +130,7 @@ class DenseSLAMSystem {
      * \param[in] pyramid See ::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
-    DenseSLAMSystem(const Eigen::Vector2i& inputSize,
+    DenseSLAMSystem(const Eigen::Vector2i& input_size,
                     const Eigen::Vector3i& volume_resolution_,
                     const Eigen::Vector3f& volume_dimension_,
                     const Eigen::Matrix4f& init_T_WC,
@@ -234,7 +234,7 @@ class DenseSLAMSystem {
      * \param[out] out A pointer to an array containing the rendered frame.
      * The array must be allocated before calling this function. The storage
      * layout is rgbwrgbwrgbw.
-     * \param[in] outputSize The dimensions of the output array (width and
+     * \param[in] output_size The dimensions of the output array (width and
      * height in pixels).
      * \param[in] k The intrinsic camera parameters. See
      * ::Configuration.camera for details.
@@ -263,11 +263,11 @@ class DenseSLAMSystem {
      * z members of each element of the array contain the R, G and B values of
      * the image respectively. The w member of each element of the array is
      * always 0 and is used for padding.
-     * \param[in] outputSize The dimensions of the output array (width and
+     * \param[in] output_size The dimensions of the output array (width and
      * height in pixels).
      */
     void renderTrack(unsigned char*         out,
-                     const Eigen::Vector2i& outputSize);
+                     const Eigen::Vector2i& output_size);
 
     /**
      * Render the current depth frame. The frame is rendered before
@@ -280,11 +280,11 @@ class DenseSLAMSystem {
      * z members of each element of the array contain the R, G and B values of
      * the image respectively. The w member of each element of the array is
      * always 0 and is used for padding.
-     * \param[in] outputSize The dimensions of the output array (width and
+     * \param[in] output_size The dimensions of the output array (width and
      * height in pixels).
      */
     void renderDepth(unsigned char*         out,
-                     const Eigen::Vector2i& outputSize);
+                     const Eigen::Vector2i& output_size);
 
     /**
      * Render the RGB frame currently in the pipeline.
@@ -329,8 +329,6 @@ class DenseSLAMSystem {
      * \return A vector containing the x, y and z coordinates of the camera.
      */
     Eigen::Vector3f getPosition() {
-      //std::cerr << "InitPose =" << _initPose.x << "," << _initPose.y  <<"," << _initPose.z << "    ";
-      //std::cerr << "pose =" << pose.data[0].w << "," << pose.data[1].w  <<"," << pose.data[2].w << "    ";
       float xt = T_WC_(0, 3) - init_position_M_.x();
       float yt = T_WC_(1, 3) - init_position_M_.y();
       float zt = T_WC_(2, 3) - init_position_M_.z();

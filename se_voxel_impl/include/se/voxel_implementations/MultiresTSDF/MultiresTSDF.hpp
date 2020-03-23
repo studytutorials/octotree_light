@@ -30,14 +30,14 @@
 #ifndef __MULTIRESTSDF_HPP
 #define __MULTIRESTSDF_HPP
 
-#include <se/octree.hpp>
-#include <se/image/image.hpp>
-#include <se/continuous/volume_template.hpp>
+#include "se/octree.hpp"
+#include "se/image/image.hpp"
+#include "se/continuous/volume_template.hpp"
 
 
 
 /** Kinect Fusion Truncated Signed Distance Function voxel implementation for
- * integration at multipe scales. */
+ * integration at multiple scales. */
 struct MultiresTSDF {
 
   /**

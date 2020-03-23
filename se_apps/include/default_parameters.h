@@ -10,14 +10,14 @@
 #ifndef DEFAULT_PARAMETERS_H_
 #define DEFAULT_PARAMETERS_H_
 
-#include <se/str_utils.h>
-#include <se/utils/math_utils.h>
+#include "se/str_utils.h"
+#include "se/utils/math_utils.h"
 #include <vector>
 #include <sstream>
 #include <getopt.h>
 
-#include <se/constant_parameters.h>
-#include <se/config.h>
+#include "se/constant_parameters.h"
+#include "se/config.h"
 #include <Eigen/Dense>
 
 ////////////////////////// RUNTIME PARAMETERS //////////////////////

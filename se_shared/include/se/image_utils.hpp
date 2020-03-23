@@ -9,7 +9,7 @@
 #include <string>
 
 #include <Eigen/Dense>
-#include <lodepng.h>
+#include "lodepng.h"
 
 
 

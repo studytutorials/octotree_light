@@ -34,11 +34,11 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <se/preprocessing.hpp>
+#include "se/preprocessing.hpp"
 
 #include <cassert>
 
-#include <se/image_utils.hpp>
+#include "se/image_utils.hpp"
 
 
 

@@ -31,11 +31,11 @@
 
 #include "se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
 
-#include <se/node.hpp>
-#include <se/octree.hpp>
-#include <se/image/image.hpp>
-#include <se/algorithms/filter.hpp>
-#include <se/functors/for_each.hpp>
+#include "se/node.hpp"
+#include "se/octree.hpp"
+#include "se/image/image.hpp"
+#include "se/algorithms/filter.hpp"
+#include "se/functors/for_each.hpp"
 
 
 
@@ -173,7 +173,7 @@ float interp(const se::Octree<MultiresTSDF::VoxelType>&     octree,
   auto select_weight = [](const auto& val) { return val.y; };
 
   // The return types of the select() and select_weight() functions. Since they
-  // can be lambda functions, an argument needs to be passed to the, before
+  // can be lambda functions, an argument needs to be passed to them before
   // deducing the return type.
   typedef decltype(select(MultiresTSDF::VoxelType::initValue())) select_t;
   typedef decltype(select_weight(MultiresTSDF::VoxelType::initValue())) select_weight_t;

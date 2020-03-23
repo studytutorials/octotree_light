@@ -34,7 +34,7 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <se/rendering.hpp>
+#include "se/rendering.hpp"
 
 #include <cstring>
 

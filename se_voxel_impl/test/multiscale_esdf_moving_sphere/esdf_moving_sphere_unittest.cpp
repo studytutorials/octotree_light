@@ -1,10 +1,10 @@
-#include <se/octant_ops.hpp>
-#include <se/octree.hpp>
-#include <se/algorithms/balancing.hpp>
-#include <se/functors/axis_aligned_functor.hpp>
-#include <se/functors/for_each.hpp>
-#include <se/io/vtk-io.h>
-#include <se/io/ply_io.hpp>
+#include "se/octant_ops.hpp"
+#include "se/octree.hpp"
+#include "se/algorithms/balancing.hpp"
+#include "se/functors/axis_aligned_functor.hpp"
+#include "se/functors/for_each.hpp"
+#include "se/io/vtk-io.h"
+#include "se/io/ply_io.hpp"
 #include "se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
 #include "../../src/MultiresTSDF/MultiresTSDF.cpp"
 #include "../../src/MultiresTSDF/MultiresTSDF_allocation.cpp"

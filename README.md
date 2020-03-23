@@ -135,16 +135,6 @@ Then it can be used as input to one of the apps
 ```
 
 
-
-## Contributing
-Create a pull request against the `devel` branch and add Nils Funk and Sotiris
-Papatheodorou as reviewers. Once any potential issues are approved and the pull
-request is accepted, it will be rebased on the current `HEAD` of `devel`,
-fixing any conflicts and merged. The original pull request branch will be
-deleted after merging.
-
-
-
 ## Licence
 The core library is released under the BSD 3-clause licence. There are parts of
 this software that are released under the MIT licence, see individual files for
