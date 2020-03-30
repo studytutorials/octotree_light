@@ -54,6 +54,11 @@ struct TSDF {
 
     static inline VoxelData empty()     { return {1.f, -1.f}; }
     static inline VoxelData initValue() { return {1.f,  0.f}; }
+
+    template <typename T>
+    using MemoryPoolType = se::PagedMemoryPool<T>;
+    template <typename ElemT>
+    using MemoryBufferType = se::PagedMemoryBuffer<ElemT>;
   };
 
 
@@ -77,7 +82,7 @@ struct TSDF {
   static size_t buildAllocationList(
       se::key_t*                   allocation_list,
       size_t                       reserved,
-      se::Octree<TSDF::VoxelType>& map_index,
+      se::Octree<TSDF::VoxelType>& map,
       const Eigen::Matrix4f&       T_wc,
       const Eigen::Matrix4f&       K,
       const float*                 depth_map,

@@ -39,6 +39,11 @@ struct TestVoxelT {
   typedef float VoxelData;
   static inline VoxelData empty(){ return 0.f; }
   static inline VoxelData initValue(){ return 1.f; }
+
+  template <typename T>
+  using MemoryPoolType = se::PagedMemoryPool<T>;
+  template <typename BufferT>
+  using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
 
 class MultiscaleTest : public ::testing::Test {
@@ -111,7 +116,7 @@ TEST_F(MultiscaleTest, ChildrenMaskTest) {
   }
 
   oct_.allocate(alloc_list, 10);
-  const se::MemoryPool<se::Node<TestVoxelT> >& nodes = oct_.getNodesBuffer();
+  const se::PagedMemoryBuffer<se::Node<TestVoxelT> >& nodes = oct_.pool().nodeBuffer();
   const size_t num_nodes = nodes.size();
   for(size_t i = 0; i < num_nodes; ++i) {
     se::Node<TestVoxelT>* n = nodes[i];
@@ -184,6 +189,11 @@ struct TestVoxel2T {
   typedef Eigen::Vector3i VoxelData;
   static inline VoxelData empty(){ return Eigen::Vector3i::Zero(); }
   static inline VoxelData initValue(){ return Eigen::Vector3i::Zero(); }
+
+  template <typename T>
+  using MemoryPoolType = se::PagedMemoryPool<T>;
+  template <typename BufferT>
+  using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
 
 TEST(MultiscaleBlock, ReadWrite) {

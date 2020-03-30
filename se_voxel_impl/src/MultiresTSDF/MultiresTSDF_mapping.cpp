@@ -477,7 +477,7 @@ static void integrate(se::Octree<MultiresTSDF::VoxelType>& map, const Sophus::SE
       // Filter visible blocks
       using namespace std::placeholders;
       std::vector<se::VoxelBlock<MultiresTSDF::VoxelType>*> active_list;
-      auto& block_array = map.getBlockBuffer();
+      auto& block_buffer = map.pool().blockBuffer();
       auto is_active_predicate = [](const se::VoxelBlock<MultiresTSDF::VoxelType>* b) {
         return b->active();
       };
@@ -486,7 +486,7 @@ static void integrate(se::Octree<MultiresTSDF::VoxelType>& map, const Sophus::SE
       auto in_frustum_predicate =
         std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresTSDF::VoxelType>>,
             std::placeholders::_1, voxelsize, Pcw, framesize);
-      se::algorithms::filter(active_list, block_array, is_active_predicate,
+      se::algorithms::filter(active_list, block_buffer, is_active_predicate,
           in_frustum_predicate);
 
       std::deque<Node<MultiresTSDF::VoxelType>*> prop_list;

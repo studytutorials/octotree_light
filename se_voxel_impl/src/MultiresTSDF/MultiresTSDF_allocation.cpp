@@ -45,7 +45,7 @@
  * \param allocation_list output list of keys corresponding to voxel blocks to
  * be allocated
  * \param reserved allocated size of allocation_list
- * \param map_index indexing structure used to index voxel blocks
+ * \param map indexing structure used to index voxel blocks
  * \param T_wc camera extrinsics matrix
  * \param K camera intrinsics matrix
  * \param depth_map input depth map
@@ -57,18 +57,18 @@
 size_t MultiresTSDF::buildAllocationList(
     se::key_t*                           allocation_list,
     size_t                               reserved,
-    se::Octree<MultiresTSDF::VoxelType>& map_index,
+    se::Octree<MultiresTSDF::VoxelType>& map,
     const Eigen::Matrix4f&               T_wc,
     const Eigen::Matrix4f&               K,
     const float*                         depth_map,
     const Eigen::Vector2i&               image_size,
     const float                          mu) {
 
-  const float voxel_size = map_index.dim() / map_index.size();
+  const float voxel_size = map.dim() / map.size();
   const float inverse_voxel_size = 1.f / voxel_size;
   const Eigen::Matrix4f inv_K = K.inverse();
   const Eigen::Matrix4f inv_P = T_wc * inv_K;
-  const int volume_size = map_index.size();
+  const int volume_size = map.size();
   const int max_depth = log2(volume_size);
   const unsigned leaf_depth = max_depth
       - se::math::log2_const(se::Octree<MultiresTSDF::VoxelType>::blockSide);
@@ -110,10 +110,10 @@ size_t MultiresTSDF::buildAllocationList(
             && (voxel_scaled.y() >= 0)
             && (voxel_scaled.z() >= 0)) {
           const Eigen::Vector3i voxel = voxel_scaled.cast<int>();
-          se::VoxelBlock<MultiresTSDF::VoxelType> * node_ptr = map_index.fetch(
+          se::VoxelBlock<MultiresTSDF::VoxelType> * node_ptr = map.fetch(
               voxel.x(), voxel.y(), voxel.z());
           if (node_ptr == nullptr) {
-            const se::key_t k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
+            const se::key_t k = map.hash(voxel.x(), voxel.y(), voxel.z(),
                 leaf_depth);
             const unsigned int idx = voxel_count++;
             if (idx < reserved) {

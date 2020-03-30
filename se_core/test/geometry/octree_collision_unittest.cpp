@@ -40,10 +40,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace se::geometry;
 
-struct TestVoxelT {
+struct TestVoxelT{
   typedef float VoxelData;
   static inline VoxelData empty(){ return 0.f; }
   static inline VoxelData initValue(){ return 1.f; }
+
+  template <typename T>
+  using MemoryPoolType = se::PagedMemoryPool<T>;
+  template <typename BufferT>
+  using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
 
 collision_status test_voxel(const TestVoxelT::VoxelData & val) {

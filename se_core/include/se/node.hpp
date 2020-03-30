@@ -36,7 +36,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <atomic>
 #include "octree_defines.h"
 #include "utils/math_utils.h"
-#include "utils/memory_pool.hpp"
 #include "io/se_serialise.hpp"
 
 namespace se {
@@ -53,14 +52,15 @@ public:
   unsigned int side_;
   unsigned char children_mask_;
   unsigned int timestamp_;
+  bool active_;
 
-  Node(){
+  Node(typename T::VoxelData init_value = T::initValue()) {
     code_ = 0;
     side_ = 0;
     children_mask_ = 0;
     timestamp_ = 0;
-    for (unsigned int i = 0; i < 8; i++){
-      value_[i]     = T::initValue();
+    for (unsigned int i = 0; i < 8; i++) {
+      value_[i]     = init_value;
       parent_ptr_ = NULL;
       child_ptr_[i] = NULL;
     }
@@ -83,6 +83,9 @@ public:
 
   unsigned int timestamp() { return timestamp_; }
   unsigned int timestamp(unsigned int t) { return timestamp_ = t; }
+
+  void active(const bool a){ active_ = a; }
+  bool active() const { return active_; }
 
   virtual bool isLeaf() { return false; }
 
@@ -107,12 +110,13 @@ class VoxelBlock: public Node<T> {
     static constexpr unsigned int side_sq = side*side;
     static constexpr unsigned int side_cube = side*side*side;
 
-    VoxelBlock(){
+    VoxelBlock(typename T::VoxelData init_value = T::initValue()) {
       coordinates_ = Eigen::Vector3i::Constant(0);
       current_scale_ = 0;
       min_scale_ = -1;
-      for (unsigned int i = 0; i < buff_size; i++)
-        voxel_block_[i] = T::initValue();
+      for (unsigned int i = 0; i < buff_size; i++) {
+        voxel_block_[i] = init_value;
+      }
     }
 
     bool isLeaf(){ return true; }
@@ -129,9 +133,6 @@ class VoxelBlock: public Node<T> {
     VoxelData data(const int i) const;
     void data(const int i, const VoxelData& value);
 
-    void active(const bool a){ active_ = a; }
-    bool active() const { return active_; }
-
     int current_scale() { return current_scale_; }
     void current_scale(const int s) { current_scale_ = s; }
 
@@ -144,7 +145,6 @@ class VoxelBlock: public Node<T> {
   private:
     VoxelBlock(const VoxelBlock&) = delete;
     Eigen::Vector3i coordinates_;
-    bool active_;
     int current_scale_;
     int min_scale_;
 

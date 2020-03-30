@@ -54,6 +54,11 @@ struct OFusion {
 
     static inline VoxelData empty()     { return {0.f, 0.f}; }
     static inline VoxelData initValue() { return {0.f, 0.f}; }
+
+    template <typename T>
+    using MemoryPoolType = se::PagedMemoryPool<T>;
+    template <typename ElemT>
+    using MemoryBufferType = se::PagedMemoryBuffer<ElemT>;
   };
 
 
@@ -96,7 +101,7 @@ struct OFusion {
   static size_t buildAllocationList(
       se::key_t*                      allocation_list,
       size_t                          reserved,
-      se::Octree<OFusion::VoxelType>& map_index,
+      se::Octree<OFusion::VoxelType>& map,
       const Eigen::Matrix4f&          T_wc,
       const Eigen::Matrix4f&          K,
       const float*                    depth_map,

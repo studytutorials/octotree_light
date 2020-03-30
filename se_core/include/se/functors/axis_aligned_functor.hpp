@@ -88,16 +88,16 @@ namespace se {
 
         void apply() {
 
-          auto& block_list = _map.getBlockBuffer();
+          auto& block_buffer = _map.pool().blockBuffer();
 #pragma omp parallel for
-          for (unsigned int i = 0; i < block_list.size(); ++i) {
-            update_block(block_list[i]);
+          for (unsigned int i = 0; i < block_buffer.size(); ++i) {
+            update_block(block_buffer[i]);
           }
 
-          auto& nodes_list = _map.getNodesBuffer();
+          auto& node_buffer = _map.pool().nodeBuffer();
 #pragma omp parallel for
-          for (unsigned int i = 0; i < nodes_list.size(); ++i) {
-            update_node(nodes_list[i]);
+          for (unsigned int i = 0; i < node_buffer.size(); ++i) {
+            update_node(node_buffer[i]);
           }
         }
 

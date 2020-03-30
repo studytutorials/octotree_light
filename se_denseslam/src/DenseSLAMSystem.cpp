@@ -205,8 +205,8 @@ bool DenseSLAMSystem::integrate(const Eigen::Vector4f& k,
                                 float                  mu,
                                 unsigned int           frame) {
 
-  const float voxel_size = volume_._extent / volume_._size;
-  const int num_vox_per_pix = volume_._extent
+  const float voxel_size = volume_.dim() / volume_.size();
+  const int num_vox_per_pix = volume_.dim()
     / ((se::VoxelBlock<VoxelImpl::VoxelType>::side) * voxel_size);
   const size_t total = num_vox_per_pix
     * computation_size_.x() * computation_size_.y();
@@ -217,17 +217,17 @@ bool DenseSLAMSystem::integrate(const Eigen::Vector4f& k,
   const size_t allocated = VoxelImpl::buildAllocationList(
       allocation_list_.data(),
       allocation_list_.capacity(),
-      *volume_._map_index,
+      *volume_.octree_,
       T_WC_,
       getCameraMatrix(k),
       float_depth_.data(),
       computation_size_,
       mu);
 
-  volume_._map_index->allocate(allocation_list_.data(), allocated);
+  volume_.octree_->allocate(allocation_list_.data(), allocated);
 
   VoxelImpl::integrate(
-      *volume_._map_index,
+      *volume_.octree_,
       T_CW,
       K,
       float_depth_,
@@ -292,7 +292,7 @@ void DenseSLAMSystem::renderRGBA(uint8_t*               output_RGBA,
 
 void DenseSLAMSystem::dump_mesh(const std::string filename){
 
-  se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(),
+  se::functor::internal::parallel_for_each(volume_.octree_->pool().blockBuffer(),
       [](auto block) {
         if(std::is_same<VoxelImpl, MultiresTSDF>::value) {
           block->current_scale(block->min_scale());
@@ -303,7 +303,7 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
 
   auto interp_down = [this](auto block) {
     if(block->min_scale() == 0) return;
-    const Eigen::Vector3f& offset = this->volume_._map_index->_offset;
+    const Eigen::Vector3f& offset = this->volume_.octree_->_offset;
     const Eigen::Vector3i base = block->coordinates();
     const int side = block->side;
     for(int z = 0; z < side; ++z)
@@ -311,11 +311,11 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
         for(int x = 0; x < side; ++x) {
           const Eigen::Vector3i vox = base + Eigen::Vector3i(x, y , z);
           auto curr = block->data(vox, 0);
-          auto res = this->volume_._map_index->interp_checked(
+          auto res = this->volume_.octree_->interp_checked(
               vox.cast<float>() + offset, 0, [](const auto& val) { return val.x; });
           if(res.second >= 0) {
             curr.x = res.first;
-            curr.y = this->volume_._map_index->interp(
+            curr.y = this->volume_.octree_->interp(
                 vox.cast<float>() + offset, [](const auto& val) { return val.y; }).first;
           } else {
             curr.y = 0;
@@ -324,9 +324,9 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
         }
   };
 
-  se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(),
+  se::functor::internal::parallel_for_each(volume_.octree_->pool().blockBuffer(),
       interp_down);
-  se::functor::internal::parallel_for_each(volume_._map_index->getBlockBuffer(),
+  se::functor::internal::parallel_for_each(volume_.octree_->pool().blockBuffer(),
       [](auto block) {
           block->current_scale(0);
       });
@@ -342,6 +342,6 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
       return val.x;
     };
 
-    se::algorithms::marching_cube(*volume_._map_index, select, inside, mesh);
+    se::algorithms::marching_cube(*volume_.octree_, select, inside, mesh);
     writeVtkMesh(filename.c_str(), mesh, this->init_position_M_);
 }

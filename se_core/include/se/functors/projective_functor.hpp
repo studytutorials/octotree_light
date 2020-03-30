@@ -62,8 +62,7 @@ namespace functor {
       void build_active_list() {
         using namespace std::placeholders;
         /* Retrieve the active list */
-        const se::MemoryPool<se::VoxelBlock<FieldType> >& block_array =
-          _map.getBlockBuffer();
+        const typename FieldType::template MemoryBufferType<se::VoxelBlock<FieldType>>& block_buffer = _map.pool().blockBuffer();
 
         /* Predicates definition */
         const Eigen::Matrix4f Tcw = _Tcw.matrix();
@@ -76,7 +75,7 @@ namespace functor {
         };
 
         /* Get all the blocks that are active or inside the camera frustum. */
-        algorithms::filter(_active_list, block_array, is_active_predicate,
+        algorithms::filter(_active_list, block_buffer, is_active_predicate,
             in_frustum_predicate);
       }
 
@@ -167,10 +166,10 @@ namespace functor {
         _active_list.clear();
 
         /* Update the intermediate Octree nodes (Node). */
-        auto& nodes_list = _map.getNodesBuffer();
+        typename FieldType::template MemoryBufferType<se::Node<FieldType>>& node_buffer = _map.pool().nodeBuffer();
 #pragma omp parallel for
-          for (unsigned int i = 0; i < nodes_list.size(); ++i) {
-            update_node(nodes_list[i], voxel_size);
+          for (unsigned int i = 0; i < node_buffer.size(); ++i) {
+            update_node(node_buffer[i], voxel_size);
          }
       }
 

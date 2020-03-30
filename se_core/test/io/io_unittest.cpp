@@ -40,6 +40,11 @@ struct TestVoxelT {
   typedef float VoxelData;
   static inline VoxelData empty(){ return 0.f; }
   static inline VoxelData initValue(){ return 1.f; }
+
+  template <typename T>
+  using MemoryPoolType = se::PagedMemoryPool<T>;
+  template <typename BufferT>
+  using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
 
 struct OccupancyVoxelT {
@@ -49,6 +54,11 @@ struct OccupancyVoxelT {
   };
   static inline VoxelData empty(){ return {0.f, 0.}; }
   static inline VoxelData initValue(){ return {1.f, 0.}; }
+
+  template <typename T>
+  using MemoryPoolType = se::PagedMemoryPool<T>;
+  template <typename BufferT>
+  using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
 
 TEST(SerialiseUnitTest, WriteReadNode) {
@@ -148,8 +158,8 @@ TEST(SerialiseUnitTest, SerialiseTree) {
   ASSERT_EQ(tree.size(), tree_copy.size());
   ASSERT_EQ(tree.dim(), tree_copy.dim());
 
-  auto& node_buffer_base = tree.getNodesBuffer();
-  auto& node_buffer_copy = tree_copy.getNodesBuffer();
+  auto& node_buffer_base = tree.pool().nodeBuffer();
+  auto& node_buffer_copy = tree_copy.pool().nodeBuffer();
   ASSERT_EQ(node_buffer_base.size(), node_buffer_copy.size());
   for(int i = 0; i < node_buffer_base.size(); ++i) {
     se::Node<TestVoxelT> * n  = node_buffer_base[i];
@@ -158,8 +168,8 @@ TEST(SerialiseUnitTest, SerialiseTree) {
     ASSERT_EQ(n->children_mask_, n1->children_mask_);
   }
 
-  auto& block_buffer_base = tree.getBlockBuffer();
-  auto& block_buffer_copy = tree_copy.getBlockBuffer();
+  auto& block_buffer_base = tree.pool().blockBuffer();
+  auto& block_buffer_copy = tree_copy.pool().blockBuffer();
   ASSERT_EQ(block_buffer_base.size(), block_buffer_copy.size());
 }
 
@@ -188,8 +198,8 @@ TEST(SerialiseUnitTest, SerialiseBlock) {
   se::Octree<TestVoxelT> tree_copy;
   tree_copy.load(filename);
 
-  auto& block_buffer_base = tree.getBlockBuffer();
-  auto& block_buffer_copy = tree_copy.getBlockBuffer();
+  auto& block_buffer_base = tree.pool().blockBuffer();
+  auto& block_buffer_copy = tree_copy.pool().blockBuffer();
   for(int i = 0; i < block_buffer_base.size(); i++) {
     for(int j = 0; j < side_cubed; j++) {
       ASSERT_EQ(block_buffer_base[i]->data(j), block_buffer_copy[i]->data(j));

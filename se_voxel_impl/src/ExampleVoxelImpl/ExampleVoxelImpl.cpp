@@ -41,7 +41,7 @@ constexpr bool invert_normals = false;
 size_t ExampleVoxelImpl::buildAllocationList(
     se::key_t*                               allocation_list,
     size_t                                   reserved,
-    se::Octree<ExampleVoxelImpl::VoxelType>& map_index,
+    se::Octree<ExampleVoxelImpl::VoxelType>& map,
     const Eigen::Matrix4f&                   T_wc,
     const Eigen::Matrix4f&                   K,
     const float*                             depth_map,

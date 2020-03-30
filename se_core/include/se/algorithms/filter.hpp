@@ -65,22 +65,22 @@ namespace algorithms {
       return predicate(el) || satisfies(el, others...);
     }
 
-  template <typename BlockType, typename... Predicates>
-  void filter(std::vector<BlockType *>&        out,
-              const se::MemoryPool<BlockType>& block_array,
+  template <typename BufferType, typename... Predicates>
+  void filter(std::vector<BufferType *>&        out,
+              const se::PagedMemoryBuffer<BufferType>& buffer,
               Predicates...                    ps) {
 #ifdef _OPENMP
-#pragma omp declare reduction (merge : std::vector<BlockType *> : omp_out.insert(omp_out.end(), omp_in.begin(), omp_in.end()))
+#pragma omp declare reduction (merge : std::vector<BufferType *> : omp_out.insert(omp_out.end(), omp_in.begin(), omp_in.end()))
 #pragma omp parallel for reduction(merge: out)
-    for (unsigned int i = 0; i < block_array.size(); ++i) {
-      if (satisfies(block_array[i], ps...)) {
-        out.push_back(block_array[i]);
+    for (unsigned int i = 0; i < buffer.size(); ++i) {
+      if (satisfies(buffer[i], ps...)) {
+        out.push_back(buffer[i]);
       }
     }
 #else
-    for (unsigned int i = 0; i < block_array.size(); ++i) {
-      if (satisfies(block_array[i], ps...)) {
-        out.push_back(block_array[i]);
+    for (unsigned int i = 0; i < buffer.size(); ++i) {
+      if (satisfies(buffer[i], ps...)) {
+        out.push_back(buffer[i]);
       }
     }
 #endif

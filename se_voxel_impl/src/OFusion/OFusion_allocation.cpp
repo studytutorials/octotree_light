@@ -69,18 +69,18 @@ static inline int ofusion_step_to_depth(const float step,
 size_t OFusion::buildAllocationList(
     se::key_t*                      allocation_list,
     size_t                          reserved,
-    se::Octree<OFusion::VoxelType>& map_index,
+    se::Octree<OFusion::VoxelType>& map,
     const Eigen::Matrix4f&          T_wc,
     const Eigen::Matrix4f&          K,
     const float*                    depth_map,
     const Eigen::Vector2i&          image_size,
     const float                     mu) {
 
-  const float voxel_size = map_index.dim() / map_index.size();
+  const float voxel_size = map.dim() / map.size();
   const float inverse_voxel_size = 1.f / voxel_size;
   const Eigen::Matrix4f inv_K = K.inverse();
   const Eigen::Matrix4f inv_P = T_wc * inv_K;
-  const int volume_size = map_index.size();
+  const int volume_size = map.size();
   const int max_depth = log2(volume_size);
   const int leaf_depth = max_depth
       - se::math::log2_const(se::Octree<OFusion::VoxelType>::blockSide);
@@ -124,10 +124,10 @@ size_t OFusion::buildAllocationList(
             && (voxel_scaled.y() >= 0)
             && (voxel_scaled.z() >= 0)) {
           const Eigen::Vector3i voxel = voxel_scaled.cast<int>();
-          auto node_ptr = map_index.fetch_octant(
+          auto node_ptr = map.fetch_octant(
               voxel.x(), voxel.y(), voxel.z(), tree_depth);
           if (node_ptr == nullptr) {
-            const se::key_t k = map_index.hash(voxel.x(), voxel.y(), voxel.z(),
+            const se::key_t k = map.hash(voxel.x(), voxel.y(), voxel.z(),
                 std::min(tree_depth, leaf_depth));
             const unsigned int idx = voxel_count++;
             if (idx < reserved) {

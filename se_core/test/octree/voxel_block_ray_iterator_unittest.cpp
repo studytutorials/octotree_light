@@ -40,6 +40,11 @@ struct TestVoxelT {
   typedef float VoxelData;
   static inline VoxelData empty(){ return -1.f; }
   static inline VoxelData initValue(){ return 0.f; }
+
+  template <typename T>
+  using MemoryPoolType = se::PagedMemoryPool<T>;
+  template <typename BufferT>
+  using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
 
 

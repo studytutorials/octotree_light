@@ -52,43 +52,43 @@ class VolumeTemplate {
     typedef typename VoxelImpl::VoxelType::VoxelData VoxelData;
 
     VolumeTemplate(){};
-    VolumeTemplate(unsigned int r, float d, DiscreteMapT<VoxelType>* m) :
-      _map_index(m) {
-        _size = r;
-        _extent = d;
+    VolumeTemplate(unsigned int r, float d, DiscreteMapT<VoxelType>* octree) :
+      octree_(octree) {
+        size_ = r;
+        dim_ = d;
       };
 
     inline Eigen::Vector3f pos(const Eigen::Vector3i& p) const {
-      static const float voxelSize = _extent/_size;
+      static const float voxelSize = size_ / dim_;
       return p.cast<float>() * voxelSize;
     }
 
     void set(const  Eigen::Vector3f& , const VoxelData& ) {}
 
     VoxelData operator[](const Eigen::Vector3f& p) const {
-      const float inverseVoxelSize = _size/_extent;
-      const Eigen::Vector3i scaled_pos = (p * inverseVoxelSize).cast<int>();
-      return _map_index->get(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
+      const float inverse_voxel_size = size_ / dim_;
+      const Eigen::Vector3i scaled_pos = (p * inverse_voxel_size).cast<int>();
+      return octree_->get(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
     }
 
     VoxelData get(const Eigen::Vector3f& p, const int scale = 0) const {
-      const float inverseVoxelSize = _size/_extent;
-      const Eigen::Vector4i scaled_pos = (inverseVoxelSize * p.homogeneous()).cast<int>();
-        return _map_index->get_fine(scaled_pos.x(),
+      const float inverse_voxel_size = size_ / dim_;
+      const Eigen::Vector4i scaled_pos = (inverse_voxel_size * p.homogeneous()).cast<int>();
+        return octree_->get_fine(scaled_pos.x(),
                                     scaled_pos.y(),
                                     scaled_pos.z(),
                                     scale);
     }
 
     VoxelData operator[](const Eigen::Vector3i& p) const {
-      return _map_index->get(p.x(), p.y(), p.z());
+      return octree_->get(p.x(), p.y(), p.z());
     }
 
     template <typename FieldSelector>
     std::pair<float, int> interp(const Eigen::Vector3f& pos, FieldSelector select) const {
-      const float inverseVoxelSize = _size / _extent;
-      Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
-      return _map_index->interp(discrete_pos, select);
+      const float inverse_voxel_size = size_ / dim_;
+      Eigen::Vector3f discrete_pos = inverse_voxel_size * pos;
+      return octree_->interp(discrete_pos, select);
     }
 
   /*! \brief Interp voxel value at metric position  (x,y,z)
@@ -100,9 +100,9 @@ class VolumeTemplate {
    */
     template <typename FieldSelector>
     std::pair<float, int> interp(const Eigen::Vector3f& pos, const int h, FieldSelector select) const {
-      const float inverseVoxelSize = _size / _extent;
-      Eigen::Vector3f discrete_pos = (inverseVoxelSize * pos);
-      return _map_index->interp(discrete_pos, h, select);
+      const float inverse_voxel_size = size_ / dim_;
+      Eigen::Vector3f discrete_pos = (inverse_voxel_size * pos);
+      return octree_->interp(discrete_pos, h, select);
     }
 
     /*! \brief Compute gradient at metric position  (x,y,z)
@@ -113,9 +113,9 @@ class VolumeTemplate {
     template <typename FieldSelector>
     Eigen::Vector3f grad(const Eigen::Vector3f& pos, FieldSelector select) const {
 
-      const float inverseVoxelSize = _size / _extent;
-      Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
-      return _map_index->grad(discrete_pos, 1.f, select);
+      const float inverse_voxel_size = size_ / dim_;
+      Eigen::Vector3f discrete_pos = inverse_voxel_size * pos;
+      return octree_->grad(discrete_pos, 1.f, select);
     }
 
     /*! \brief Compute gradient at metric position  (x,y,z)
@@ -129,21 +129,23 @@ class VolumeTemplate {
     Eigen::Vector3f grad(const Eigen::Vector3f& pos,
         const int h,
         FieldSelector select) const {
-      const float inverseVoxelSize = _size / _extent;
-      Eigen::Vector3f discrete_pos = inverseVoxelSize * pos;
-      return _map_index->grad(discrete_pos, h, select);
+      const float inverse_voxel_size = size_ / dim_;
+      Eigen::Vector3f discrete_pos = inverse_voxel_size * pos;
+      return octree_->grad(discrete_pos, h, select);
     }
 
-    unsigned int _size;
-    float _extent;
+    unsigned int size() const { return size_; }
+    float dim() const { return dim_; }
+
     std::vector<se::key_t> _allocationList;
-    DiscreteMapT<VoxelType> * _map_index;
+    DiscreteMapT<VoxelType> * octree_;
 
   private:
-
+    unsigned int size_;
+    float dim_;
     inline Eigen::Vector3i pos(const Eigen::Vector3f& p) const {
-      static const float inverseVoxelSize = _size/_extent;
-      return (inverseVoxelSize * p).cast<int>();
+      static const float inverse_voxel_size = size_ / dim_;
+      return (inverse_voxel_size * p).cast<int>();
     }
 };
 #endif

@@ -57,12 +57,12 @@ namespace algorithms {
    * MemoryBufferType is an instance of the memory allocator class
    */
   template <typename MemoryBufferType, typename UpdateFunctor>
-    void integratePass(MemoryBufferType&  nodes_list, unsigned int list_size,
+    void integratePass(MemoryBufferType&  node_buffer, unsigned int list_size,
         UpdateFunctor f) {
 
 #pragma omp parallel for
       for(unsigned int i = 0; i < list_size; ++i){
-        f(nodes_list[i]);
+        f(node_buffer[i]);
       }
     }
 }

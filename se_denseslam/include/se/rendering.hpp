@@ -48,7 +48,7 @@
 #include <se/continuous/volume_template.hpp>
 #include <se/image/image.hpp>
 #include <se/voxel_block_ray_iterator.hpp>
-
+#include <voxel_implementations.hpp>
 
 
 template <typename T>
@@ -92,16 +92,17 @@ void raycastKernel(const Volume<T>&            volume,
   for (int y = 0; y < vertex.height(); y++) {
 #pragma omp simd
     for (int x = 0; x < vertex.width(); x++) {
+      Eigen::Vector4f hit;
       const Eigen::Vector2i pos(x, y);
       const Eigen::Vector3f dir =
           (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
       const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
-      se::VoxelBlockRayIterator<typename T::VoxelType> ray(*volume._map_index, transl, dir, near_plane, far_plane);
+      se::VoxelBlockRayIterator<typename T::VoxelType> ray(*volume.octree_, transl, dir, near_plane, far_plane);
       ray.next();
-      const float t_min = ray.tcmin(); /* Get distance to the first intersected block */
-      const Eigen::Vector4f hit = t_min > 0.f
-          ? T::raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, large_step)
-          : Eigen::Vector4f::Zero();
+      const float t_min = ray.tmin(); /* Get distance to the first intersected block */
+      hit = t_min > 0.f
+            ? T::raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, large_step)
+            : Eigen::Vector4f::Zero();
       if (hit.w() >= 0.f) {
         vertex[x + y * vertex.width()] = hit.head<3>();
         Eigen::Vector3f surface_normal = volume.grad(hit.head<3>(),
@@ -175,12 +176,12 @@ void renderVolumeKernel(const Volume<T>&                  volume,
         const Eigen::Vector3f dir =
             (view.topLeftCorner<3, 3>() * Eigen::Vector3f(x, y, 1.f)).normalized();
         const Eigen::Vector3f transl = view.topRightCorner<3, 1>();
-        se::VoxelBlockRayIterator<typename T::VoxelType> ray(*volume._map_index, transl, dir, near_plane, far_plane);
+        se::VoxelBlockRayIterator<typename T::VoxelType> ray(*volume.octree_, transl, dir, near_plane, far_plane);
         ray.next();
         const float t_min = ray.tmin(); /* Get distance to the first intersected block */
         hit = t_min > 0.f
-            ? T::raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, large_step)
-            : Eigen::Vector4f::Zero();
+              ? T::raycast(volume, transl, dir, t_min, ray.tmax(), mu, step, large_step)
+              : Eigen::Vector4f::Zero();
         if (hit.w() >= 0.f) {
           test = hit.head<3>();
           surface_normal = volume.grad(test, [](const auto& val){ return val.x; });
