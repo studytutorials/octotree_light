@@ -49,6 +49,7 @@
 #include "se/octree.hpp"
 #include "se/image/image.hpp"
 #include "se/continuous/volume_template.hpp"
+#include "se/sensor_implementation.hpp"
 #include "voxel_implementations.hpp"
 #include "preprocessing.hpp"
 #include "tracking.hpp"
@@ -73,6 +74,7 @@ class DenseSLAMSystem {
     float mu_;
     bool need_render_ = false;
     Configuration config_;
+    SensorImpl sensor_;
 
     // input once
     std::vector<float> gaussian_;

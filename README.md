@@ -45,6 +45,18 @@ supereight is made of three main components:
   evaluating the pipeline)
 
 ## Building
+Clone this repository using
+
+``` bash
+git clone --recurse-submodules [URL]
+```
+
+or if you already cloned without `--recurse-submodules` run
+
+``` bash
+git submodule update --init --recursive
+```
+
 ### Installing the dependencies
 The following packages are required to build the `se-denseslam` library:
 

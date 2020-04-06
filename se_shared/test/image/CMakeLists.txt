@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
-project(image-utils-test LANGUAGES C CXX)
+project(image-test LANGUAGES C CXX)
 
 find_package(Eigen3 REQUIRED)
 
 add_executable(${PROJECT_NAME}
-  image_utils_unittest.cpp
+  image_unittest.cpp
 )
 target_include_directories(${PROJECT_NAME}
   PUBLIC

@@ -20,7 +20,7 @@ endif()
 
 # Set the compiler flags and linked libraries.
 set(compile_flags -Wall -Wextra -Wno-unknown-pragmas)
-set(libraries se-shared se-core)
+set(libraries SE::Shared se-core)
 if(APPLE)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__APPLE__")
 endif(APPLE)
@@ -37,46 +37,61 @@ endif()
 # compile supereight with it.
 set(SUPEREIGHT_VOXEL_IMPLS TSDF OFusion MultiresTSDF)
 
-# Iterate over each voxel implementaion and compile into an se-voxel-impl
-# library.
+# The camera implementations to compile. The valid values are the names of the
+# *Sensor classes defined in se_shared/include/se/sensor.hpp.
+set(SUPEREIGHT_SENSOR_IMPLS PinholeCamera OusterLidar)
+
+# Iterate over each voxel and sensor implementaion and compile into an
+# se-voxel-impl library.
 foreach(voxel_impl ${SUPEREIGHT_VOXEL_IMPLS})
-  # Convert the voxel implementation name to lowercase for use in filenames.
-  string(TOLOWER ${voxel_impl} voxel_impl_lc)
+  foreach(sensor_impl ${SUPEREIGHT_SENSOR_IMPLS})
+    # Convert the implementation names to lowercase.
+    string(TOLOWER ${voxel_impl} voxel_impl_lc)
+    string(TOLOWER ${sensor_impl} sensor_impl_lc)
 
-  # Prepare the library name.
-  set(lib_name "${PROJECT_NAME}-${voxel_impl_lc}")
+    # Prepare the library name.
+    set(lib_name "${PROJECT_NAME}-${voxel_impl_lc}-${sensor_impl_lc}")
 
-  # Find the source files to compile.
-  file(GLOB lib_src "./src/${voxel_impl}/*.cpp")
+    # Find the source files to compile.
+    file(GLOB lib_src "./src/${voxel_impl}/*.cpp")
 
-  # Add the static library.
-  add_library(${lib_name} STATIC
-    ${lib_src})
-  target_include_directories(${lib_name} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-    ${EIGEN3_INCLUDE_DIR})
-  target_compile_options(${lib_name} PUBLIC ${compile_flags})
-  target_link_libraries(${lib_name} ${libraries})
+    # Add the static library.
+    add_library(${lib_name} STATIC
+      ${lib_src})
+    target_include_directories(${lib_name} PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:include>
+      ${EIGEN3_INCLUDE_DIR})
+    target_compile_options(${lib_name} PUBLIC ${compile_flags})
+    target_link_libraries(${lib_name} ${libraries})
 
-  # Install the library and headers.
-  install(
-    TARGETS ${lib_name}
-    EXPORT supereightTargets
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include)
-  install(
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-    DESTINATION include)
+    # Define the sensor implementation macro.
+    target_compile_definitions(${lib_name}
+      PUBLIC
+        SE_SENSOR_IMPLEMENTATION=${sensor_impl}
+    )
 
-  # Populate the list of libraries that are part of se-voxel-impl.
-  list(APPEND SUPEREIGHT_VOXEL_IMPL_LIBS ${lib_name})
+    # Install the library and headers.
+    install(
+      TARGETS ${lib_name}
+      EXPORT supereightTargets
+      LIBRARY DESTINATION lib
+      ARCHIVE DESTINATION lib
+      RUNTIME DESTINATION bin
+      INCLUDES DESTINATION include)
+    install(
+      DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+      DESTINATION include)
+
+    # Populate the list of libraries that are part of se-voxel-impl.
+    list(APPEND SUPEREIGHT_VOXEL_IMPL_LIBS ${lib_name})
+  endforeach()
 endforeach()
 
-# Make the list of voxel implementations available to the parent file.
+# Make the list of voxel and sensor implementations available to the parent
+# file.
 set(SUPEREIGHT_VOXEL_IMPLS ${SUPEREIGHT_VOXEL_IMPLS} PARENT_SCOPE)
+set(SUPEREIGHT_SENSOR_IMPLS ${SUPEREIGHT_SENSOR_IMPLS} PARENT_SCOPE)
 
 # Make the list of compiled se-voxel-impl libraries available to the parent
 # file.

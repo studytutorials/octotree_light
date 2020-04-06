@@ -29,10 +29,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <limits>
-#include <image/image.hpp>
-#include <random>
 #include "gtest/gtest.h"
+
+#include <limits>
+#include <random>
+
+#include "se/image/image.hpp"
 
 TEST(ImageTest, Constructor) {
   const int width  = 640;

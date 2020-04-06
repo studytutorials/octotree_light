@@ -58,47 +58,51 @@ set(se_src
 # Iterate over each SE_VOXEL_IMPLEMENTATION and compile the se-denseslam
 # library for it.
 foreach(voxel_impl ${SUPEREIGHT_VOXEL_IMPLS})
-  # Convert the voxel implementation name to lowercase for use in filenames.
-  string(TOLOWER ${voxel_impl} voxel_impl_lc)
+  foreach(sensor_impl ${SUPEREIGHT_SENSOR_IMPLS})
+    # Convert the implementation names to lowercase.
+    string(TOLOWER ${voxel_impl} voxel_impl_lc)
+    string(TOLOWER ${sensor_impl} sensor_impl_lc)
 
-  # Prepare the preprocessor SE_VOXEL_IMPLEMENTATION macro.
-  set(field_type_macro SE_VOXEL_IMPLEMENTATION=${voxel_impl})
+    # Prepare the library name.
+    set(lib_name "${PROJECT_NAME}-${voxel_impl_lc}-${sensor_impl_lc}")
 
-  # Prepare the library name.
-  set(lib_name "${PROJECT_NAME}-${voxel_impl_lc}")
+    # Find the name of the respective voxel-impl library.
+    set(voxel_impl_lib_name "se-voxel-impl-${voxel_impl_lc}-${sensor_impl_lc}")
 
-  # Find the name of the respective voxel-impl library.
-  set(voxel_impl_lib_name "se-voxel-impl-${voxel_impl_lc}")
+    # Add the static library.
+    add_library(${lib_name} STATIC
+      ${se_src})
+    target_include_directories(${lib_name} PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include/se>
+      $<INSTALL_INTERFACE:include>
+      ${EIGEN3_INCLUDE_DIR})
+    target_compile_options(${lib_name} PUBLIC ${compile_flags})
+    target_link_libraries(${lib_name} ${libraries} ${voxel_impl_lib_name})
+    target_compile_definitions(${lib_name}
+      PUBLIC
+        SE_VOXEL_IMPLEMENTATION=${voxel_impl}
+        SE_SENSOR_IMPLEMENTATION=${sensor_impl}
+    )
 
-  # Add the static library.
-  add_library(${lib_name} STATIC
-    ${se_src})
-  target_include_directories(${lib_name} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include/se>
-    $<INSTALL_INTERFACE:include>
-    ${EIGEN3_INCLUDE_DIR})
-  target_compile_options(${lib_name} PUBLIC ${compile_flags})
-  target_link_libraries(${lib_name} ${libraries} ${voxel_impl_lib_name})
-  target_compile_definitions(${lib_name} PUBLIC ${field_type_macro})
+    # Install the library and headers.
+    install(
+      TARGETS ${lib_name}
+      EXPORT supereightTargets
+      LIBRARY DESTINATION lib
+      ARCHIVE DESTINATION lib
+      RUNTIME DESTINATION bin
+      INCLUDES DESTINATION include)
+    install(
+      DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+      DESTINATION include)
+    install(
+      DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
+      DESTINATION include)
 
-  # Install the library and headers.
-  install(
-    TARGETS ${lib_name}
-    EXPORT supereightTargets
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include)
-  install(
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-    DESTINATION include)
-  install(
-    DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/
-    DESTINATION include)
-
-  # Populate the list of libraries that are part of se-denseslam.
-  list(APPEND SUPEREIGHT_DENSESLAM_LIBS ${lib_name})
+    # Populate the list of libraries that are part of se-denseslam.
+    list(APPEND SUPEREIGHT_DENSESLAM_LIBS ${lib_name})
+  endforeach()
 endforeach()
 
 

@@ -22,7 +22,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <time.h>
-#include "se/str_utils.h"
+#include "se/str_utils.hpp"
 #include <Eigen/Dense>
 #include <thirdparty/cutil_math.h>
 

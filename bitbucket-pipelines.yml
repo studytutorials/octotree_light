@@ -4,6 +4,8 @@ pipelines:
   default:
     - step:
         script:
-          - make
+          - sed -i 's|\.\./srl_projection\.git|git@bitbucket.org:smartroboticslab/srl_projection\.git|' .gitmodules
+          - git submodule update --init --recursive
+          - GTEST_ROOT=/usr/local/src/googletest/googletest/ make
           - GTEST_ROOT=/usr/local/src/googletest/googletest/ make test
 
