@@ -120,70 +120,70 @@ TEST(RGBABlending, Blend) {
 class DepthSaveLoad : public ::testing::Test {
   protected:
     virtual void SetUp() {
-      depth_ = new uint16_t[depth_size_pixels_]();
+      depth_image_data_ = new uint16_t[num_pixels_]();
 
       // Initialize the test image with a patter.
-      for (size_t w = 0; w < depth_width_; ++w) {
-        for (size_t h = 0; h < depth_height_; ++h) {
-          if (w > h) {
-            depth_[w + depth_width_ * h] = UINT16_MAX / 4;
-          } else if (w == h) {
-            depth_[w + depth_width_ * h] = UINT16_MAX / 2;
+      for (size_t x = 0; x < depth_image_width_; ++x) {
+        for (size_t y = 0; y < depth_image_height_; ++y) {
+          if (x > y) {
+            depth_image_data_[x + depth_image_width_ * y] = UINT16_MAX / 4;
+          } else if (x == y) {
+            depth_image_data_[x + depth_image_width_ * y] = UINT16_MAX / 2;
           } else {
-            depth_[w + depth_width_ * h] = UINT16_MAX;
+            depth_image_data_[x + depth_image_width_ * y] = UINT16_MAX;
           }
         }
       }
     }
 
-    uint16_t* depth_;
-    const size_t depth_width_  = 64;
-    const size_t depth_height_ = 64;
-    const size_t depth_size_pixels_ = depth_width_ * depth_height_;
-    const size_t depth_size_bytes_ = sizeof(uint16_t) * depth_size_pixels_;
-    const Eigen::Vector2i depth_size_
-      = Eigen::Vector2i(depth_width_, depth_height_);
+    uint16_t* depth_image_data_;
+    const size_t depth_image_width_  = 64;
+    const size_t depth_image_height_ = 64;
+    const size_t num_pixels_ = depth_image_width_ * depth_image_height_;
+    const size_t depth_size_bytes_ = sizeof(uint16_t) * num_pixels_;
+    const Eigen::Vector2i depth_image_res_
+        = Eigen::Vector2i(depth_image_width_, depth_image_height_);
 };
 
 
 
 TEST_F(DepthSaveLoad, SaveThenLoadPNG) {
   // Save the image.
-  const int save_ok = save_depth_png(depth_, depth_size_, "/tmp/depth.png");
+  const int save_ok = save_depth_png(depth_image_data_, depth_image_res_, "/tmp/depth.png");
   EXPECT_EQ(save_ok, 0);
 
   // Load the image.
-  uint16_t* depth_in;
-  Eigen::Vector2i depth_in_size (0, 0);
-  const int load_ok = load_depth_png(&depth_in, depth_in_size, "/tmp/depth.png");
+  uint16_t* loaded_depth_image_data;
+  Eigen::Vector2i loaded_depth_image_res (0, 0);
+  const int load_ok = load_depth_png(&loaded_depth_image_data, loaded_depth_image_res, "/tmp/depth.png");
   EXPECT_EQ(load_ok, 0);
 
   // Compare the loaded image with the saved one.
-  EXPECT_EQ(depth_in_size.x(), depth_width_);
-  EXPECT_EQ(depth_in_size.y(), depth_height_);
-  EXPECT_EQ(memcmp(depth_in, depth_, depth_size_bytes_), 0);
+  EXPECT_EQ(loaded_depth_image_res.x(), depth_image_width_);
+  EXPECT_EQ(loaded_depth_image_res.y(), depth_image_height_);
+  EXPECT_EQ(memcmp(loaded_depth_image_data, depth_image_data_, depth_size_bytes_), 0);
 
-  free(depth_in);
+  free(loaded_depth_image_data);
 }
 
 
 
 TEST_F(DepthSaveLoad, SaveThenLoadPGM) {
   // Save the image.
-  const int save_ok = save_depth_pgm(depth_, depth_size_, "/tmp/depth.pgm");
+  const int save_ok = save_depth_pgm(depth_image_data_, depth_image_res_, "/tmp/depth.pgm");
   EXPECT_EQ(save_ok, 0);
 
   // Load the image.
-  uint16_t* depth_in;
-  Eigen::Vector2i depth_in_size (0, 0);
-  const int load_ok = load_depth_pgm(&depth_in, depth_in_size, "/tmp/depth.pgm");
+  uint16_t* loaded_depth_image_data;
+  Eigen::Vector2i loaded_depth_image_res (0, 0);
+  const int load_ok = load_depth_pgm(&loaded_depth_image_data, loaded_depth_image_res, "/tmp/depth.pgm");
   EXPECT_EQ(load_ok, 0);
 
   // Compare the loaded image with the saved one.
-  EXPECT_EQ(depth_in_size.x(), depth_width_);
-  EXPECT_EQ(depth_in_size.y(), depth_height_);
-  EXPECT_EQ(memcmp(depth_in, depth_, depth_size_bytes_), 0);
+  EXPECT_EQ(loaded_depth_image_res.x(), depth_image_width_);
+  EXPECT_EQ(loaded_depth_image_res.y(), depth_image_height_);
+  EXPECT_EQ(memcmp(loaded_depth_image_data, depth_image_data_, depth_size_bytes_), 0);
 
-  free(depth_in);
+  free(loaded_depth_image_data);
 }
 

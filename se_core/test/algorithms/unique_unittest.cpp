@@ -38,8 +38,8 @@ typedef unsigned int MortonType;
 
 struct TestVoxelT {
   typedef float VoxelData;
-  static inline VoxelData empty(){ return 0.f; }
-  static inline VoxelData initValue(){ return 1.f; }
+  static inline VoxelData invalid(){ return 0.f; }
+  static inline VoxelData initData(){ return 1.f; }
 
   template <typename T>
   using MemoryPoolType = se::PagedMemoryPool<T>;
@@ -50,8 +50,8 @@ struct TestVoxelT {
 class UniqueTest : public ::testing::Test {
   protected:
     virtual void SetUp() {
-      oct.init(1 << max_depth_, 10);
-      const Eigen::Vector3i blocks[10] = {
+      octree.init(1 << voxel_depth_, 10);
+      const Eigen::Vector3i blocks_coord[10] = {
         {56, 12, 12}, {56, 12, 15},
         {128, 128, 128},
         {128, 128, 125}, {128, 128, 127},
@@ -60,34 +60,34 @@ class UniqueTest : public ::testing::Test {
         {136, 128, 136},
         {128, 240, 136}, {128, 241, 136}};
       for(int i = 0; i < 10; ++i) {
-        keys[i] = oct.hash(blocks[i](0), blocks[i](1), blocks[i](2));
+        keys[i] = octree.hash(blocks_coord[i].x(), blocks_coord[i].y(), blocks_coord[i].z());
       }
     }
 
     MortonType keys[10];
     typedef se::Octree<TestVoxelT> OctreeF;
-    OctreeF oct;
-    const int max_depth_ = 10;
+    OctreeF octree;
+    const int voxel_depth_ = 10;
 };
 
 class UniqueMultiscaleTest : public ::testing::Test {
   protected:
     virtual void SetUp() {
 
-      oct.init(1 << max_depth_, 10);
-      const int root_side = pow(2, max_depth_ - 4);
-      const Eigen::Vector3i base(64, 0, 64);
-      keys.push_back(oct.hash(base.x(), base.y(), base.z(), 4));
-      keys.push_back(oct.hash(base.x() + root_side/2, base.y(), base.z(), 5));
-      keys.push_back(oct.hash(base.x() + root_side/4, base.y(), base.z(), 5));
-      keys.push_back(oct.hash(128, 24, 80, 5));
+      octree.init(1 << voxel_depth_, 10);
+      const int root_size = pow(2, voxel_depth_ - 4);
+      const Eigen::Vector3i base_coord(64, 0, 64);
+      keys.push_back(octree.hash(base_coord.x(), base_coord.y(), base_coord.z(), 4));
+      keys.push_back(octree.hash(base_coord.x() + root_size / 2, base_coord.y(), base_coord.z(), 5));
+      keys.push_back(octree.hash(base_coord.x() + root_size / 4, base_coord.y(), base_coord.z(), 5));
+      keys.push_back(octree.hash(128, 24, 80, 5));
       std::sort(keys.begin(), keys.end());
     }
 
     std::vector<MortonType> keys;
     typedef se::Octree<TestVoxelT> OctreeF;
-    OctreeF oct;
-    const int max_depth_ = 10;
+    OctreeF octree;
+    const int voxel_depth_ = 10;
 };
 
 TEST_F(UniqueTest, FilterDuplicates) {
@@ -98,7 +98,7 @@ TEST_F(UniqueTest, FilterDuplicates) {
 }
 
 TEST_F(UniqueMultiscaleTest, FilterAncestors) {
-  const int last = se::algorithms::filter_ancestors(keys.data(), keys.size(), max_depth_);
+  const int last = se::algorithms::filter_ancestors(keys.data(), keys.size(), voxel_depth_);
   for(int i = 1; i < last; ++i) {
     // std::cout << std::bitset<64>(keys[i]) << std::endl;
     // std::cout << std::bitset<64>(keys[i - 1]) << std::endl << std::endl;
@@ -110,7 +110,7 @@ TEST_F(UniqueMultiscaleTest, FilterAncestors) {
 TEST_F(UniqueMultiscaleTest, FilterDuplicatesTillLevel) {
   /*
    * 0x1FFu extracts the last 9 bits of a morton number,
-   * corresponding to the edge of a voxel block: 3*log2(se::VoxelBlock<T>::side)
+   * corresponding to the size of a voxel block: 3*log2(se::VoxelBlock<T>::size)
    */
   const int last = se::algorithms::unique_multiscale(keys.data(), keys.size());
   for(int i = 1; i < last; ++i) {

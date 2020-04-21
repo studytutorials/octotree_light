@@ -41,57 +41,59 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace se {
   template <typename T>
   /*! \brief Write the octree structure to file in ply format.
-   * Aggregated voxel blocks are written as a single octant of size block_side^3.
+   * Aggregated voxel blocks are written as a single octant of size block_size^3.
    * \param filename output filename
    * \param octree octree map
    */
     void print_octree(const char* filename, const se::Octree<T>& octree) {
-      std::stringstream ss_vertex;
+      std::stringstream ss_nodes_corners;
       std::stringstream ss_faces;
       se::node_iterator<T> it(octree);
-      se::Node<T>* n = it.next();
-      const int depth = std::log2(octree.size());
-      int vertex_num = 0;
-      int faces_num  = 0;
-      while(n) {
-        const Eigen::Vector3i corner = se::keyops::decode(n->code_);
-        const int side = 1 << (depth - se::keyops::level(n->code_));
+      se::Node<T>* node = it.next();
+      const int voxel_depth = octree.voxelDepth();
+      int nodes_corners_count = 0;
+      int faces_count  = 0;
+      while(node) {
+        const Eigen::Vector3i node_coord = se::keyops::decode(node->code_);
+        const int node_size = 1 << (voxel_depth - se::keyops::depth(node->code_));
 
-        Eigen::Vector3f vertices[8];
-        vertices[0] = corner.cast<float>();
-        vertices[1] = (corner + Eigen::Vector3i(side, 0, 0)).cast<float>();
-        vertices[2] = (corner + Eigen::Vector3i(0, side, 0)).cast<float>();
-        vertices[3] = (corner + Eigen::Vector3i(side, side, 0)).cast<float>();
-        vertices[4] = (corner + Eigen::Vector3i(0, 0, side)).cast<float>();
-        vertices[5] = (corner + Eigen::Vector3i(side, 0, side)).cast<float>();
-        vertices[6] = (corner + Eigen::Vector3i(0, side, side)).cast<float>();
-        vertices[7] = (corner + Eigen::Vector3i(side, side, side)).cast<float>();
+        Eigen::Vector3f node_corners[8];
+        node_corners[0] =  node_coord.cast<float>();
+        node_corners[1] = (node_coord + Eigen::Vector3i(node_size, 0, 0)).cast<float>();
+        node_corners[2] = (node_coord + Eigen::Vector3i(0, node_size, 0)).cast<float>();
+        node_corners[3] = (node_coord + Eigen::Vector3i(node_size, node_size, 0)).cast<float>();
+        node_corners[4] = (node_coord + Eigen::Vector3i(0, 0, node_size)).cast<float>();
+        node_corners[5] = (node_coord + Eigen::Vector3i(node_size, 0, node_size)).cast<float>();
+        node_corners[6] = (node_coord + Eigen::Vector3i(0, node_size, node_size)).cast<float>();
+        node_corners[7] = (node_coord + Eigen::Vector3i(node_size, node_size, node_size)).cast<float>();
 
         for(int i = 0; i < 8; ++i) {
-          ss_vertex << vertices[i].x() << " " << vertices[i].y() << " " << vertices[i].z() << std::endl;
+          ss_nodes_corners << node_corners[i].x() << " "
+                           << node_corners[i].y() << " "
+                           << node_corners[i].z() << std::endl;
         }
 
-        ss_faces << "4 " << vertex_num << " " << vertex_num + 1
-                 << " "  << vertex_num + 3 << " " << vertex_num + 2 << std::endl;
+        ss_faces << "4 " << nodes_corners_count     << " " << nodes_corners_count + 1
+                 << " "  << nodes_corners_count + 3 << " " << nodes_corners_count + 2 << std::endl;
 
-        ss_faces << "4 " << vertex_num + 1 << " " << vertex_num + 5
-                 << " "  << vertex_num + 7 << " " << vertex_num + 3 << std::endl;
+        ss_faces << "4 " << nodes_corners_count + 1 << " " << nodes_corners_count + 5
+                 << " "  << nodes_corners_count + 7 << " " << nodes_corners_count + 3 << std::endl;
 
-        ss_faces << "4 " << vertex_num + 5 << " " << vertex_num + 7
-                 << " "  << vertex_num + 6 << " " << vertex_num + 4 << std::endl;
+        ss_faces << "4 " << nodes_corners_count + 5 << " " << nodes_corners_count + 7
+                 << " "  << nodes_corners_count + 6 << " " << nodes_corners_count + 4 << std::endl;
 
-        ss_faces << "4 " << vertex_num << " " << vertex_num + 2
-                 << " "  << vertex_num + 6 << " " << vertex_num + 4 << std::endl;
+        ss_faces << "4 " << nodes_corners_count     << " " << nodes_corners_count + 2
+                 << " "  << nodes_corners_count + 6 << " " << nodes_corners_count + 4 << std::endl;
 
-        ss_faces << "4 " << vertex_num << " " << vertex_num + 1
-                 << " "  << vertex_num + 5 << " " << vertex_num + 4 << std::endl;
+        ss_faces << "4 " << nodes_corners_count     << " " << nodes_corners_count + 1
+                 << " "  << nodes_corners_count + 5 << " " << nodes_corners_count + 4 << std::endl;
 
-        ss_faces << "4 " << vertex_num + 2 << " " << vertex_num + 3
-                 << " "  << vertex_num + 7 << " " << vertex_num + 6 << std::endl;
+        ss_faces << "4 " << nodes_corners_count + 2 << " " << nodes_corners_count + 3
+                 << " "  << nodes_corners_count + 7 << " " << nodes_corners_count + 6 << std::endl;
 
-        vertex_num += 8;
-        faces_num  += 6;
-        n = it.next();
+        nodes_corners_count += 8;
+        faces_count  += 6;
+        node = it.next();
       }
 
       {
@@ -101,42 +103,41 @@ namespace se {
         f << "ply" << std::endl;
         f << "format ascii 1.0" << std::endl;
         f << "comment octree structure" << std::endl;
-        f << "element vertex " << vertex_num <<  std::endl;
+        f << "element point " << nodes_corners_count <<  std::endl;
         f << "property float x" << std::endl;
         f << "property float y" << std::endl;
         f << "property float z" << std::endl;
-        f << "element face " << faces_num << std::endl;
-        f << "property list uchar int vertex_index" << std::endl;
+        f << "element face " << faces_count << std::endl;
+        f << "property list uchar int point_index" << std::endl;
         f << "end_header" << std::endl;
-        f << ss_vertex.str();
+        f << ss_nodes_corners.str();
         f << ss_faces.str();
       }
     }
 
   template <typename T>
-    void savePointCloudPly(const T* in, const int num_points,
-        const char* filename, const Eigen::Vector3f& init_pose) {
-      std::stringstream points;
-      for(int i = 0; i < num_points; ++i ){
-        points << in[i].x() - init_pose.x()
-          << " " << in[i].y()  - init_pose.y() << " "
-          << in[i].z() - init_pose.z() << std::endl;
+    void savePointCloudPly(const T* points_M, const int num_points,
+        const char* filename, const Eigen::Matrix4f& T_WM) {
+      std::stringstream ss_points_W;
+      for(int i = 0; i < num_points; ++i){
+        Eigen::Vector3f point_W = (T_WM * points_M[i].homogeneous()).head(3);
+        ss_points_W << point_W.x() << " "
+                 << point_W.y() << " "
+                 << point_W.z() << std::endl;
       }
 
-      {
-        std::ofstream f;
-        f.open(std::string(filename).c_str());
+      std::ofstream f;
+      f.open(std::string(filename).c_str());
 
-        f << "ply" << std::endl;
-        f << "format ascii 1.0" << std::endl;
-        f << "comment octree structure" << std::endl;
-        f << "element vertex " << num_points <<  std::endl;
-        f << "property float x" << std::endl;
-        f << "property float y" << std::endl;
-        f << "property float z" << std::endl;
-        f << "end_header" << std::endl;
-        f << points.str();
-      }
+      f << "ply" << std::endl;
+      f << "format ascii 1.0" << std::endl;
+      f << "comment octree structure" << std::endl;
+      f << "element point " << num_points <<  std::endl;
+      f << "property float x" << std::endl;
+      f << "property float y" << std::endl;
+      f << "property float z" << std::endl;
+      f << "end_header" << std::endl;
+      f << ss_points_W.str();
     }
 }
 #endif

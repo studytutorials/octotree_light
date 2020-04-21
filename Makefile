@@ -72,10 +72,10 @@ live.log :
 	./build/kfusion-qt-openmp $(live)
 
 demo-ofusion:
-	./build/kfusion-main-openmp --compute-size-ratio 2 --fps 0 --block-read False --input-file /data/ev314/data/living_room_traj2_frei_png/scene.raw --icp-threshold 1e-05 --mu 0.008 --init-pose 0.34,0.5,0.24 --integration-rate 1 --volume-size 5 -B 8 --tracking-rate 1 --volume-resolution 512 --pyramid-levels 10,5,4 --rendering-rate 1 -k 481.2,-480,320,240
+	./build/kfusion-main-openmp --image-resolution-ratio 2 --fps 0 --block-read False --input-file /data/ev314/data/living_room_traj2_frei_png/scene.raw --icp-threshold 1e-05 --mu 0.008 --init-pose 0.34,0.5,0.24 --integration-rate 1 --volume-size 5 -B 8 --tracking-rate 1 --map-size 512 --pyramid-levels 10,5,4 --rendering-rate 1 -k 481.2,-480,320,240
 
 demo-kfusion:
-	./build/kfusion-main-openmp --compute-size-ratio 2 --fps 0 --block-read False --input-file /data/ev314/data/living_room_traj2_frei_png/scene.raw --icp-threshold 1e-05 --mu 0.1 --init-pose 0.34,0.5,0.24 --integration-rate 1 --volume-size 5 -B 8 --tracking-rate 1 --volume-resolution 512 --pyramid-levels 10,5,4 --rendering-rate 1 -k 481.2,-480,320,240
+	./build/kfusion-main-openmp --image-resolution-ratio 2 --fps 0 --block-read False --input-file /data/ev314/data/living_room_traj2_frei_png/scene.raw --icp-threshold 1e-05 --mu 0.1 --init-pose 0.34,0.5,0.24 --integration-rate 1 --volume-size 5 -B 8 --tracking-rate 1 --map-size 512 --pyramid-levels 10,5,4 --rendering-rate 1 -k 481.2,-480,320,240
 
 
 #### GENERAL GENERATION ####

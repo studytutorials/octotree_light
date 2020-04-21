@@ -37,8 +37,8 @@
 
 PerfStats Stats;
 PowerMonitor* powerMonitor = nullptr;
-static uint16_t* input_depth = nullptr;
-static uchar3* input_rgb = nullptr;
+static uint16_t* input_depth_image_data = nullptr;
+static uchar3* input_rgb_image_data = nullptr;
 static uint32_t* rgba_render = nullptr;
 static uint32_t* depth_render = nullptr;
 static uint32_t* track_render = nullptr;
@@ -46,7 +46,7 @@ static uint32_t* volume_render = nullptr;
 static DepthReader* reader = nullptr;
 static DenseSLAMSystem* pipeline = nullptr;
 
-static Eigen::Vector3f init_position;
+static Eigen::Vector3f t_MW;
 static std::ostream* log_stream = &std::cout;
 static std::ofstream log_file_stream;
 
@@ -104,29 +104,29 @@ int main(int argc, char** argv) {
   // ========= READER INITIALIZATION  =========
   reader = createReader(&config);
 
-  //  =========  BASIC PARAMETERS  (input size / computation size )  =========
-  Eigen::Vector2i input_size = (reader != nullptr)
-      ? Eigen::Vector2i(reader->getinputSize().x, reader->getinputSize().y)
+  //  =========  BASIC PARAMETERS  (input image size / image size )  =========
+  Eigen::Vector2i input_image_res = (reader != nullptr)
+      ? Eigen::Vector2i(reader->getInputImageResolution().x, reader->getInputImageResolution().y)
       : Eigen::Vector2i(640, 480);
-  const Eigen::Vector2i computation_size
-      = input_size / config.compute_size_ratio;
+  const Eigen::Vector2i image_res
+      = input_image_res / config.image_downsampling_factor;
 
   //  =========  BASIC BUFFERS  (input / output )  =========
 
   // Construction Scene reader and input buffer
-  input_depth =   new uint16_t[input_size.x() * input_size.y()];
-  input_rgb =     new   uchar3[input_size.x() * input_size.y()];
-  rgba_render =   new uint32_t[computation_size.x() * computation_size.y()];
-  depth_render =  new uint32_t[computation_size.x() * computation_size.y()];
-  track_render =  new uint32_t[computation_size.x() * computation_size.y()];
-  volume_render = new uint32_t[computation_size.x() * computation_size.y()];
+  input_depth_image_data =   new uint16_t[input_image_res.x() * input_image_res.y()];
+  input_rgb_image_data =     new   uchar3[input_image_res.x() * input_image_res.y()];
+  rgba_render =   new uint32_t[image_res.x() * image_res.y()];
+  depth_render =  new uint32_t[image_res.x() * image_res.y()];
+  track_render =  new uint32_t[image_res.x() * image_res.y()];
+  volume_render = new uint32_t[image_res.x() * image_res.y()];
 
-  init_position = config.initial_pos_factor.cwiseProduct(config.volume_size);
+  t_MW = config.t_MW_factor.cwiseProduct(config.map_dim);
   pipeline = new DenseSLAMSystem(
-      computation_size,
-      Eigen::Vector3i::Constant(config.volume_resolution.x()),
-      Eigen::Vector3f::Constant(config.volume_size.x()),
-      init_position,
+      image_res,
+      Eigen::Vector3i::Constant(config.map_size.x()),
+      Eigen::Vector3f::Constant(config.map_dim.x()),
+      t_MW,
       config.pyramid, config);
 
   if (config.log_file != "") {
@@ -157,10 +157,10 @@ int main(int argc, char** argv) {
     }
     while (processAll(reader, true, true, &config, false) == 0) {
 #ifndef SE_BENCHMARK_APP
-      drawthem(rgba_render,   computation_size,
-               depth_render,  computation_size,
-               track_render,  computation_size,
-               volume_render, computation_size);
+      drawthem(rgba_render,   image_res,
+               depth_render,  image_res,
+               track_render,  image_res,
+               volume_render, image_res);
 #endif
     }
 #endif
@@ -206,8 +206,8 @@ int main(int argc, char** argv) {
   //  =========  FREE BASIC BUFFERS  =========
 
   delete pipeline;
-  delete input_depth;
-  delete input_rgb;
+  delete input_depth_image_data;
+  delete input_rgb_image_data;
   delete rgba_render;
   delete depth_render;
   delete track_render;
@@ -226,16 +226,18 @@ int processAll(DepthReader*   reader,
   bool integrated = false;
   std::chrono::time_point<std::chrono::steady_clock> timings[7];
   int frame = 0;
-  const Eigen::Vector2i input_size = (reader != nullptr)
-      ? Eigen::Vector2i(reader->getinputSize().x, reader->getinputSize().y)
+  const Eigen::Vector2i input_image_res = (reader != nullptr)
+      ? Eigen::Vector2i(reader->getInputImageResolution().x, reader->getInputImageResolution().y)
       : Eigen::Vector2i(640, 480);
-  Eigen::Vector4f camera = (reader != nullptr)
-      ? reader->getK()
-      : Eigen::Vector4f::Constant(0.0f);
-  camera /= config->compute_size_ratio;
-
-  if (config->camera_overrided)
-    camera = config->camera / config->compute_size_ratio;
+  const Eigen::Vector2i image_res
+      = input_image_res / config->image_downsampling_factor;
+  const SensorImpl sensor({image_res.x(), image_res.y(), config->left_hand_frame,
+                           nearPlane, farPlane, config->mu,
+                           config->camera[0] / config->image_downsampling_factor,
+                           config->camera[1] / config->image_downsampling_factor,
+                           config->camera[2] / config->image_downsampling_factor,
+                           config->camera[3] / config->image_downsampling_factor,
+                           Eigen::VectorXf(0), Eigen::VectorXf(0)});
 
   if (reset) {
     frame_offset = reader->getFrameNumber();
@@ -244,17 +246,21 @@ int processAll(DepthReader*   reader,
   if (process_frame) {
     Stats.start();
   }
-  Eigen::Matrix4f pose;
-  Eigen::Matrix4f gt_pose;
+  Eigen::Matrix4f T_WC;
+  Eigen::Matrix4f gt_T_WC;
   timings[0] = std::chrono::steady_clock::now();
+
   if (process_frame) {
 
     // Read frames and ground truth data if set
     bool read_ok;
     if (config->groundtruth_file == "") {
-      read_ok = reader->readNextDepthFrame(input_rgb, input_depth);
+      read_ok = reader->readNextDepthFrame(input_rgb_image_data, input_depth_image_data);
     } else {
-      read_ok = reader->readNextData(input_rgb, input_depth, gt_pose);
+      read_ok = reader->readNextData(input_rgb_image_data, input_depth_image_data, gt_T_WC);
+      if (frame == 0) {
+        pipeline->setInitT_WC(gt_T_WC);
+      }
     }
 
     // Finish processing if the next frame could not be read
@@ -270,33 +276,31 @@ int processAll(DepthReader*   reader,
 
     timings[1] = std::chrono::steady_clock::now();
 
-    pipeline->preprocessDepth(input_depth, input_size,
+    pipeline->preprocessDepth(input_depth_image_data, input_image_res,
         config->bilateral_filter);
-    pipeline->preprocessColor((uint8_t*) input_rgb, input_size);
+    pipeline->preprocessColor((uint8_t*) input_rgb_image_data, input_image_res);
 
     timings[2] = std::chrono::steady_clock::now();
 
     if (config->groundtruth_file == "") {
       // No ground truth used, call track every tracking_rate frames.
       if (frame % config->tracking_rate == 0) {
-        tracked = pipeline->track(camera, config->icp_threshold);
+        tracked = pipeline->track(sensor, config->icp_threshold);
       } else {
         tracked = false;
       }
     } else {
       // Set the pose to the ground truth.
-      pipeline->setPose(gt_pose);
+      pipeline->setT_WC(gt_T_WC);
       tracked = true;
     }
-
-    pose = pipeline->getPose();
 
     timings[3] = std::chrono::steady_clock::now();
 
     // Integrate only if tracking was successful every integration_rate frames
     // or it is one of the first 4 frames.
     if ((tracked && (frame % config->integration_rate == 0)) || frame <= 3) {
-        integrated = pipeline->integrate(camera, config->mu, frame);
+        integrated = pipeline->integrate(sensor, frame);
     } else {
       integrated = false;
     }
@@ -304,18 +308,17 @@ int processAll(DepthReader*   reader,
     timings[4] = std::chrono::steady_clock::now();
 
     if (frame > 2) {
-      pipeline->raycast(camera, config->mu);
+      pipeline->raycast(sensor);
     }
 
     timings[5] = std::chrono::steady_clock::now();
   }
   if (render_images) {
-    pipeline->renderRGBA((uint8_t*) rgba_render, pipeline->getComputationResolution());
-    pipeline->renderDepth((unsigned char*)depth_render, pipeline->getComputationResolution());
-    pipeline->renderTrack((unsigned char*)track_render, pipeline->getComputationResolution());
+    pipeline->renderRGBA((uint8_t*) rgba_render, pipeline->getImageResolution());
+    pipeline->renderDepth((unsigned char*)depth_render, pipeline->getImageResolution(), sensor);
+    pipeline->renderTrack((unsigned char*)track_render, pipeline->getImageResolution());
     if (frame % config->rendering_rate == 0) {
-      pipeline->renderVolume((unsigned char*)volume_render, pipeline->getComputationResolution(),
-          camera, 0.75 * config->mu);
+      pipeline->renderVolume((unsigned char*)volume_render, pipeline->getImageResolution(), sensor);
     }
     timings[6] = std::chrono::steady_clock::now();
   }
@@ -323,13 +326,11 @@ int processAll(DepthReader*   reader,
   if (powerMonitor != nullptr && !first_frame)
     powerMonitor->sample();
 
-  float xt = pose(0, 3) - init_position.x();
-  float yt = pose(1, 3) - init_position.y();
-  float zt = pose(2, 3) - init_position.z();
-  const Eigen::Vector3f position = pipeline->getPosition();
-  storeStats(frame, timings, position, tracked, integrated);
+  const Eigen::Vector3f t_MC = pipeline->t_MC();
+  const Eigen::Vector3f t_WC = pipeline->t_WC();
+  storeStats(frame, timings, t_WC, tracked, integrated);
   if (config->no_gui){
-    *log_stream << reader->getFrameNumber() << "\t" << xt << "\t" << yt << "\t" << zt << "\t" << std::endl;
+    *log_stream << reader->getFrameNumber() << "\t" << t_MC.x() << "\t" << t_MC.y() << "\t" << t_MC.z() << "\t" << std::endl;
   }
 
 #ifdef SE_BENCHMARK_APP
@@ -342,7 +343,7 @@ int processAll(DepthReader*   reader,
     << std::chrono::duration<double>(timings[6] - timings[5]).count() << "\t" // rendering
     << std::chrono::duration<double>(timings[5] - timings[1]).count() << "\t" // computation
     << std::chrono::duration<double>(timings[6] - timings[0]).count() << "\t" // total
-    << xt << "\t" << yt << "\t" << zt << "\t" // position
+    << t_MC.x() << "\t" << t_MC.y() << "\t" << t_MC.z() << "\t" // position
     << tracked << "        \t" << integrated // tracked and integrated flags
     << "\n";
 #endif

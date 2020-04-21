@@ -42,46 +42,49 @@
 #include "se/perfstats.h"
 #include "se/commons.h"
 #include "se/image/image.hpp"
+#include "se/image_utils.hpp"
+#include "se/sensor_implementation.hpp"
+
 
 
 
 void new_reduce(const int              block_index,
-                float*                 out,
-                TrackData*             J,
-                const Eigen::Vector2i& J_size,
-                const Eigen::Vector2i& size);
+                float*                 output_data,
+                const Eigen::Vector2i& output_res,
+                TrackData*             J_data,
+                const Eigen::Vector2i& J_res);
 
 
 
-void reduceKernel(float*                 out,
-                  TrackData*             J,
-                  const Eigen::Vector2i& J_size,
-                  const Eigen::Vector2i& size);
+void reduceKernel(float*                 output_data,
+                  const Eigen::Vector2i& output_res,
+                  TrackData*             J_data,
+                  const Eigen::Vector2i& J_res);
 
 
 
-void trackKernel(TrackData*                        output,
-                 const se::Image<Eigen::Vector3f>& in_vertex,
-                 const se::Image<Eigen::Vector3f>& in_normal,
-                 const se::Image<Eigen::Vector3f>& ref_vertex,
-                 const se::Image<Eigen::Vector3f>& ref_normal,
-                 const Eigen::Matrix4f&            Ttrack,
-                 const Eigen::Matrix4f&            T_WC,
+void trackKernel(TrackData*                        output_data,
+                 const se::Image<Eigen::Vector3f>& input_point_cloud_C,
+                 const se::Image<Eigen::Vector3f>& input_normals_C,
+                 const se::Image<Eigen::Vector3f>& surface_point_cloud_M,
+                 const se::Image<Eigen::Vector3f>& surface_normals_M,
+                 const Eigen::Matrix4f&            T_MC,
+                 const SensorImpl&                 sensor,
                  const float                       dist_threshold,
                  const float                       normal_threshold);
 
 
 
-bool updatePoseKernel(Eigen::Matrix4f& T_WC,
+bool updatePoseKernel(Eigen::Matrix4f& T_MC,
                       const float*     reduction_output,
                       const float      icp_threshold);
 
 
 
-bool checkPoseKernel(Eigen::Matrix4f&       T_WC,
-                     Eigen::Matrix4f&       previous_T_WC,
-                     const float*           reduction_output,
-                     const Eigen::Vector2i& image_size,
+bool checkPoseKernel(Eigen::Matrix4f&       T_MC,
+                     Eigen::Matrix4f&       previous_T_MC,
+                     const float*           reduction_output_data,
+                     const Eigen::Vector2i& reduction_output_res,
                      const float            track_threshold);
 
 #endif

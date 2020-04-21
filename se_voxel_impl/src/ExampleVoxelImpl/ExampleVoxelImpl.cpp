@@ -39,14 +39,12 @@ constexpr bool invert_normals = false;
 
 // Implement static member functions.
 size_t ExampleVoxelImpl::buildAllocationList(
-    se::key_t*                               allocation_list,
-    size_t                                   reserved,
     se::Octree<ExampleVoxelImpl::VoxelType>& map,
-    const Eigen::Matrix4f&                   T_wc,
-    const Eigen::Matrix4f&                   K,
-    const float*                             depth_map,
-    const Eigen::Vector2i&                   image_size,
-    const float                              mu) {
+    const se::Image<float>&                  depth_image,
+    const Eigen::Matrix4f&                   T_MC,
+    const SensorImpl&                        sensor,
+    se::key_t*                               allocation_list,
+    size_t                                   reserved) {
 
   return 0;
 }
@@ -55,10 +53,9 @@ size_t ExampleVoxelImpl::buildAllocationList(
 
 void ExampleVoxelImpl::integrate(
     se::Octree<ExampleVoxelImpl::VoxelType>& map,
-    const Sophus::SE3f&                      T_cw,
-    const Eigen::Matrix4f&                   K,
-    const se::Image<float>&                  depth,
-    const float                              mu,
+    const se::Image<float>&                  depth_image,
+    const Eigen::Matrix4f&                   T_CM,
+    const SensorImpl&                        sensor,
     const unsigned                           frame) {
 }
 
@@ -66,14 +63,13 @@ void ExampleVoxelImpl::integrate(
 
 Eigen::Vector4f ExampleVoxelImpl::raycast(
     const VolumeTemplate<ExampleVoxelImpl, se::Octree>& volume,
-    const Eigen::Vector3f&                              origin,
-    const Eigen::Vector3f&                              direction,
-    const float                                         tnear,
-    const float                                         tfar,
+    const Eigen::Vector3f&                              ray_origin_M,
+    const Eigen::Vector3f&                              ray_dir_M,
+    const float                                         near_plane,
+    const float                                         far_plane,
     const float                                         mu,
     const float                                         step,
     const float                                         large_step) {
-
   return Eigen::Vector4f::Zero();
 }
 

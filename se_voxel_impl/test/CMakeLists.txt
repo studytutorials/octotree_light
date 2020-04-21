@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(se_denseslam_unit_testing)
 
 # Build the dependencies inside the test build directory.
+add_subdirectory(../../third_party third_party)
 add_subdirectory(../../se_shared se_shared)
 add_subdirectory(../../se_core se_core)
 add_subdirectory(../../se_voxel_impl se_voxel_impl)
@@ -24,7 +25,9 @@ include_directories(
     ${SOPHUS_INCLUDE_DIR}
 )
 
+add_definitions(-DSE_SENSOR_IMPLEMENTATION=PinholeCamera)
+
 # Build the tests.
-add_subdirectory(multiscale_esdf_moving_sphere)
-add_subdirectory(multiscale_tsdf_moving_camera)
+add_subdirectory(multires_esdf_moving_sphere)
+add_subdirectory(multires_tsdf_moving_camera)
 

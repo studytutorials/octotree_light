@@ -24,8 +24,8 @@ namespace se {
         T&       operator[](std::size_t idx)       { return data_[idx]; }
         const T& operator[](std::size_t idx) const { return data_[idx]; }
 
-        T&       operator()(const int x, const int y)       { return data_[x + y*width_]; }
-        const T& operator()(const int x, const int y) const { return data_[x + y*width_]; }
+        T&       operator()(const int x, const int y)       { return data_[x + y * width_]; }
+        const T& operator()(const int x, const int y) const { return data_[x + y * width_]; }
 
         std::size_t size()   const   { return width_ * height_; };
         int         width () const { return width_;  };

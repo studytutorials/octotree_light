@@ -82,34 +82,32 @@ extern PowerMonitor *powerMonitor;
 
 // We can pass this to the QT and it will allow us to change features in the DenseSLAMSystem
 static void newDenseSLAMSystem(bool resetPose) {
-  Eigen::Matrix4f init_pose = (*pipeline_pp)->getPose();
+  Eigen::Matrix4f T_MW = (*pipeline_pp)->T_WM();
 
 	if (*pipeline_pp)
 		delete *pipeline_pp;
 	if (!resetPose) {
 		*pipeline_pp = new DenseSLAMSystem(
-				Eigen::Vector2i(640 / config->compute_size_ratio, 480 / config->compute_size_ratio),
-				config->volume_resolution,
-        config->volume_size, init_pose, config->pyramid, *config);
-  }
-	else {
+				Eigen::Vector2i(640 / config->image_downsampling_factor, 480 / config->image_downsampling_factor),
+				config->map_size, config->map_dim, T_MW, config->pyramid, *config);
+  } else {
     Eigen::Matrix<float, 6, 1> twist;
-  twist << config->initial_pos_factor.x() * config->volume_size.x(),
-					 config->initial_pos_factor.y() * config->volume_size.x(),
-				   config->initial_pos_factor.z() * config->volume_size.x(), 0, 0, 0;
+  	twist << config->t_MW_factor.x() * config->map_dim.x(),
+						 config->t_MW_factor.y() * config->map_dim.x(),
+					   config->t_MW_factor.z() * config->map_dim.x(), 0, 0, 0;
 		trans = Sophus::SE3<float>::exp(twist);
 		rot = Sophus::SE3<float>();
-    Eigen::Vector3f init_pose = config->initial_pos_factor.cwiseProduct(config->volume_size);
+    Eigen::Vector3f t_MW = config->t_MW_factor.cwiseProduct(config->map_dim);
 		*pipeline_pp = new DenseSLAMSystem(
-				Eigen::Vector2i(640 / config->compute_size_ratio,
-						480 / config->compute_size_ratio),
-				config->volume_resolution,
-				config->volume_size,
-        init_pose,
+				Eigen::Vector2i(640 / config->image_downsampling_factor,
+						480 / config->image_downsampling_factor),
+				config->map_size,
+				config->map_dim,
+        t_MW,
         config->pyramid, *config);
 	}
-	appWindow->viewers->setBufferSize(640 / config->compute_size_ratio,
-			480 / config->compute_size_ratio);
+	appWindow->viewers->setBufferSize(640 / config->image_downsampling_factor,
+			480 / config->image_downsampling_factor);
 	reset = true;
 }
 static void continueWithNewDenseSLAMSystem() {
@@ -124,7 +122,7 @@ static void continueWithNewDenseSLAMSystem() {
 //reader==NULL   - we don't even have a camera attached
 //in the reader this is stored as 2 bool cameraOpen (i.e !CAMERA_CLOSED) cameraActive = CAMERA_RUNNING
 CameraState setEnableCamera(CameraState state, string inputFile) {
-	//float3 init_poseFactors = default_initial_pos_factor; /* FIXME */
+	//float3 init_poseFactors = default_t_MW_factor; /* FIXME */
 	DepthReader *reader = *reader_pp;
 	bool isLive = (state == CAMERA_LIVE) ? true : false;
 
@@ -156,10 +154,10 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 							(CameraState (*)(CameraState,
 									std::string))&setEnableCamera);
 
-}					else {
-						bool cameraOpen = false;
-						appWindow->setCameraFunction(&cameraOpen, (CameraState (*)(CameraState, std::string))&setEnableCamera);
-					}
+        } else {
+          bool cameraOpen = false;
+          appWindow->setCameraFunction(&cameraOpen, (CameraState (*)(CameraState, std::string))&setEnableCamera);
+        }
 				*reader_pp = reader;
 				if (reader == NULL) {
 					if (inputFile == "") {
@@ -215,11 +213,11 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 //This function is passed to QT and is called whenever we aren't busy i.e in a constant loop
 void qtIdle(void) {
 	//This will set the view for rendering the model, either to the tracked camera view or the static view
-  Eigen::Matrix4f pose = (rot * trans).matrix();
+	Eigen::Matrix4f render_T_MR = (rot * trans).matrix();
 	if (usePOV)
-		(*pipeline_pp)->setViewPose(); //current position as found by track
+		(*pipeline_pp)->setRenderT_MC(); //current position as found by track
 	else
-		(*pipeline_pp)->setViewPose(&pose);
+		(*pipeline_pp)->setRenderT_MC(&render_T_MR);
 	//If we are are reading a file then get a new frame and process it.
 	if ((*reader_pp) && (*reader_pp)->cameraActive) {
 		int finished = processAll((*reader_pp), true, true, config, reset);
@@ -298,9 +296,9 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 	config = _config;
 	reader_pp = _depthReader;
   Eigen::Matrix<float, 6, 1> twist;
-  twist << config->initial_pos_factor.x() * config->volume_size.x(),
-					 config->initial_pos_factor.y() * config->volume_size.x(),
-				   config->initial_pos_factor.z() * config->volume_size.x(), 0, 0, 0;
+  twist << config->t_MW_factor.x() * config->map_dim.x(),
+					 config->t_MW_factor.y() * config->map_dim.x(),
+				   config->t_MW_factor.z() * config->map_dim.x(), 0, 0, 0;
 	trans = Sophus::SE3<float>::exp(twist);
 	QApplication a(argc, argv);
 
@@ -341,15 +339,15 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 
 			//This sets up the images but is pretty ugly and would be better stashed in DenseSLAMSystem
 
-appWindow	->addButtonChoices("Compute Res",
+  appWindow	->addButtonChoices("Compute Res",
 			{ "640x480", "320x240", "160x120", "80x60" }, { 1, 2, 4, 8 },
-			&(config->compute_size_ratio), continueWithNewDenseSLAMSystem);
+			&(config->image_downsampling_factor), continueWithNewDenseSLAMSystem);
 	appWindow->addButtonChoices("Vol. Size", { "4.0mx4.0mx4.0m",
 			"2.0mx2.0mx2.0m", "1.0mx1.0mx1.0m" }, { 4.0, 2.0, 1.0 },
-			(float *) (&(config->volume_size.x())), continueWithNewDenseSLAMSystem);
+			(float *) (&(config->map_dim.x())), continueWithNewDenseSLAMSystem);
 	appWindow->addButtonChoices("Vol. Res", { "1024x1024x1024", "512x512x512",
 			"256x256x256", "128x128x128", "64x64x64", "32x32x32" }, { 1024, 512,
-			256, 128, 64, 32 }, (int *) &(config->volume_resolution.x()),
+			256, 128, 64, 32 }, (int *) &(config->map_size.x()),
 			continueWithNewDenseSLAMSystem);
 
 	appWindow->addButtonChoices("ICP threshold", { "1e-4", "1e-5", "1e-6" }, {
@@ -359,15 +357,15 @@ appWindow	->addButtonChoices("Compute Res",
 			0.18, 0.36 }, (float *) &(config->mu), continueWithNewDenseSLAMSystem);
 
 	int cwidth = (
-			((*reader_pp) == NULL) ? 640 : ((*reader_pp)->getinputSize()).x)
-			/ config->compute_size_ratio;
+			((*reader_pp) == NULL) ? 640 : ((*reader_pp)->getInputImageResolution()).x)
+			/ config->image_downsampling_factor;
 	int cheight = (
-			((*reader_pp) == NULL) ? 480 : ((*reader_pp)->getinputSize()).y)
-			/ config->compute_size_ratio;
+			((*reader_pp) == NULL) ? 480 : ((*reader_pp)->getInputImageResolution()).y)
+			/ config->image_downsampling_factor;
 	int width =
-			(((*reader_pp) == NULL) ? 640 : ((*reader_pp)->getinputSize()).x);
+			(((*reader_pp) == NULL) ? 640 : ((*reader_pp)->getInputImageResolution()).x);
 	int height = (
-			((*reader_pp) == NULL) ? 480 : ((*reader_pp)->getinputSize()).y);
+			((*reader_pp) == NULL) ? 480 : ((*reader_pp)->getInputImageResolution()).y);
 
 	FImage rgbImage = { cwidth, cheight, GL_RGBA, GL_UNSIGNED_BYTE, RGBARender };
 	FImage depthImage =

@@ -28,14 +28,15 @@ static const int default_iterations[DEFAULT_ITERATION_COUNT] = { 10, 5, 4 };
 const float default_mu = 0.1f;
 const bool default_blocking_read = false;
 const int default_fps = 0;
+const bool default_left_hand_frame = false;
 const float default_icp_threshold = 1e-5;
-const int default_compute_size_ratio = 1;
+const int default_image_downsampling_factor = 1;
 const int default_integration_rate = 2;
 const int default_rendering_rate = 4;
 const int default_tracking_rate = 1;
-const Eigen::Vector3i default_volume_resolution(256, 256, 256);
-const Eigen::Vector3f default_volume_size(2.f, 2.f, 2.f);
-const Eigen::Vector3f default_initial_pos_factor(0.5f, 0.5f, 0.0f);
+const Eigen::Vector3i default_map_size(256, 256, 256);
+const Eigen::Vector3f default_map_dim(2.f, 2.f, 2.f);
+const Eigen::Vector3f default_t_MW_factor(0.5f, 0.5f, 0.0f);
 const bool default_no_gui = false;
 const bool default_render_volume_fullsize = false;
 const bool default_bilateral_filter = false;
@@ -61,9 +62,9 @@ static struct option long_options[] =
   {"init-pose",          required_argument, 0, 'p'},
   {"no-gui",             no_argument,       0, 'q'},
   {"integration-rate",   required_argument, 0, 'r'},
-  {"volume-size",        required_argument, 0, 's'},
+  {"map-dim",            required_argument, 0, 's'},
   {"tracking-rate",      required_argument, 0, 't'},
-  {"volume-resolution",  required_argument, 0, 'v'},
+  {"map-size",           required_argument, 0, 'v'},
   {"pyramid-levels",     required_argument, 0, 'y'},
   {"rendering-rate",     required_argument, 0, 'z'},
   {"voxel-block-size",   required_argument, 0, 'B'},
@@ -76,7 +77,7 @@ static struct option long_options[] =
 inline
 void print_arguments() {
   std::cerr << "-b  (--block-read)                        : default is False: Block on read " << std::endl;
-  std::cerr << "-c  (--compute-size-ratio)                : default is " << default_compute_size_ratio << "   (same size)      " << std::endl;
+  std::cerr << "-c  (--image-downsampling-factor)         : default is " << default_image_downsampling_factor << "   (same size)      " << std::endl;
   std::cerr << "-d  (--dump-volume) <filename>            : Output volume file              " << std::endl;
   std::cerr << "-f  (--fps)                               : default is " << default_fps       << std::endl;
   std::cerr << "-F  (--bilateral-filter                   : default is disabled"               << std::endl;
@@ -85,12 +86,12 @@ void print_arguments() {
   std::cerr << "-l  (--icp-threshold)                     : default is " << default_icp_threshold << std::endl;
   std::cerr << "-o  (--log-file) <filename>               : default is stdout               " << std::endl;
   std::cerr << "-m  (--mu)                                : default is " << default_mu << "               " << std::endl;
-  std::cerr << "-p  (--init-pose)                         : default is " << default_initial_pos_factor.x() << "," << default_initial_pos_factor.y() << "," << default_initial_pos_factor.z() << "     " << std::endl;
+  std::cerr << "-p  (--init-pose)                         : default is " << default_t_MW_factor.x() << "," << default_t_MW_factor.y() << "," << default_t_MW_factor.z() << "     " << std::endl;
   std::cerr << "-q  (--no-gui)                            : default is to display gui"<<std::endl;
   std::cerr << "-r  (--integration-rate)                  : default is " << default_integration_rate << "     " << std::endl;
-  std::cerr << "-s  (--volume-size)                       : default is " << default_volume_size.x() << "," << default_volume_size.y() << "," << default_volume_size.z() << "      " << std::endl;
+  std::cerr << "-s  (--map-dim)                           : default is " << default_map_dim.x() << "," << default_map_dim.y() << "," << default_map_dim.z() << "      " << std::endl;
   std::cerr << "-t  (--tracking-rate)                     : default is " << default_tracking_rate << "     " << std::endl;
-  std::cerr << "-v  (--volume-resolution)                 : default is " << default_volume_resolution.x() << "," << default_volume_resolution.y() << "," << default_volume_resolution.z() << "    " << std::endl;
+  std::cerr << "-v  (--map-size)                          : default is " << default_map_size.x() << "," << default_map_size.y() << "," << default_map_size.z() << "    " << std::endl;
   std::cerr << "-y  (--pyramid-levels)                    : default is 10,5,4     " << std::endl;
   std::cerr << "-z  (--rendering-rate)                    : default is " << default_rendering_rate << std::endl;
   std::cerr << "-g  (--ground-truth) <filename>           : Ground truth file" << std::endl;
@@ -178,13 +179,14 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
 
   Configuration config;
 
-  config.compute_size_ratio = default_compute_size_ratio;
+  config.image_downsampling_factor = default_image_downsampling_factor;
+  config.left_hand_frame = default_left_hand_frame;
   config.integration_rate = default_integration_rate;
   config.tracking_rate = default_tracking_rate;
   config.rendering_rate = default_rendering_rate;
-  config.volume_resolution = default_volume_resolution;
-  config.volume_size = default_volume_size;
-  config.initial_pos_factor = default_initial_pos_factor;
+  config.map_size = default_map_size;
+  config.map_dim = default_map_dim;
+  config.t_MW_factor = default_t_MW_factor;
 
   config.dump_volume_file = default_dump_volume_file;
   config.input_file = default_input_file;
@@ -229,14 +231,14 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         config.blocking_read = true;
         std::cerr << "activate blocking read" << std::endl;
         break;
-      case 'c':  //   -c  (--compute-size-ratio)
-        config.compute_size_ratio = atoi(optarg);
-        if ((config.compute_size_ratio != 1)
-            && (config.compute_size_ratio != 2)
-            && (config.compute_size_ratio != 4)
-            && (config.compute_size_ratio != 8)) {
+      case 'c':  //   -c  (--image-resolution-ratio)
+        config.image_downsampling_factor = atoi(optarg);
+        if ((config.image_downsampling_factor != 1)
+            && (config.image_downsampling_factor != 2)
+            && (config.image_downsampling_factor != 4)
+            && (config.image_downsampling_factor != 8)) {
           std::cerr
-            << "ERROR: --compute-size-ratio (-c) must be 1, 2 ,4 or 8  (was "
+            << "ERROR: --image-resolution-ratio (-c) must be 1, 2 ,4 or 8  (was "
             << optarg << ")\n";
           flagErr++;
         }
@@ -310,6 +312,10 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
       case 'k':    //   -k  (--camera)
         config.camera = atof4(optarg);
         config.camera_overrided = true;
+        if (config.camera.y() < 0) {
+          config.left_hand_frame = true;
+          std::cerr << "update to left hand coordinate system" << std::endl;
+        }
         break;
       case 'o':    //   -o  (--log-file)
         config.log_file = optarg;
@@ -321,7 +327,7 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         config.mu = atof(optarg);
         break;
       case 'p':    //   -p  (--init-pose)
-        config.initial_pos_factor = atof3(optarg);
+        config.t_MW_factor = atof3(optarg);
         break;
       case 'q':
         config.no_gui = true;
@@ -336,11 +342,11 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
         }
         break;
       case 's':    //   -s  (--map-size)
-        config.volume_size = atof3(optarg);
-        if ((config.volume_size.x() <= 0) || (config.volume_size.y() <= 0)
-            || (config.volume_size.z() <= 0)) {
+        config.map_dim = atof3(optarg);
+        if ((config.map_dim.x() <= 0) || (config.map_dim.y() <= 0)
+            || (config.map_dim.z() <= 0)) {
           std::cerr
-            << "ERROR: --volume-size (-s) all dimensions must > 0 (was "
+            << "ERROR: --map-dim (-s) all dimensions must > 0 (was "
             << optarg << ")\n";
           flagErr++;
         }
@@ -351,13 +357,13 @@ Configuration parseArgs(unsigned int argc, char ** argv) {
       case 'z':    //   -z  (--rendering-rate)
         config.rendering_rate = atof(optarg);
         break;
-      case 'v':    //   -v  (--volumetric-size)
-        config.volume_resolution = atoi3(optarg);
-        if ((config.volume_resolution.x() <= 0)
-            || (config.volume_resolution.y() <= 0)
-            || (config.volume_resolution.z() <= 0)) {
+      case 'v':    //   -v  (--map-size)
+        config.map_size = atoi3(optarg);
+        if ((config.map_size.x() <= 0)
+            || (config.map_size.y() <= 0)
+            || (config.map_size.z() <= 0)) {
           std::cerr
-            << "ERROR: --volume-size (-s) all dimensions must > 0 (was "
+            << "ERROR: --map-size (-s) all dimensions must > 0 (was "
             << optarg << ")\n";
           flagErr++;
         }

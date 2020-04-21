@@ -49,13 +49,13 @@ void balance(se::Octree<T>& octree) {
   se::node_iterator<T> it(octree);
   int depth = se::math::log2_const(octree.size());
   while(se::Node<T>* n = it.next()) {
-    int level = se::keyops::level(n->code_);
-    if(level == 0) continue; // skip root
+    int depth = se::keyops::depth(n->code_);
+    if(depth == 0) continue; // skip root
     se::one_neighbourhood(N, se::parent(n->code_, depth), 
         depth); 
     for(int i = 0; i < 6; ++i) {
       Eigen::Ref<Eigen::Matrix<int, 4, 1>> coords(N.col(i));
-      key_t key = octree.hash(coords.x(), coords.y(), coords.z(), level - 1);
+      key_t key = octree.hash(coords.x(), coords.y(), coords.z(), depth - 1);
       if(!octree.fetch(coords.x(), coords.y(), coords.z()) && 
           octants.insert(key).second) {
         alloc_buffer.push_back(key);
@@ -69,11 +69,11 @@ void balance(se::Octree<T>& octree) {
     for(; last < end; ++last) {
       se::one_neighbourhood(N, se::parent(alloc_buffer[last], depth), 
           depth); 
-      int level = se::keyops::level(alloc_buffer[last]);
-      if(level == 0) continue; // skip root
+      int depth = se::keyops::depth(alloc_buffer[last]);
+      if(depth == 0) continue; // skip root
       for(int i = 0; i < 6; ++i) {
         Eigen::Ref<Eigen::Matrix<int, 4, 1>> coords(N.col(i));
-        key_t key = octree.hash(coords.x(), coords.y(), coords.z(), level - 1);
+        key_t key = octree.hash(coords.x(), coords.y(), coords.z(), depth - 1);
         if(!octree.fetch(coords.x(), coords.y(), coords.z()) && 
             octants.insert(key).second) {
           alloc_buffer.push_back(key);

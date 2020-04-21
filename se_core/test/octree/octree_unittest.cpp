@@ -38,8 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct TestVoxelT {
   typedef float VoxelData;
-  static inline VoxelData empty(){ return 0.f; }
-  static inline VoxelData initValue(){ return 1.f; }
+  static inline VoxelData invalid(){ return 0.f; }
+  static inline VoxelData initData(){ return 1.f; }
 
   template <typename T>
   using MemoryPoolType = se::PagedMemoryPool<T>;
@@ -48,224 +48,224 @@ struct TestVoxelT {
 };
 
 TEST(Octree, OctantFaceNeighbours) {
-  const Eigen::Vector3i octant = {112, 80, 160};
-  const unsigned int max_depth = 8;
-  const unsigned int leaves_depth = 5;
-  const se::key_t code =
-    se::keyops::encode(octant(0), octant(1), octant(2), leaves_depth, max_depth);
-  const unsigned int side = 8;
+  const Eigen::Vector3i octant_coord = {112, 80, 160};
+  const unsigned int voxel_depth = 8;
+  const unsigned int block_depth = 5;
+  const se::key_t octant_key =
+    se::keyops::encode(octant_coord.x(), octant_coord.y(), octant_coord.z(), block_depth, voxel_depth);
+  const unsigned int size = 8;
   const Eigen::Vector3i faces[6] = {{-1, 0, 0}, {1, 0, 0}, {0, -1, 0}, {0, 1, 0},
     {0, 0, -1}, {0, 0, 1}};
   for(int i = 0; i < 6; ++i) {
-    const Eigen::Vector3i neighbour = octant + side * faces[i];
-    const Eigen::Vector3i computed = se::face_neighbour(code, i, leaves_depth, max_depth);
-    ASSERT_EQ(neighbour(0), computed(0));
-    ASSERT_EQ(neighbour(1), computed(1));
-    ASSERT_EQ(neighbour(2), computed(2));
+    const Eigen::Vector3i neighbour_coord = octant_coord + size * faces[i];
+    const Eigen::Vector3i computed_neighbour_coord = se::face_neighbour(octant_key, i, block_depth, voxel_depth);
+    ASSERT_EQ(neighbour_coord.x(), computed_neighbour_coord.x());
+    ASSERT_EQ(neighbour_coord.y(), computed_neighbour_coord.y());
+    ASSERT_EQ(neighbour_coord.z(), computed_neighbour_coord.z());
   }
 }
 
 TEST(Octree, OctantDescendant) {
-  const unsigned max_depth = 8;
-  Eigen::Vector3i octant = {110, 80, 159};
-  se::key_t code =
-    se::keyops::encode(octant(0), octant(1), octant(2), 5, max_depth);
-  se::key_t ancestor =
-    se::keyops::encode(96, 64, 128, 3, max_depth);
-  ASSERT_EQ(true , se::descendant(code, ancestor, max_depth));
+  const unsigned voxel_depth = 8;
+  Eigen::Vector3i octant_coord = {110, 80, 159};
+  se::key_t octant_key =
+    se::keyops::encode(octant_coord.x(), octant_coord.y(), octant_coord.z(), 5, voxel_depth);
+  se::key_t ancestor_key =
+    se::keyops::encode(96, 64, 128, 3, voxel_depth);
+  ASSERT_EQ(true , se::descendant(octant_key, ancestor_key, voxel_depth));
 
-  ancestor = se::keyops::encode(128, 64, 64, 3, max_depth);
-  ASSERT_FALSE(se::descendant(code, ancestor, max_depth));
+  ancestor_key = se::keyops::encode(128, 64, 64, 3, voxel_depth);
+  ASSERT_FALSE(se::descendant(octant_key, ancestor_key, voxel_depth));
 }
 
 TEST(Octree, OctantParent) {
-  const int max_depth = 8;
-  Eigen::Vector3i octant = {112, 80, 160};
-  se::key_t code =
-    se::keyops::encode(octant(0), octant(1), octant(2), 5, max_depth);
-  se::key_t p = se::parent(code, max_depth);
-  ASSERT_EQ(se::keyops::code(code), se::keyops::code(p));
-  ASSERT_EQ(4, p & SCALE_MASK);
+  const int voxel_depth = 8;
+  Eigen::Vector3i octant_coord = {112, 80, 160};
+  se::key_t octant_key =
+    se::keyops::encode(octant_coord.x(), octant_coord.y(), octant_coord.z(), 5, voxel_depth);
+  se::key_t parent_key = se::parent(octant_key, voxel_depth);
+  ASSERT_EQ(se::keyops::code(octant_key), se::keyops::code(parent_key));
+  ASSERT_EQ(4, parent_key & SCALE_MASK);
 
-  code = p;
-  p = se::parent(code, max_depth);
-  ASSERT_EQ(3, se::keyops::level(p));
-  ASSERT_EQ(p, se::keyops::encode(96, 64, 160, 3, max_depth));
+  octant_key = parent_key;
+  parent_key = se::parent(octant_key, voxel_depth);
+  ASSERT_EQ(3, se::keyops::depth(parent_key));
+  ASSERT_EQ(parent_key, se::keyops::encode(96, 64, 160, 3, voxel_depth));
 
-  code = p;
-  p = se::parent(code, max_depth);
-  ASSERT_EQ(2, se::keyops::level(p));
-  ASSERT_EQ(p, se::keyops::encode(64, 64, 128, 2, max_depth));
+  octant_key = parent_key;
+  parent_key = se::parent(octant_key, voxel_depth);
+  ASSERT_EQ(2, se::keyops::depth(parent_key));
+  ASSERT_EQ(parent_key, se::keyops::encode(64, 64, 128, 2, voxel_depth));
 }
 
 TEST(Octree, FarCorner) {
   /*
    * The far corner should always be "exterior", meaning that moving one step
-   * in the outward direction (i.e. away from the center) in *any* direction
+   * in the outward direction (i.e. away from the centre) in *any* direction
    * implies leaving the parent octant. For simplicity here the corners
    * individually, but this can be done programmatically testing this property.
    * TODO: change this test case to be more exhaustive.
    */
 
-  const int max_depth = 5;
-  const int level = 2;
+  const int voxel_depth = 5;
+  const int depth = 2;
 
   /* First child */
-  const se::key_t cell0 =
-    se::keyops::encode(16, 16, 16, level, max_depth);
-  const Eigen::Vector3i fc0 = se::far_corner(cell0, level, max_depth);
-  ASSERT_EQ(fc0(0), 16);
-  ASSERT_EQ(fc0(1), 16);
-  ASSERT_EQ(fc0(2), 16);
+  const se::key_t octant_0_key =
+    se::keyops::encode(16, 16, 16, depth, voxel_depth);
+  const Eigen::Vector3i fc_0_coord = se::far_corner(octant_0_key, depth, voxel_depth);
+  ASSERT_EQ(fc_0_coord.x(), 16);
+  ASSERT_EQ(fc_0_coord.y(), 16);
+  ASSERT_EQ(fc_0_coord.z(), 16);
 
   /* Second child */
-  const se::key_t cell1 = se::keyops::encode(24, 16, 16, level, max_depth);
-  const Eigen::Vector3i fc1 = se::far_corner(cell1, level, max_depth);
-  ASSERT_EQ(fc1(0), 32);
-  ASSERT_EQ(fc1(1), 16);
-  ASSERT_EQ(fc1(2), 16);
+  const se::key_t octant_1_key = se::keyops::encode(24, 16, 16, depth, voxel_depth);
+  const Eigen::Vector3i fc_1_coord = se::far_corner(octant_1_key, depth, voxel_depth);
+  ASSERT_EQ(fc_1_coord.x(), 32);
+  ASSERT_EQ(fc_1_coord.y(), 16);
+  ASSERT_EQ(fc_1_coord.z(), 16);
 
   /* Third child */
-  const se::key_t cell2 = se::keyops::encode(16, 24, 16, level, max_depth);
-  const Eigen::Vector3i fc2 = se::far_corner(cell2, level, max_depth);
-  ASSERT_EQ(fc2(0), 16);
-  ASSERT_EQ(fc2(1), 32);
-  ASSERT_EQ(fc2(2), 16);
+  const se::key_t octant_2_key = se::keyops::encode(16, 24, 16, depth, voxel_depth);
+  const Eigen::Vector3i fc_2_coord = se::far_corner(octant_2_key, depth, voxel_depth);
+  ASSERT_EQ(fc_2_coord.x(), 16);
+  ASSERT_EQ(fc_2_coord.y(), 32);
+  ASSERT_EQ(fc_2_coord.z(), 16);
 
   /* Fourth child */
-  const se::key_t cell3 = se::keyops::encode(24, 24, 16, level, max_depth);
-  const Eigen::Vector3i fc3 = se::far_corner(cell3, level, max_depth);
-  ASSERT_EQ(fc3(0), 32);
-  ASSERT_EQ(fc3(1), 32);
-  ASSERT_EQ(fc3(2), 16);
+  const se::key_t octant_3_key = se::keyops::encode(24, 24, 16, depth, voxel_depth);
+  const Eigen::Vector3i fc_3_coord = se::far_corner(octant_3_key, depth, voxel_depth);
+  ASSERT_EQ(fc_3_coord.x(), 32);
+  ASSERT_EQ(fc_3_coord.y(), 32);
+  ASSERT_EQ(fc_3_coord.z(), 16);
 
   /* Fifth child */
-  const se::key_t cell4 = se::keyops::encode(24, 24, 16, level, max_depth);
-  const Eigen::Vector3i fc4 = se::far_corner(cell4, level, max_depth);
-  ASSERT_EQ(fc4(0), 32);
-  ASSERT_EQ(fc4(1), 32);
-  ASSERT_EQ(fc4(2), 16);
+  const se::key_t octant_4_key = se::keyops::encode(24, 24, 16, depth, voxel_depth);
+  const Eigen::Vector3i fc_4_coord = se::far_corner(octant_4_key, depth, voxel_depth);
+  ASSERT_EQ(fc_4_coord.x(), 32);
+  ASSERT_EQ(fc_4_coord.y(), 32);
+  ASSERT_EQ(fc_4_coord.z(), 16);
 
   /* sixth child */
-  const se::key_t cell5 = se::keyops::encode(16, 16, 24, level, max_depth);
-  const Eigen::Vector3i fc5 = se::far_corner(cell5, level, max_depth);
-  ASSERT_EQ(fc5(0), 16);
-  ASSERT_EQ(fc5(1), 16);
-  ASSERT_EQ(fc5(2), 32);
+  const se::key_t octant_5_key = se::keyops::encode(16, 16, 24, depth, voxel_depth);
+  const Eigen::Vector3i fc_5_coord = se::far_corner(octant_5_key, depth, voxel_depth);
+  ASSERT_EQ(fc_5_coord.x(), 16);
+  ASSERT_EQ(fc_5_coord.y(), 16);
+  ASSERT_EQ(fc_5_coord.z(), 32);
 
   /* seventh child */
-  const se::key_t cell6 = se::keyops::encode(24, 16, 24, level, max_depth);
-  const Eigen::Vector3i fc6 = se::far_corner(cell6, level, max_depth);
-  ASSERT_EQ(fc6(0), 32);
-  ASSERT_EQ(fc6(1), 16);
-  ASSERT_EQ(fc6(2), 32);
+  const se::key_t octant_6_key = se::keyops::encode(24, 16, 24, depth, voxel_depth);
+  const Eigen::Vector3i fc_6_coord = se::far_corner(octant_6_key, depth, voxel_depth);
+  ASSERT_EQ(fc_6_coord.x(), 32);
+  ASSERT_EQ(fc_6_coord.y(), 16);
+  ASSERT_EQ(fc_6_coord.z(), 32);
 
   /* eight child */
-  const se::key_t cell7 = se::keyops::encode(24, 24, 24, level, max_depth);
-  const Eigen::Vector3i fc7 = se::far_corner(cell7, level, max_depth);
-  ASSERT_EQ(fc7(0), 32);
-  ASSERT_EQ(fc7(1), 32);
-  ASSERT_EQ(fc7(2), 32);
+  const se::key_t octant_7_key = se::keyops::encode(24, 24, 24, depth, voxel_depth);
+  const Eigen::Vector3i fc_7_coord = se::far_corner(octant_7_key, depth, voxel_depth);
+  ASSERT_EQ(fc_7_coord.x(), 32);
+  ASSERT_EQ(fc_7_coord.y(), 32);
+  ASSERT_EQ(fc_7_coord.z(), 32);
 }
 
 TEST(Octree, InnerOctantExteriorNeighbours) {
-  const int max_depth = 5;
-  const int level = 2;
-  const int side = 1 << (max_depth - level);
-  const se::key_t cell = se::keyops::encode(16, 16, 16, level, max_depth);
-  se::key_t N[7];
-  se::exterior_neighbours(N, cell, level, max_depth);
-  const se::key_t p = se::parent(cell, max_depth);
+  const int voxel_depth = 5;
+  const int depth = 2;
+  const int size = 1 << (voxel_depth - depth);
+  const se::key_t octant_key = se::keyops::encode(16, 16, 16, depth, voxel_depth);
+  se::key_t neighbour_keys[7];
+  se::exterior_neighbours(neighbour_keys, octant_key, depth, voxel_depth);
+  const se::key_t parent_key = se::parent(octant_key, voxel_depth);
 
-  const se::key_t neighbours_gt[7] =
-    {se::keyops::encode(15, 16, 16, level, max_depth),
-     se::keyops::encode(16, 15, 16, level, max_depth),
-     se::keyops::encode(15, 15, 16, level, max_depth),
-     se::keyops::encode(16, 16, 15, level, max_depth),
-     se::keyops::encode(15, 16, 15, level, max_depth),
-     se::keyops::encode(16, 15, 15, level, max_depth),
-     se::keyops::encode(15, 15, 15, level, max_depth)};
+  const se::key_t neighbours_gt_keys[7] =
+    {se::keyops::encode(15, 16, 16, depth, voxel_depth),
+     se::keyops::encode(16, 15, 16, depth, voxel_depth),
+     se::keyops::encode(15, 15, 16, depth, voxel_depth),
+     se::keyops::encode(16, 16, 15, depth, voxel_depth),
+     se::keyops::encode(15, 16, 15, depth, voxel_depth),
+     se::keyops::encode(16, 15, 15, depth, voxel_depth),
+     se::keyops::encode(15, 15, 15, depth, voxel_depth)};
   for(int i = 0; i < 7; ++i) {
     // std::bitset<64> c(N[i]);
     // std::bitset<64> a(p);
     // std::cout << a << std::endl;
     // std::cout << c << std::endl << std::endl;
-    ASSERT_EQ(neighbours_gt[i], N[i]);
-    ASSERT_FALSE(se::parent(N[i], max_depth) == p);
+    ASSERT_EQ(neighbours_gt_keys[i], neighbour_keys[i]);
+    ASSERT_FALSE(se::parent(neighbour_keys[i], voxel_depth) == parent_key);
     // std::cout << (unpack_morton(N[i] & ~SCALE_MASK)) << std::endl;
   }
 }
 
 TEST(Octree, EdgeOctantExteriorNeighbours) {
-  const int max_depth = 5;
-  const int size = 1 << max_depth;
-  const int level = 2;
-  const se::key_t cell = se::keyops::encode(0, 16, 16, level, max_depth);
-  se::key_t N[7];
-  se::exterior_neighbours(N, cell, level, max_depth);
-  const se::key_t p = se::parent(cell, max_depth);
+  const int voxel_depth = 5;
+  const int size = 1 << voxel_depth;
+  const int depth = 2;
+  const se::key_t octant_key = se::keyops::encode(0, 16, 16, depth, voxel_depth);
+  se::key_t neightbour_keys[7];
+  se::exterior_neighbours(neightbour_keys, octant_key, depth, voxel_depth);
 
   for(int i = 0; i < 7; ++i) {
-    const Eigen::Vector3i corner = unpack_morton(N[i] & ~SCALE_MASK);
-    const int res = ((corner.array() >= Eigen::Vector3i::Constant(0).array())
-     && (corner.array() <= Eigen::Vector3i::Constant(size - 1).array())).all();
+    const Eigen::Vector3i neighbour_coord = unpack_morton(neightbour_keys[i] & ~SCALE_MASK);
+    const int res = ((neighbour_coord.array() >= Eigen::Vector3i::Constant(0).array()) &&
+                     (neighbour_coord.array() <= Eigen::Vector3i::Constant(size - 1).array())).all();
     ASSERT_TRUE(res);
   }
 }
 
 TEST(Octree, OctantSiblings) {
-  const int max_depth = 5;
-  const unsigned size = std::pow(2, 5);
-  const int level = 2;
-  const se::key_t cell = se::keyops::encode(16, 16, 16, level, max_depth);
-  se::key_t s[8];
-  se::siblings(s, cell, max_depth);
+  const int voxel_depth = 5;
+  const int depth = 2;
+  const se::key_t octant_key = se::keyops::encode(16, 16, 16, depth, voxel_depth);
+  se::key_t sibling_keys[8];
+  se::siblings(sibling_keys, octant_key, voxel_depth);
 
-  const int childidx = se::child_id(cell, level, max_depth);
-  ASSERT_EQ(s[childidx], cell);
-  const Eigen::Vector3i p = se::keyops::decode(cell);
+  const int child_idx = se::child_idx(octant_key, depth, voxel_depth);
+  ASSERT_EQ(sibling_keys[child_idx], octant_key);
+  const Eigen::Vector3i octant_coord = se::keyops::decode(octant_key);
   for(int i = 0; i < 8; ++i) {
     // std::cout << (unpack_morton(s[i] & ~SCALE_MASK)) << std::endl;
-    const Eigen::Vector3i po = se::keyops::decode(se::parent(s[i], max_depth));
-    ASSERT_TRUE(se::parent(s[i], max_depth) == se::parent(cell, max_depth));
-    ASSERT_TRUE(p.x() == po.x() && p.y() == po.y() && p.z() == po.z());
+    const Eigen::Vector3i parent_coord = se::keyops::decode(se::parent(sibling_keys[i], voxel_depth));
+    ASSERT_TRUE(se::parent(sibling_keys[i], voxel_depth) == se::parent(octant_key, voxel_depth));
+    ASSERT_TRUE(octant_coord.x() == parent_coord.x() &&
+                octant_coord.y() == parent_coord.y() &&
+                octant_coord.z() == parent_coord.z());
   }
 }
 
 TEST(Octree, OctantOneNeighbours) {
-  const int max_depth = 8;
-  const int level = 5;
-  const unsigned size = std::pow(2, max_depth);
+  const int voxel_depth = 8;
+  const int depth = 5;
+  const unsigned map_size = std::pow(2, voxel_depth);
   Eigen::Matrix<int, 4, 6> N;
-  Eigen::Vector3i pos;
+  Eigen::Vector3i voxel_coord;
 
   // Inside cube
   //
-  pos << 127, 56, 3;
-  se::one_neighbourhood(N, se::keyops::encode(pos.x(), pos.y(), pos.z(),
-        level, max_depth), max_depth);
-  ASSERT_TRUE((N.array() >= 0).all() && (N.array() < size).all());
+  voxel_coord << 127, 56, 3;
+  se::one_neighbourhood(N, se::keyops::encode(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(),
+        depth, voxel_depth), voxel_depth);
+  ASSERT_TRUE((N.array() >= 0).all() && (N.array() < map_size).all());
 
 
   // At edge cube
   //
-  pos << size-1, 56, 3;
-  se::one_neighbourhood(N, se::keyops::encode(pos.x(), pos.y(), pos.z(),
-        level, max_depth), max_depth);
-  ASSERT_TRUE((N.array() >= 0).all() && (N.array() < size).all());
+  voxel_coord << map_size-1, 56, 3;
+  se::one_neighbourhood(N, se::keyops::encode(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(),
+        depth, voxel_depth), voxel_depth);
+  ASSERT_TRUE((N.array() >= 0).all() && (N.array() < map_size).all());
 }
 
 TEST(Octree, BalanceTree) {
-  const int max_depth = 8;
-  const int level = 5;
+  const int voxel_depth = 8;
+  const int depth = 5;
 
-  se::Octree<TestVoxelT> oct;
-  oct.init(1 << max_depth, 5);
-  Eigen::Vector3i vox(32, 208, 44);
-  oct.insert(vox.x(), vox.y(), vox.z());
-  vox += Eigen::Vector3i(50, 12, 100);
-  oct.insert(vox.x(), vox.y(), vox.z());
-  se::print_octree("./oct.ply", oct);
-  se::balance(oct);
-  se::print_octree("./oct-balanced.ply", oct);
+  se::Octree<TestVoxelT> octree;
+  octree.init(1 << voxel_depth, 5);
+  Eigen::Vector3i voxel_coord(32, 208, 44);
+  octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
+  voxel_coord += Eigen::Vector3i(50, 12, 100);
+  octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
+  se::print_octree("./oct.ply", octree);
+  se::balance(octree);
+  se::print_octree("./oct-balanced.ply", octree);
 }

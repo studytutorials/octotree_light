@@ -13,7 +13,7 @@ class Dataset:
         self.pre_assoc_file_path = None
         self.ate_associate_identity = None
         self.descr = None
-        self.volume_size = None
+        self.map_dim = None
 
     # Correctly interpret ~ as the home directory in paths.
     def fix_paths(self):

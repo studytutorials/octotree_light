@@ -14,6 +14,8 @@ find_package(Threads REQUIRED)
 find_package(GTest REQUIRED)
 find_package(SEShared REQUIRED)
 
+add_definitions(-DSE_SENSOR_IMPLEMENTATION=PinholeCamera)
+
 enable_testing()
 
 # Build the tests

@@ -39,7 +39,7 @@ namespace se {
     constexpr int INVALID_SAMPLE = -2;
 
     /*
-     * Interpolation's point gather offsets
+     * Interpolation's value gather offsets
      */
     static const Eigen::Vector3i interp_offsets[8] =
         {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {1, 1, 0},
@@ -47,136 +47,160 @@ namespace se {
 
 
 
-    template <typename FieldType, typename FieldSelector>
-    inline void gather_local(
-        const se::VoxelBlock<FieldType>*         block,
-        const Eigen::Vector3i&                   base,
-        const int                                scale,
-        const int                                stride,
-        FieldSelector                            select,
-        decltype(select(FieldType::initValue())) points[8]) {
+    template <typename FieldType, 
+              typename NodeValueSelector,
+              typename VoxelValueSelector,
+              template<typename FieldT> class OctreeT,
+              typename ValueT>
+    inline void gather_local(const se::VoxelBlock<FieldType>* block,
+                             const OctreeT<FieldType>&        octree,
+                             const Eigen::Vector3i&           base_coord,
+                             const int                        scale,
+                             const int                        stride,
+                             NodeValueSelector                select_node_value,
+                             VoxelValueSelector               select_voxel_value,
+                             ValueT                           values[8]) {
 
-      if (!block) {
-        points[0] = select(FieldType::empty());
-        points[1] = select(FieldType::empty());
-        points[2] = select(FieldType::empty());
-        points[3] = select(FieldType::empty());
-        points[4] = select(FieldType::empty());
-        points[5] = select(FieldType::empty());
-        points[6] = select(FieldType::empty());
-        points[7] = select(FieldType::empty());
-      } else {
-        points[0] = select(block->data(base + stride * interp_offsets[0], scale));
-        points[1] = select(block->data(base + stride * interp_offsets[1], scale));
-        points[2] = select(block->data(base + stride * interp_offsets[2], scale));
-        points[3] = select(block->data(base + stride * interp_offsets[3], scale));
-        points[4] = select(block->data(base + stride * interp_offsets[4], scale));
-        points[5] = select(block->data(base + stride * interp_offsets[5], scale));
-        points[6] = select(block->data(base + stride * interp_offsets[6], scale));
-        points[7] = select(block->data(base + stride * interp_offsets[7], scale));
+      if (block) {
+        values[0] = select_voxel_value(block->data(base_coord + stride * interp_offsets[0], scale));
+        values[1] = select_voxel_value(block->data(base_coord + stride * interp_offsets[1], scale));
+        values[2] = select_voxel_value(block->data(base_coord + stride * interp_offsets[2], scale));
+        values[3] = select_voxel_value(block->data(base_coord + stride * interp_offsets[3], scale));
+        values[4] = select_voxel_value(block->data(base_coord + stride * interp_offsets[4], scale));
+        values[5] = select_voxel_value(block->data(base_coord + stride * interp_offsets[5], scale));
+        values[6] = select_voxel_value(block->data(base_coord + stride * interp_offsets[6], scale));
+        values[7] = select_voxel_value(block->data(base_coord + stride * interp_offsets[7], scale));
+        return;
       }
+      Eigen::Vector3i voxel_coord = base_coord + stride * interp_offsets[0];
+      ValueT value = select_node_value(octree.get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z()));
+      values[0] = value;
+      values[1] = value;
+      values[2] = value;
+      values[3] = value;
+      values[4] = value;
+      values[5] = value;
+      values[6] = value;
+      values[7] = value;
+      return;
     }
 
 
 
-    template <typename FieldType, typename FieldSelector>
-    inline void gather_4(const se::VoxelBlock<FieldType>*         block,
-                         const Eigen::Vector3i&                   base,
-                         const int                                scale,
-                         const int                                stride,
-                         FieldSelector                            select,
-                         const unsigned int                       offsets[4],
-                         decltype(select(FieldType::initValue())) points[8]) {
+    template <typename FieldType, typename NodeValueSelector,
+              typename VoxelValueSelector,
+              template<typename FieldT> class OctreeT,
+              typename ValueT>
+    inline void gather_4(const se::VoxelBlock<FieldType>* block,
+                         const OctreeT<FieldType>&        octree,
+                         const Eigen::Vector3i&           base_coord,
+                         const int                        scale,
+                         const int                        stride,
+                         NodeValueSelector                select_node_value,
+                         VoxelValueSelector               select_voxel_value,
+                         const unsigned int               offsets[4],
+                         ValueT                           values[8]) {
 
-      if (!block) {
-        points[offsets[0]] = select(FieldType::empty());
-        points[offsets[1]] = select(FieldType::empty());
-        points[offsets[2]] = select(FieldType::empty());
-        points[offsets[3]] = select(FieldType::empty());
-      } else {
-        points[offsets[0]] = select(block->data(base + stride * interp_offsets[offsets[0]], scale));
-        points[offsets[1]] = select(block->data(base + stride * interp_offsets[offsets[1]], scale));
-        points[offsets[2]] = select(block->data(base + stride * interp_offsets[offsets[2]], scale));
-        points[offsets[3]] = select(block->data(base + stride * interp_offsets[offsets[3]], scale));
+      if (block) {
+        values[offsets[0]] = select_voxel_value(block->data(base_coord + stride * interp_offsets[offsets[0]], scale));
+        values[offsets[1]] = select_voxel_value(block->data(base_coord + stride * interp_offsets[offsets[1]], scale));
+        values[offsets[2]] = select_voxel_value(block->data(base_coord + stride * interp_offsets[offsets[2]], scale));
+        values[offsets[3]] = select_voxel_value(block->data(base_coord + stride * interp_offsets[offsets[3]], scale));
+        return;
       }
-    }
-
-
-
-    template <typename FieldType, typename FieldSelector>
-    inline void gather_2(const se::VoxelBlock<FieldType>*         block,
-                         const Eigen::Vector3i&                   base,
-                         const int                                scale,
-                         const int                                stride,
-                         FieldSelector                            select,
-                         const unsigned int                       offsets[2],
-                         decltype(select(FieldType::initValue())) points[8]) {
-
-      if (!block) {
-        points[offsets[0]] = select(FieldType::empty());
-        points[offsets[1]] = select(FieldType::empty());
-      } else {
-        points[offsets[0]] = select(block->data(base + stride*interp_offsets[offsets[0]], scale));
-        points[offsets[1]] = select(block->data(base + stride*interp_offsets[offsets[1]], scale));
-      }
+      Eigen::Vector3i voxel_coord = base_coord + stride * interp_offsets[offsets[0]];
+      ValueT value = select_node_value(octree.get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z()));
+      values[offsets[0]] = value;
+      values[offsets[1]] = value;
+      values[offsets[2]] = value;
+      values[offsets[3]] = value;
+      return;
     }
 
 
 
     template <typename FieldType,
+              typename NodeValueSelector,
+              typename VoxelValueSelector,
               template<typename FieldT> class OctreeT,
-              class FieldSelector>
-    inline int gather_points(
-        const OctreeT<FieldType>&                fetcher,
-        const Eigen::Vector3i&                   base,
-        const int                                scale,
-        FieldSelector                            select,
-        decltype(select(FieldType::initValue())) points[8]) {
+              typename ValueT>
+    inline void gather_2(const se::VoxelBlock<FieldType>* block,
+                         const OctreeT<FieldType>&        octree,
+                         const Eigen::Vector3i&           base_coord,
+                         const int                        scale,
+                         const int                        stride,
+                         NodeValueSelector                select_node_value,
+                         VoxelValueSelector               select_voxel_value,
+                         const unsigned int               offsets[2],
+                         ValueT                           values[8]) {
+
+      if (block) {
+        values[offsets[0]] = select_voxel_value(block->data(base_coord + stride * interp_offsets[offsets[0]], scale));
+        values[offsets[1]] = select_voxel_value(block->data(base_coord + stride * interp_offsets[offsets[1]], scale));
+        return;
+      }
+      Eigen::Vector3i voxel_coord = base_coord + stride * interp_offsets[offsets[0]];
+      ValueT value = select_node_value(octree.get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z()));
+      values[offsets[0]] = value;
+      values[offsets[1]] = value;
+      return;
+    }
+
+    template <typename FieldType, typename NodeValueSelector,
+              typename VoxelValueSelector,
+              template<typename FieldT> class OctreeT,
+              typename ValueT>
+    inline int gather_values(const OctreeT<FieldType>&  octree,
+                             const Eigen::Vector3i&     base_coord,
+                             const int                  scale,
+                             NodeValueSelector          select_node_value,
+                             VoxelValueSelector         select_voxel_value,
+                             ValueT                     values[8]) {
 
       const int stride = 1 << scale;
-      unsigned int blockSize = se::VoxelBlock<FieldType>::side;
+      unsigned int block_size = se::VoxelBlock<FieldType>::size;
       unsigned int crossmask
-          = (((base.x() & (blockSize - 1)) == blockSize - stride) << 2)
-          | (((base.y() & (blockSize - 1)) == blockSize - stride) << 1)
-          |  ((base.z() & (blockSize - 1)) == blockSize - stride);
+          = (((base_coord.x() & (block_size - 1)) == block_size - stride) << 2)
+          | (((base_coord.y() & (block_size - 1)) == block_size - stride) << 1)
+          |  ((base_coord.z() & (block_size - 1)) == block_size - stride);
 
       switch(crossmask) {
         case 0: /* all local */
           {
-            se::VoxelBlock<FieldType> * block = fetcher.fetch(base(0), base(1), base(2));
+            se::VoxelBlock<FieldType> * block = octree.fetch(base_coord.x(), base_coord.y(), base_coord(2));
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_local(block, base, scale, stride, select, points);
+            gather_local(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, values);
           }
           break;
         case 1: /* z crosses */
           {
             const unsigned int offs1[4] = {0, 1, 2, 3};
             const unsigned int offs2[4] = {4, 5, 6, 7};
-            se::VoxelBlock<FieldType>* block = fetcher.fetch(base(0), base(1), base(2));
+            se::VoxelBlock<FieldType>* block = octree.fetch(base_coord.x(), base_coord.y(), base_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_4(block, base, scale, stride, select, offs1, points);
-            const Eigen::Vector3i base1 = base + stride * interp_offsets[offs2[0]];
-            block = fetcher.fetch(base1(0), base1(1), base1(2));
+            gather_4(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs1, values);
+            const Eigen::Vector3i base_1_coord = base_coord + stride * interp_offsets[offs2[0]];
+            block = octree.fetch(base_1_coord.x(), base_1_coord.y(), base_1_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_4(block, base, scale, stride, select, offs2, points);
+            gather_4(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs2, values);
           }
           break;
         case 2: /* y crosses */
           {
             const unsigned int offs1[4] = {0, 1, 4, 5};
             const unsigned int offs2[4] = {2, 3, 6, 7};
-            se::VoxelBlock<FieldType>* block = fetcher.fetch(base(0), base(1), base(2));
-            gather_4(block, base, scale, stride, select, offs1, points);
+            se::VoxelBlock<FieldType>* block = octree.fetch(base_coord.x(), base_coord.y(), base_coord.z());
+            gather_4(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs1, values);
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            const Eigen::Vector3i base1 = base + stride * interp_offsets[offs2[0]];
-            block = fetcher.fetch(base1(0), base1(1), base1(2));
+            const Eigen::Vector3i base_1_coord = base_coord + stride * interp_offsets[offs2[0]];
+            block = octree.fetch(base_1_coord.x(), base_1_coord.y(), base_1_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_4(block, base, scale, stride, select, offs2, points);
+            gather_4(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs2, values);
           }
           break;
         case 3: /* y, z cross */
@@ -185,40 +209,40 @@ namespace se {
             const unsigned int offs2[2] = {2, 3};
             const unsigned int offs3[2] = {4, 5};
             const unsigned int offs4[2] = {6, 7};
-            const Eigen::Vector3i base2 = base + stride * interp_offsets[offs2[0]];
-            const Eigen::Vector3i base3 = base + stride * interp_offsets[offs3[0]];
-            const Eigen::Vector3i base4 = base + stride * interp_offsets[offs4[0]];
-            se::VoxelBlock<FieldType>* block = fetcher.fetch(base(0), base(1), base(2));
+            const Eigen::Vector3i base_2_coord = base_coord + stride * interp_offsets[offs2[0]];
+            const Eigen::Vector3i base_3_coord = base_coord + stride * interp_offsets[offs3[0]];
+            const Eigen::Vector3i base_4_coord = base_coord + stride * interp_offsets[offs4[0]];
+            se::VoxelBlock<FieldType>* block = octree.fetch(base_coord.x(), base_coord.y(), base_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs1, points);
-            block = fetcher.fetch(base2(0), base2(1), base2(2));
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs1, values);
+            block = octree.fetch(base_2_coord.x(), base_2_coord.y(), base_2_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs2, points);
-            block = fetcher.fetch(base3(0), base3(1), base3(2));
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs2, values);
+            block = octree.fetch(base_3_coord.x(), base_3_coord.y(), base_3_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs3, points);
-            block = fetcher.fetch(base4(0), base4(1), base4(2));
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs3, values);
+            block = octree.fetch(base_4_coord.x(), base_4_coord.y(), base_4_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs4, points);
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs4, values);
           }
           break;
         case 4: /* x crosses */
           {
             const unsigned int offs1[4] = {0, 2, 4, 6};
             const unsigned int offs2[4] = {1, 3, 5, 7};
-            se::VoxelBlock<FieldType>* block = fetcher.fetch(base(0), base(1), base(2));
+            se::VoxelBlock<FieldType>* block = octree.fetch(base_coord.x(), base_coord.y(), base_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_4(block, base, scale, stride, select, offs1, points);
-            const Eigen::Vector3i base1 = base + stride * interp_offsets[offs2[0]];
-            block = fetcher.fetch(base1(0), base1(1), base1(2));
+            gather_4(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs1, values);
+            const Eigen::Vector3i base_1_coord = base_coord + stride * interp_offsets[offs2[0]];
+            block = octree.fetch(base_1_coord.x(), base_1_coord.y(), base_1_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_4(block, base, scale, stride, select, offs2, points);
+            gather_4(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs2, values);
           }
           break;
         case 5: /* x,z cross */
@@ -227,25 +251,25 @@ namespace se {
             const unsigned int offs2[2] = {1, 3};
             const unsigned int offs3[2] = {4, 6};
             const unsigned int offs4[2] = {5, 7};
-            const Eigen::Vector3i base2 = base + stride * interp_offsets[offs2[0]];
-            const Eigen::Vector3i base3 = base + stride * interp_offsets[offs3[0]];
-            const Eigen::Vector3i base4 = base + stride * interp_offsets[offs4[0]];
-            se::VoxelBlock<FieldType>* block = fetcher.fetch(base(0), base(1), base(2));
+            const Eigen::Vector3i base_2_coord = base_coord + stride * interp_offsets[offs2[0]];
+            const Eigen::Vector3i base_3_coord = base_coord + stride * interp_offsets[offs3[0]];
+            const Eigen::Vector3i base_4_coord = base_coord + stride * interp_offsets[offs4[0]];
+            se::VoxelBlock<FieldType>* block = octree.fetch(base_coord.x(), base_coord.y(), base_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs1, points);
-            block = fetcher.fetch(base2(0), base2(1), base2(2));
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs1, values);
+            block = octree.fetch(base_2_coord.x(), base_2_coord.y(), base_2_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs2, points);
-            block = fetcher.fetch(base3(0), base3(1), base3(2));
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs2, values);
+            block = octree.fetch(base_3_coord.x(), base_3_coord.y(), base_3_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs3, points);
-            block = fetcher.fetch(base4(0), base4(1), base4(2));
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs3, values);
+            block = octree.fetch(base_4_coord.x(), base_4_coord.y(), base_4_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs4, points);
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs4, values);
           }
           break;
         case 6: /* x,y cross */
@@ -254,47 +278,51 @@ namespace se {
             const unsigned int offs2[2] = {1, 5};
             const unsigned int offs3[2] = {2, 6};
             const unsigned int offs4[2] = {3, 7};
-            const Eigen::Vector3i base2 = base + stride * interp_offsets[offs2[0]];
-            const Eigen::Vector3i base3 = base + stride * interp_offsets[offs3[0]];
-            const Eigen::Vector3i base4 = base + stride * interp_offsets[offs4[0]];
-            se::VoxelBlock<FieldType> * block = fetcher.fetch(base(0), base(1), base(2));
+            const Eigen::Vector3i base_2_coord = base_coord + stride * interp_offsets[offs2[0]];
+            const Eigen::Vector3i base_3_coord = base_coord + stride * interp_offsets[offs3[0]];
+            const Eigen::Vector3i base_4_coord = base_coord + stride * interp_offsets[offs4[0]];
+            se::VoxelBlock<FieldType> * block = octree.fetch(base_coord.x(), base_coord.y(), base_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs1, points);
-            block = fetcher.fetch(base2(0), base2(1), base2(2));
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs1, values);
+            block = octree.fetch(base_2_coord.x(), base_2_coord.y(), base_2_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs2, points);
-            block = fetcher.fetch(base3(0), base3(1), base3(2));
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs2, values);
+            block = octree.fetch(base_3_coord.x(), base_3_coord.y(), base_3_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs3, points);
-            block = fetcher.fetch(base4(0), base4(1), base4(2));
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs3, values);
+            block = octree.fetch(base_4_coord.x(), base_4_coord.y(), base_4_coord.z());
             if (block && block->current_scale() > scale)
               return block->current_scale();
-            gather_2(block, base, scale, stride, select, offs4, points);
+            gather_2(block, octree, base_coord, scale, stride, select_node_value, select_voxel_value, offs4, values);
           }
           break;
 
         case 7:
           {
-            Eigen::Vector3i vox[8];
-            vox[0] = base + stride * interp_offsets[0];
-            vox[1] = base + stride * interp_offsets[1];
-            vox[2] = base + stride * interp_offsets[2];
-            vox[3] = base + stride * interp_offsets[3];
-            vox[4] = base + stride * interp_offsets[4];
-            vox[5] = base + stride * interp_offsets[5];
-            vox[6] = base + stride * interp_offsets[6];
-            vox[7] = base + stride * interp_offsets[7];
+            Eigen::Vector3i voxels_coord[8];
+            voxels_coord[0] = base_coord + stride * interp_offsets[0];
+            voxels_coord[1] = base_coord + stride * interp_offsets[1];
+            voxels_coord[2] = base_coord + stride * interp_offsets[2];
+            voxels_coord[3] = base_coord + stride * interp_offsets[3];
+            voxels_coord[4] = base_coord + stride * interp_offsets[4];
+            voxels_coord[5] = base_coord + stride * interp_offsets[5];
+            voxels_coord[6] = base_coord + stride * interp_offsets[6];
+            voxels_coord[7] = base_coord + stride * interp_offsets[7];
 
             for (int i = 0; i < 8; ++i) {
-              auto block = fetcher.fetch(vox[i].x(), vox[i].y(), vox[i].z());
+              auto block = octree.fetch(voxels_coord[i].x(), voxels_coord[i].y(), voxels_coord[i].z());
+
               if (block && block->current_scale() > scale)
                 return block->current_scale();
-              points[i] = block
-                  ? select(block->data(vox[i], scale))
-                  : select(FieldType::empty());
+
+              if (block) {
+                values[i] = select_voxel_value(block->data(voxels_coord[i], scale));
+              } else {
+                values[i] = select_node_value(octree.get(voxels_coord[i].x(), voxels_coord[i].y(), voxels_coord[i].z()));
+              }
             }
           }
           break;
@@ -302,36 +330,46 @@ namespace se {
       return scale;
     }
 
-
+    template <typename FieldType,
+        typename ValueSelector,
+        template<typename FieldT> class OctreeT,
+        typename ValueT>
+    inline int gather_values(const OctreeT<FieldType>&  octree,
+                             const Eigen::Vector3i&     base_coord,
+                             const int                  scale,
+                             ValueSelector              select_value,
+                             ValueT                     values[8]) {
+      return gather_values(octree, base_coord, scale, select_value, select_value, values);
+    }
 
     /*! \brief Fetch the field sample corresponding to the octant neighbour along the
      * specified direction. If the search fails the second element of the returned
      * is set to false.
      * \param stack stack of ancestor nodes of octant
-     * \param octant base octant.
+     * \param octant base_coord octant.
      * \param max_depth maximum depth of the tree.
      * \param dir direction along which to fetch the neighbou. Only positive
      * search directions are allowed along any axes.
      */
-    template <typename Precision, typename FieldType, typename FieldSelector>
+    template <typename Precision, typename FieldType, typename VoxelValueSelector>
     static inline std::pair<Precision, Eigen::Vector3i> fetch_neighbour_sample(
-        Node<FieldType>* stack[],
-        Node<FieldType>* octant,
-        const int        max_depth,
-        const int        dir,
-        FieldSelector    select) {
+        Node<FieldType>*   stack[],
+        Node<FieldType>*   octant,
+        const int          max_depth,
+        const int          dir,
+        VoxelValueSelector select_voxel_value) {
 
-      int level = se::keyops::level(octant->code_);
-      while (level > 0) {
-        int child_id = se::child_id(stack[level]->code_, max_depth);
-        int sibling = child_id ^ dir;
+      int depth = se::keyops::depth(octant->code_);
+      while (depth > 0) {
+        int child_idx = se::child_idx(stack[depth]->code_, max_depth);
+        int sibling = child_idx ^ dir;
         if ((sibling & dir) == dir) { // if sibling still in octant's family
-          const int side = 1 << (max_depth - level);
-          const Eigen::Vector3i coords = se::keyops::decode(stack[level-1]->code_)
-              + side * Eigen::Vector3i((sibling & 1), (sibling & 2) >> 1, (sibling & 4) >> 2);
-          return {select(stack[level-1]->value_[sibling]), coords};
+          const int child_size = 1 << (max_depth - depth);
+          const Eigen::Vector3i coords = se::keyops::decode(stack[depth-1]->code_)
+              + child_size * Eigen::Vector3i((sibling & 1), (sibling & 2) >> 1, (sibling & 4) >> 2);
+          return {select_voxel_value(stack[depth - 1]->data_[sibling]), coords};
         }
-        level--;
+        depth--;
       }
       return {Precision(), Eigen::Vector3i::Constant(INVALID_SAMPLE)};
     }
@@ -341,7 +379,7 @@ namespace se {
     /*! \brief Fetch the neighbour of octant in the desired direction which is at
      * most refined as the starting octant.
      * \param stack stack of ancestor nodes of octant
-     * \param octant base octant.
+     * \param octant base_coord octant.
      * \param max_depth maximum depth of the tree.
      * \param dir direction along which to fetch the neighbou. Only positive
      * search directions are allowed along any axes.
@@ -352,14 +390,14 @@ namespace se {
                                                    const int        max_depth,
                                                    const int        dir) {
 
-      int level = se::keyops::level(octant->code_);
-      while (level > 0) {
-        int child_id = se::child_id(stack[level]->code_, max_depth);
-        int sibling = child_id ^ dir;
+      int depth = se::keyops::depth(octant->code_);
+      while (depth > 0) {
+        int child_idx = se::child_idx(stack[depth]->code_, max_depth);
+        int sibling = child_idx ^ dir;
         if ((sibling & dir) == dir) { // if sibling still in octant's family
-          return stack[level-1]->child(sibling);
+          return stack[depth - 1]->child(sibling);
         }
-        level--;
+        depth--;
       }
       return nullptr;
     }
@@ -368,7 +406,7 @@ namespace se {
 
     /*! \brief Fetch the finest octant containing (x,y,z) starting from root node.
      * It is required that pos is contained withing the root node, i.e. pos is
-     * within the interval [root.pos, root.pos + root.side].
+     * within the interval [root.pos, root.pos + root.size].
      * \param stack stack of traversed nodes
      * \param root Root node from where the search starts.
      * \param pos integer position of searched octant
@@ -377,24 +415,24 @@ namespace se {
     static inline Node<T>* fetch(Node<T>*               stack[],
                                  Node<T>*               root,
                                  const int              max_depth,
-                                 const Eigen::Vector3i& pos) {
+                                 const Eigen::Vector3i& node_coord) {
 
-      unsigned edge = (1 << (max_depth - se::keyops::level(root->code_))) / 2;
-      constexpr unsigned int blockSide = BLOCK_SIDE;
-      Node<T>* n = root;
-      int l = 0;
-      for (; edge >= blockSide; ++l, edge = edge >> 1) {
-        stack[l] = n;
-        auto next = n->child(
-            (pos.x() & edge) > 0u,
-            (pos.y() & edge) > 0u,
-            (pos.z() & edge) > 0u);
+      unsigned node_size = (1 << (max_depth - se::keyops::depth(root->code_))) / 2;
+      constexpr unsigned int block_size = BLOCK_SIZE;
+      Node<T>* node = root;
+      int d = 0;
+      for (; node_size >= block_size; ++d, node_size = node_size >> 1) {
+        stack[d] = node;
+        auto next = node->child(
+            (node_coord.x() & node_size) > 0u,
+            (node_coord.y() & node_size) > 0u,
+            (node_coord.z() & node_size) > 0u);
         if (!next)
           break;
-        n = next;
+        node = next;
       }
-      stack[l] = n;
-      return n;
+      stack[d] = node;
+      return node;
     }
   } // end namespace internal
 } // end namespace se

@@ -27,8 +27,8 @@ set(SUPEREIGHT_FIELD_TYPES "")
 
 # Build each supereight module.
 add_subdirectory(third_party)
-add_subdirectory(se_shared)
 add_subdirectory(se_core)
+add_subdirectory(se_shared)
 add_subdirectory(se_voxel_impl)
 add_subdirectory(se_denseslam)
 add_subdirectory(se_apps)

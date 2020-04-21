@@ -39,8 +39,8 @@ template <typename T>
 class se::VoxelBlockRayIterator {
   public:
     VoxelBlockRayIterator(const Octree<T>&       octree,
-                          const Eigen::Vector3f& origin,
-                          const Eigen::Vector3f& direction,
+                          const Eigen::Vector3f& ray_origin_M,
+                          const Eigen::Vector3f& ray_dir_M,
                           const float            near_plane,
                           const float            far_plane)
         : octree_(octree) {
@@ -51,44 +51,44 @@ class se::VoxelBlockRayIterator {
       child_ = nullptr;
       scale_exp2_ = 0.5f;
       scale_ = CAST_STACK_DEPTH - 1;
-      min_scale_ = CAST_STACK_DEPTH - log2(octree_.size_ / Octree<T>::blockSide);
+      min_scale_ = CAST_STACK_DEPTH - log2(octree_.size_ / Octree<T>::block_size);
       state_ = INIT;
 
       for(int i = 0 ; i < CAST_STACK_DEPTH; ++i) {
         stack_[i] = {0, nullptr, 0.f};
       }
 
-      // Ensure all elements of direction_ are non-zero.
+      // Ensure all elements of ray_dir_M_ are non-zero.
       const float epsilon = exp2f(-log2(octree_.size_));
-      direction_.x() = fabsf(direction.x()) < epsilon ?
-          copysignf(epsilon, direction.x()) : direction.x();
-      direction_.y() = fabsf(direction.y()) < epsilon ?
-          copysignf(epsilon, direction.y()) : direction.y();
-      direction_.z() = fabsf(direction.z()) < epsilon ?
-          copysignf(epsilon, direction.z()) : direction.z();
+      ray_dir_M_.x() = fabsf(ray_dir_M.x()) < epsilon ?
+          copysignf(epsilon, ray_dir_M.x()) : ray_dir_M.x();
+      ray_dir_M_.y() = fabsf(ray_dir_M.y()) < epsilon ?
+          copysignf(epsilon, ray_dir_M.y()) : ray_dir_M.y();
+      ray_dir_M_.z() = fabsf(ray_dir_M.z()) < epsilon ?
+          copysignf(epsilon, ray_dir_M.z()) : ray_dir_M.z();
 
       // Scale the origin to be in the interval [1, 2].
-      const Eigen::Vector3f scaled_origin = origin / octree_.dim_ +
+      const Eigen::Vector3f ray_origin = ray_origin_M / octree_.dim_ +
           Eigen::Vector3f::Ones();
 
       // Precompute the ray coefficients.
-      t_coef_ = -1.f * direction_.cwiseAbs().cwiseInverse();
-      t_bias_ = t_coef_.cwiseProduct(scaled_origin);
+      t_coef_ = -1.f * ray_dir_M_.cwiseAbs().cwiseInverse();
+      t_bias_ = t_coef_.cwiseProduct(ray_origin);
 
 
       // Build the octant mask to to mirror the coordinate system such that
       // each ray component points in negative coordinates. The octree is
       // assumed to reside at coordinates [1, 2]
       octant_mask_ = 7;
-      if (direction_.x() > 0.0f) {
+      if (ray_dir_M_.x() > 0.0f) {
         octant_mask_ ^= 1;
         t_bias_.x() = 3.0f * t_coef_.x() - t_bias_.x();
       }
-      if (direction_.y() > 0.0f) {
+      if (ray_dir_M_.y() > 0.0f) {
         octant_mask_ ^= 2;
         t_bias_.y() = 3.0f * t_coef_.y() - t_bias_.y();
       }
-      if (direction_.z() > 0.0f) {
+      if (ray_dir_M_.z() > 0.0f) {
         octant_mask_ ^= 4;
         t_bias_.z() = 3.0f * t_coef_.z() - t_bias_.z();
       }
@@ -224,8 +224,8 @@ class se::VoxelBlockRayIterator {
 
 
     const Octree<T>& octree_;
-    Eigen::Vector3f origin_;
-    Eigen::Vector3f direction_;
+    Eigen::Vector3f ray_origin_M_;
+    Eigen::Vector3f ray_dir_M_;
     Eigen::Vector3f pos_;
     Eigen::Vector3f t_coef_;
     Eigen::Vector3f t_bias_;
@@ -343,7 +343,7 @@ class se::VoxelBlockRayIterator {
     inline void descend() {
       const float tv_max = fminf(t_max_, tc_max_);
       const float half = scale_exp2_ * 0.5f;
-      const Eigen::Vector3f t_center = half * t_coef_ + t_corner_;
+      const Eigen::Vector3f t_centre = half * t_coef_ + t_corner_;
 
       // Descend to the first child if the resulting t-span is non-empty.
       if (tc_max_ < h_) {
@@ -356,9 +356,9 @@ class se::VoxelBlockRayIterator {
       idx_ = 0;
       scale_--;
       scale_exp2_ = half;
-      idx_ ^= (t_center.x() > t_min_) ? 1 : 0;
-      idx_ ^= (t_center.y() > t_min_) ? 2 : 0;
-      idx_ ^= (t_center.z() > t_min_) ? 4 : 0;
+      idx_ ^= (t_centre.x() > t_min_) ? 1 : 0;
+      idx_ ^= (t_centre.y() > t_min_) ? 2 : 0;
+      idx_ ^= (t_centre.z() > t_min_) ? 4 : 0;
 
       pos_.x() += scale_exp2_ * bool(idx_ & 1);
       pos_.y() += scale_exp2_ * bool(idx_ & 2);

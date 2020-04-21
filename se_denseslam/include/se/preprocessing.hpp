@@ -45,6 +45,7 @@
 #include "se/commons.h"
 #include "se/utils/math_utils.h"
 #include "se/image/image.hpp"
+#include "se/sensor_implementation.hpp"
 
 
 
@@ -56,15 +57,15 @@ void bilateralFilterKernel(se::Image<float>&         out,
 
 
 
-void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
-                        const se::Image<float>&     depth,
-                        const Eigen::Matrix4f&      inv_K);
+void depthToPointCloudKernel(se::Image<Eigen::Vector3f>& point_cloud_C,
+                             const se::Image<float>&     depth_image,
+                             const SensorImpl&           sensor);
 
 
 
-void vertex2depthKernel(se::Image<float>&                 depth,
-                        const se::Image<Eigen::Vector3f>& vertex,
-                        const Eigen::Matrix4f&            T_cw);
+void pointCloudToDepthKernel(se::Image<float>&                 depth_image,
+                             const se::Image<Eigen::Vector3f>& point_cloud_X,
+                             const Eigen::Matrix4f&            T_CX);
 
 
 
@@ -73,14 +74,14 @@ void vertex2depthKernel(se::Image<float>&                 depth,
  * left-handed coordinate system (the y focal length will be negative).
  */
 template <bool NegY>
-void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
+void pointCloudToNormalKernel(se::Image<Eigen::Vector3f>&       out,
                          const se::Image<Eigen::Vector3f>& in);
 
 
 
 void mm2metersKernel(se::Image<float>&      out,
                      const uint16_t*        in,
-                     const Eigen::Vector2i& input_size);
+                     const Eigen::Vector2i& input_res);
 
 
 
@@ -95,14 +96,14 @@ void halfSampleRobustImageKernel(se::Image<float>&       out,
  *
  * \param[in] input_RGB Pointer to the RGB image data, 3 channels, 8 bits per
  * channel.
- * \param[in] input_size Size of the RGB image in pixels (width and height).
+ * \param[in] input_res Size of the RGB image in pixels (width and height).
  * \param[out] output_RGB Object to store the output image to. The output image
  * dimensions must be an integer multiple of the input image dimensions. The
  * data for each pixel is stored in ARGB order, with the alpha channel in the
  * MSB of the uint32_t and the red channel in the LSB of the uint32_t.
  */
 void downsampleImageKernel(const uint8_t*         input_RGB,
-                           const Eigen::Vector2i& input_size,
+                           const Eigen::Vector2i& input_res,
                            se::Image<uint32_t>&   output_RGBA);
 
 #endif

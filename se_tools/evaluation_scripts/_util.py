@@ -26,5 +26,5 @@ def golden_section_search(lower, upper, epsilon, func):
         else:
             lower, f_lower = a, f_a
 
-    center = (upper + lower) / 2
-    return center, func(center)
+    centre = (upper + lower) / 2
+    return centre, func(centre)

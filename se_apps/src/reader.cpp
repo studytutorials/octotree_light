@@ -50,71 +50,71 @@ DepthReader *createReader(Configuration *config, std::string filename) {
             value = values[1];
           else
             value = values[0];
-          if (key == "volume-resolution") {
-            std::vector<std::string> dims = split_string(value, ',');
+          if (key == "map-size") {
+            std::vector<std::string> res = split_string(value, ',');
 
-            if (dims.size() == 3) {
-              config->volume_resolution.x() = ::atoi(
-                  dims[0].c_str());
-              config->volume_resolution.y() = ::atoi(
-                  dims[1].c_str());
-              config->volume_resolution.z() = ::atoi(
-                  dims[2].c_str());
+            if (res.size() == 3) {
+              config->map_size.x() = ::atoi(
+                  res[0].c_str());
+              config->map_size.y() = ::atoi(
+                  res[1].c_str());
+              config->map_size.z() = ::atoi(
+                  res[2].c_str());
             } else {
-              if (dims.size() == 0)
-                config->volume_resolution.x() = 256;
+              if (res.size() == 0)
+                config->map_size.x() = 256;
               else
-                config->volume_resolution.x() = ::atoi(
-                    dims[0].c_str());
-              config->volume_resolution.y() = config->volume_size.x();
-              config->volume_resolution.z() = config->volume_size.x();
+                config->map_size.x() = ::atoi(
+                    res[0].c_str());
+              config->map_size.y() = config->map_size.x();
+              config->map_size.z() = config->map_size.x();
             }
-            std::cout << "volumetric-size: "
-              << config->volume_resolution.x() << "x"
-              << config->volume_resolution.y() << "x"
-              << config->volume_resolution.z() << std::endl;
+            std::cout << "map-size: "
+              << config->map_size.x() << "x"
+              << config->map_size.y() << "x"
+              << config->map_size.z() << std::endl;
             continue;
           }
 
-          if (key == "volume-size") {
+          if (key == "map-dim") {
             std::vector<std::string> dims = split_string(value, ',');
 
             if (dims.size() == 3) {
-              config->volume_size.x() = ::atof(dims[0].c_str());
-              config->volume_size.y() = ::atof(dims[1].c_str());
-              config->volume_size.z() = ::atof(dims[2].c_str());
+              config->map_dim.x() = ::atof(dims[0].c_str());
+              config->map_dim.y() = ::atof(dims[1].c_str());
+              config->map_dim.z() = ::atof(dims[2].c_str());
             } else {
               if (dims.size() == 0)
-                config->volume_size.x() = 2.0;
+                config->map_dim.x() = 2.0;
               else {
-                config->volume_size.x() = ::atof(dims[0].c_str());
-                config->volume_size.y() = config->volume_size.x();
-                config->volume_size.z() = config->volume_size.x();
+                config->map_dim.x() = ::atof(dims[0].c_str());
+                config->map_dim.y() = config->map_dim.x();
+                config->map_dim.z() = config->map_dim.x();
               }
             }
-            std::cout << "volume-size: " << config->volume_size.x()
-              << "x" << config->volume_size.y() << "x"
-              << config->volume_size.z() << std::endl;
+            std::cout << "map-dim: " << config->map_dim.x()
+              << "x" << config->map_dim.y() << "x"
+              << config->map_dim.z() << std::endl;
             continue;
           }
 
-          if (key == "initial-position") {
+          if (key == "world-to-map-translation-factor") {
             std::vector<std::string> dims = split_string(value, ',');
             if (dims.size() == 3) {
-              config->initial_pos_factor.x() = ::atof(
+              config->t_MW_factor.x() = ::atof(
                   dims[0].c_str());
-              config->initial_pos_factor.y() = ::atof(
+              config->t_MW_factor.y() = ::atof(
                   dims[1].c_str());
-              config->initial_pos_factor.z() = ::atof(
+              config->t_MW_factor.z() = ::atof(
                   dims[2].c_str());
-              std::cout << "initial-position: "
-                << config->initial_pos_factor.x() << ", "
-                << config->initial_pos_factor.y() << ", "
-                << config->initial_pos_factor.z()
+              std::cout << "world-to-map-translation-factor: "
+                << config->t_MW_factor.x() << ", "
+                << config->t_MW_factor.y() << ", "
+                << config->t_MW_factor.z()
                 << std::endl;
             } else {
               std::cerr
-                << "ERROR: initial-position  specified with incorrect data. (was "
+                << "ERROR: world-to-map-translation-factor  specified with incorrect data. (was "
                 << value << ") Should be \"x, y, z\""
                 << std::endl;
             }

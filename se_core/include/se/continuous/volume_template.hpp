@@ -52,99 +52,122 @@ class VolumeTemplate {
     typedef typename VoxelImpl::VoxelType::VoxelData VoxelData;
 
     VolumeTemplate(){};
-    VolumeTemplate(unsigned int r, float d, DiscreteOctreeT<VoxelType>* octree) :
+    VolumeTemplate(unsigned int size, float dim, DiscreteOctreeT<VoxelType>* octree) :
       octree_(octree) {
-        size_ = r;
-        dim_ = d;
+        size_ = size;
+        dim_ = dim;
       };
 
-    inline Eigen::Vector3f pos(const Eigen::Vector3i& p) const {
-      static const float voxelSize = size_ / dim_;
-      return p.cast<float>() * voxelSize;
+    inline Eigen::Vector3f voxelToPoint(const Eigen::Vector3i& voxel_coord) const {
+      static const float voxel_dim = size_ / dim_;
+      return voxel_coord.cast<float>() * voxel_dim;
     }
 
     void set(const  Eigen::Vector3f& , const VoxelData& ) {}
 
-    VoxelData operator[](const Eigen::Vector3f& p) const {
-      const float inverse_voxel_size = size_ / dim_;
-      const Eigen::Vector3i scaled_pos = (p * inverse_voxel_size).cast<int>();
-      return octree_->get(scaled_pos.x(), scaled_pos.y(), scaled_pos.z());
+    VoxelData operator[](const Eigen::Vector3f& point_M) const {
+      const float inverse_voxel_dim = size_ / dim_;
+      const Eigen::Vector3i voxel_coord = (point_M * inverse_voxel_dim).cast<int>();
+      return octree_->get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
     }
 
-    VoxelData get(const Eigen::Vector3f& p, const int scale = 0) const {
-      const float inverse_voxel_size = size_ / dim_;
-      const Eigen::Vector4i scaled_pos = (inverse_voxel_size * p.homogeneous()).cast<int>();
-        return octree_->get_fine(scaled_pos.x(),
-                                 scaled_pos.y(),
-                                 scaled_pos.z(),
+    VoxelData get(const Eigen::Vector3f& point_M, const int scale = 0) const {
+      const float inverse_voxel_dim = size_ / dim_;
+      const Eigen::Vector4i voxel_coord = (inverse_voxel_dim * point_M.homogeneous()).cast<int>();
+        return octree_->get_fine(voxel_coord.x(),
+                                 voxel_coord.y(),
+                                 voxel_coord.z(),
                                  scale);
     }
 
-    VoxelData operator[](const Eigen::Vector3i& p) const {
-      return octree_->get(p.x(), p.y(), p.z());
+    VoxelData operator[](const Eigen::Vector3i& voxel_coord) const {
+      return octree_->get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
     }
 
-    template <typename FieldSelector>
-    std::pair<float, int> interp(const Eigen::Vector3f& pos, FieldSelector select) const {
-      const float inverse_voxel_size = size_ / dim_;
-      Eigen::Vector3f discrete_pos = inverse_voxel_size * pos;
-      return octree_->interp(discrete_pos, select);
+    template <typename ValueSelector>
+    std::pair<float, int> interp(const Eigen::Vector3f& point_M,
+                                 ValueSelector          select_value) const {
+      const float inverse_voxel_dim = size_ / dim_;
+      Eigen::Vector3f voxel_coord_f = inverse_voxel_dim * point_M;
+      return octree_->interp(voxel_coord_f, 0, select_value, select_value);
     }
 
-  /*! \brief Interp voxel value at metric position  (x,y,z)
-   * \param pos three-dimensional coordinates in which each component belongs
-   * to the interval [0, _extent]
-   * \param stride distance between neighbouring sampling point, in voxels.
-   * Must be >= 1
-   * \return signed distance function value at voxel position (x,y,z)
-   */
-    template <typename FieldSelector>
-    std::pair<float, int> interp(const Eigen::Vector3f& pos, const int h, FieldSelector select) const {
-      const float inverse_voxel_size = size_ / dim_;
-      Eigen::Vector3f discrete_pos = (inverse_voxel_size * pos);
-      return octree_->interp(discrete_pos, h, select);
+    template <typename ValueSelector>
+    std::pair<float, int> interp(const Eigen::Vector3f& point_M,
+                                 const int              min_scale,
+                                 ValueSelector          select_value) const {
+      const float inverse_voxel_dim = size_ / dim_;
+      Eigen::Vector3f voxel_coord_f = inverse_voxel_dim * point_M;
+      return octree_->interp(voxel_coord_f, min_scale, select_value, select_value);
     }
 
-    /*! \brief Compute gradient at metric position  (x,y,z)
-     * \param pos three-dimensional coordinates in which each component belongs
+    /*! \brief Interp voxel value at metric position  (x,y,z)
+     * \param point_M three-dimensional coordinates in which each component belongs
+     * to the interval [0, _extent]
+     * \param stride distance between neighbouring sampling point, in voxels.
+     * Must be >= 1
+     * \return signed distance function value at voxel position (x,y,z)
+     */
+    template <typename NodeValueSelector,
+              typename VoxelValueSelector>
+    std::pair<float, int> interp(const Eigen::Vector3f& point_M,
+                                 NodeValueSelector      select_node_value,
+                                 VoxelValueSelector     select_voxel_value) const {
+      const float inverse_voxel_dim = size_ / dim_;
+      Eigen::Vector3f voxel_coord_f = (inverse_voxel_dim * point_M);
+      return octree_->interp(voxel_coord_f, 0, select_node_value, select_voxel_value);
+    }
+
+    template <typename NodeValueSelector,
+              typename VoxelValueSelector>
+    std::pair<float, int> interp(const Eigen::Vector3f& point_M,
+                                 const int              min_scale,
+                                 NodeValueSelector      select_node_value,
+                                 VoxelValueSelector     select_voxel_value) const {
+      const float inverse_voxel_dim = size_ / dim_;
+      Eigen::Vector3f voxel_coord_f = (inverse_voxel_dim * point_M);
+      return octree_->interp(voxel_coord_f, min_scale, select_node_value, select_voxel_value);
+    }
+
+  /*! \brief Compute gradient at metric position  (x,y,z)
+     * \param point_M three-dimensional coordinates in which each component belongs
      * to the interval [0, dim_]
      * \return signed distance function value at voxel position (x,y,z)
      */
     template <typename FieldSelector>
-    Eigen::Vector3f grad(const Eigen::Vector3f& pos, FieldSelector select) const {
-      const float inverse_voxel_size = size_ / dim_;
-      Eigen::Vector3f discrete_pos = inverse_voxel_size * pos;
-      return octree_->grad(discrete_pos, 1.f, select);
+    Eigen::Vector3f grad(const Eigen::Vector3f& point_M, FieldSelector select) const {
+      const float inverse_voxel_dim = size_ / dim_;
+      Eigen::Vector3f voxel_coord_f = inverse_voxel_dim * point_M;
+      return octree_->grad(voxel_coord_f, 1.f, select);
     }
 
     /*! \brief Compute gradient at metric position  (x,y,z)
-     * \param pos three-dimensional coordinates in which each component belongs
+     * \param point_M three-dimensional coordinates in which each component belongs
      * to the interval [0, dim_]
      * \param stride distance between neighbouring sampling point, in voxels.
      * Must be >= 1
      * \return signed distance function value at voxel position (x,y,z)
      */
     template <typename FieldSelector>
-    Eigen::Vector3f grad(const Eigen::Vector3f& pos,
+    Eigen::Vector3f grad(const Eigen::Vector3f& point_M,
         const int h,
         FieldSelector select) const {
-      const float inverse_voxel_size = size_ / dim_;
-      Eigen::Vector3f discrete_pos = inverse_voxel_size * pos;
-      return octree_->grad(discrete_pos, h, select);
+      const float inverse_voxel_dim = size_ / dim_;
+      Eigen::Vector3f voxel_coord_f = inverse_voxel_dim * point_M;
+      return octree_->grad(voxel_coord_f, h, select);
     }
 
     unsigned int size() const { return size_; }
     float dim() const { return dim_; }
 
-    std::vector<se::key_t> _allocationList;
     DiscreteOctreeT<VoxelType> * octree_;
 
   private:
     unsigned int size_;
     float dim_;
-    inline Eigen::Vector3i pos(const Eigen::Vector3f& p) const {
-      static const float inverse_voxel_size = size_ / dim_;
-      return (inverse_voxel_size * p).cast<int>();
+    inline Eigen::Vector3i pointToVoxel(const Eigen::Vector3f& point_M) const {
+      static const float inverse_voxel_dim = size_ / dim_;
+      return (inverse_voxel_dim * point_M).cast<int>();
     }
 };
 #endif

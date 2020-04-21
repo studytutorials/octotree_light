@@ -32,7 +32,9 @@
 #define __EXAMPLE_VOXEL_IMPL_HPP
 
 #include "se/octree.hpp"
+#include "se/image/image.hpp"
 #include "se/continuous/volume_template.hpp"
+#include "se/sensor_implementation.hpp"
 
 
 
@@ -62,7 +64,7 @@ struct ExampleVoxelImpl {
   /**
    * The declaration of the struct stored in each se::Octree voxel. It may
    * contain additional members if desired. Make sure to also update
-   * VoxelType::empty() and VoxelType::initValue() to initialize all data
+   * VoxelType::invalid() and VoxelType::initData() to initialize all data
    * members by returning an appropriate struct brace initializer.
    *
    * \warning The struct name must always be `VoxelData`.
@@ -71,7 +73,7 @@ struct ExampleVoxelImpl {
       float  x; /**< The value stored in each voxel of the octree. */
 
       // Any other data stored in each voxel go here. Make sure to also update
-      // empty() and initValue() to initialize all data members by returning an
+      // invalid() and initData() to initialize all data members by returning an
       // appropriate struct brace initializer.
     };
 
@@ -81,7 +83,7 @@ struct ExampleVoxelImpl {
      *
      * \warning The function signature must not be changed.
      */
-    static inline VoxelData empty()     { return {0.f}; }
+    static inline VoxelData invalid()     { return {0.f}; }
 
 
 
@@ -90,7 +92,7 @@ struct ExampleVoxelImpl {
      *
      * \warning The function signature must not be changed.
      */
-    static inline VoxelData initValue() { return {1.f}; }
+    static inline VoxelData initData() { return {1.f}; }
 
     template <typename T>
     using MemoryPoolType = se::PagedMemoryPool<T>;
@@ -124,14 +126,12 @@ struct ExampleVoxelImpl {
    * \warning The function signature must not be changed.
    */
   static size_t buildAllocationList(
-      se::key_t*                               allocation_list,
-      size_t                                   reserved,
       se::Octree<ExampleVoxelImpl::VoxelType>& map,
-      const Eigen::Matrix4f&                   T_wc,
-      const Eigen::Matrix4f&                   K,
-      const float*                             depth_map,
-      const Eigen::Vector2i&                   image_size,
-      const float                              mu);
+      const se::Image<float>&                  depth_image,
+      const Eigen::Matrix4f&                   T_MC,
+      const SensorImpl&                        sensor,
+      se::key_t*                               allocation_list,
+      size_t                                   reserved);
 
 
 
@@ -140,12 +140,12 @@ struct ExampleVoxelImpl {
    *
    * \warning The function signature must not be changed.
    */
-  static void integrate(se::Octree<ExampleVoxelImpl::VoxelType>& map,
-                        const Sophus::SE3f&                      T_cw,
-                        const Eigen::Matrix4f&                   K,
-                        const se::Image<float>&                  depth,
-                        const float                              mu,
-                        const unsigned                           frame);
+  static void integrate(
+      se::Octree<ExampleVoxelImpl::VoxelType>& map,
+      const se::Image<float>&                  depth_image,
+      const Eigen::Matrix4f&                   T_CM,
+      const SensorImpl&                        sensor,
+      const unsigned                           frame);
 
 
 
@@ -156,10 +156,10 @@ struct ExampleVoxelImpl {
    */
   static Eigen::Vector4f raycast(
       const VolumeTemplate<ExampleVoxelImpl, se::Octree>& volume,
-      const Eigen::Vector3f&                              origin,
-      const Eigen::Vector3f&                              direction,
-      const float                                         tnear,
-      const float                                         tfar,
+      const Eigen::Vector3f&                              ray_origin_M,
+      const Eigen::Vector3f&                              ray_dir_M,
+      const float                                         near_plane,
+      const float                                         far_plane,
       const float                                         mu,
       const float                                         step,
       const float                                         large_step);

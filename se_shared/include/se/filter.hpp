@@ -26,33 +26,34 @@
 #ifndef ACTIVE_LIST_HPP
 #define ACTIVE_LIST_HPP
 
-#include "../utils/math_utils.h"
-#include "../node.hpp"
-#include "../utils/memory_pool.hpp"
-#include "../utils/morton_utils.hpp"
+#include "se/utils/math_utils.h"
+#include "se/node.hpp"
+#include "se/utils/memory_pool.hpp"
+#include "se/utils/morton_utils.hpp"
+#include "se/sensor_implementation.hpp"
 
 namespace se {
 namespace algorithms {
 
   template <typename VoxelBlockType>
-    static inline bool in_frustum(const VoxelBlockType* v, float voxelSize,
-        const Eigen::Matrix4f& camera, const Eigen::Vector2i& frameSize) {
+    static inline bool in_frustum(const VoxelBlockType*  block,
+                                  const float            voxel_dim,
+                                  const Eigen::Matrix4f& T_CM,
+                                  const SensorImpl&      sensor) {
 
-      const int side = VoxelBlockType::side;
-      const static Eigen::Matrix<int, 4, 8> offsets =
-        (Eigen::Matrix<int, 4, 8>() << 0, side, 0   , side, 0   , side, 0   , side,
-                                       0, 0   , side, side, 0   , 0   , side, side,
-                                       0, 0   , 0   , 0   , side, side, side, side,
+      const int block_size = VoxelBlockType::size;
+      const static Eigen::Matrix<int, 4, 8> corner_rel_steps =
+        (Eigen::Matrix<int, 4, 8>() << 0, block_size, 0   , block_size, 0   , block_size, 0   , block_size,
+                                       0, 0   , block_size, block_size, 0   , 0   , block_size, block_size,
+                                       0, 0   , 0   , 0   , block_size, block_size, block_size, block_size,
                                        0, 0   , 0   , 0   , 0   , 0   , 0   , 0   ).finished();
-
-      Eigen::Matrix<float, 4, 8> v_camera =
-        camera *
-        Eigen::Vector4f(voxelSize, voxelSize, voxelSize, 1.f).asDiagonal() *
-         (offsets.colwise() + v->coordinates().homogeneous()).template cast<float>();
-      v_camera.row(0).array() /= v_camera.row(2).array();
-      v_camera.row(1).array() /= v_camera.row(2).array();
-      return ((v_camera.row(0).array() >= 0.f && v_camera.row(0).array() < frameSize.x()) &&
-       (v_camera.row(1).array() >= 0.f && v_camera.row(1).array() < frameSize.y())).any();
+      const Eigen::Matrix3Xf block_corner_points_C = (T_CM * Eigen::Vector4f(voxel_dim, voxel_dim, voxel_dim, 1.f).asDiagonal() *
+          (corner_rel_steps.colwise() + block->coordinates().homogeneous()).template cast<float>()).topRows(3);
+      Eigen::Matrix2Xf proj_corner_pixels_f(2, 8);
+      std::vector<srl::projection::ProjectionStatus> proj_corner_stati;
+      sensor.model.projectBatch(block_corner_points_C, &proj_corner_pixels_f, &proj_corner_stati);
+      return std::all_of(proj_corner_stati.begin(), proj_corner_stati.end(),
+          [](const auto it){ return it == srl::projection::ProjectionStatus::Successful; });
     }
 
   template <typename ValueType, typename P>
@@ -66,9 +67,9 @@ namespace algorithms {
     }
 
   template <typename BufferType, typename... Predicates>
-  void filter(std::vector<BufferType *>&        out,
+  void filter(std::vector<BufferType *>&               out,
               const se::PagedMemoryBuffer<BufferType>& buffer,
-              Predicates...                    ps) {
+              Predicates...                            ps) {
 #ifdef _OPENMP
 #pragma omp declare reduction (merge : std::vector<BufferType *> : omp_out.insert(omp_out.end(), omp_in.begin(), omp_in.end()))
 #pragma omp parallel for reduction(merge: out)

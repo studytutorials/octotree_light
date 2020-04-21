@@ -35,43 +35,43 @@
 
 #include "se/octree.hpp"
 #include "se/node.hpp"
-#include "se/functors/projective_functor.hpp"
+#include "se/projective_functor.hpp"
+#include "se/image_utils.hpp"
 
 
 
 struct tsdf_update {
-  const float* depth;
-  Eigen::Vector2i depth_size;
+  const se::Image<float>& depth_image;
   float mu;
 
 
 
-  tsdf_update(const float*           depth,
-             const Eigen::Vector2i& depth_size,
-             float                  mu)
-    : depth(depth), depth_size(depth_size), mu(mu) {};
+  tsdf_update(const se::Image<float>& depth_image,
+              float                   mu)
+    : depth_image(depth_image), mu(mu) {};
 
 
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
                   const Eigen::Vector3i&,
-                  const Eigen::Vector3f& pos,
-                  const Eigen::Vector2f& pixel) {
+                  const Eigen::Vector3f& point_C,
+                  const Eigen::Vector2f& pixel_f) {
 
-    const Eigen::Vector2i px = pixel.cast<int>();
-    const float depth_sample = depth[px.x() + depth_size.x() * px.y()];
+    const Eigen::Vector2i pixel = round_pixel(pixel_f);
+    const float depth_value = depth_image(pixel.x(), pixel.y());
     // Return on invalid depth measurement
-    if (depth_sample <= 0.f)
+    if (depth_value <= 0.f)
       return;
 
     // Update the TSDF
-    const float diff = (depth_sample - pos.z())
-      * std::sqrt(1 + se::math::sq(pos.x() / pos.z()) + se::math::sq(pos.y() / pos.z()));
-    if (diff > -mu) {
-      const float tsdf_new = fminf(1.f, diff / mu);
+    const float point_dist = (depth_value - point_C.z())
+      * std::sqrt(1 + se::math::sq(point_C.x() / point_C.z())
+      + se::math::sq(point_C.y() / point_C.z()));
+    if (point_dist > -mu) {
+      const float tsdf = fminf(1.f, point_dist / mu);
       auto data = handler.get();
-      data.x = (data.y * data.x + tsdf_new) / (data.y + 1.f);
+      data.x = (data.y * data.x + tsdf) / (data.y + 1.f);
       data.x = se::math::clamp(data.x, -1.f, 1.f);
       data.y = fminf(data.y + 1, TSDF::max_weight);
       handler.set(data);
@@ -82,16 +82,15 @@ struct tsdf_update {
 
 
 void TSDF::integrate(se::Octree<TSDF::VoxelType>& map,
-                     const Sophus::SE3f&          T_cw,
-                     const Eigen::Matrix4f&       K,
-                     const se::Image<float>&      depth,
-                     const float                  mu,
+                     const se::Image<float>&      depth_image,
+                     const Eigen::Matrix4f&       T_CM,
+                     const SensorImpl&            sensor,
                      const unsigned) {
 
-  const Eigen::Vector2i depth_size (depth.width(), depth.height());
+  const Eigen::Vector2i depth_image_res(depth_image.width(), depth_image.height());
 
-  struct tsdf_update funct(depth.data(), depth_size, mu);
+  struct tsdf_update funct(depth_image, sensor.mu);
 
-  se::functor::projective_octree(map, map._offset, T_cw, K, depth_size, funct);
+  se::functor::projective_octree(map, map.sample_offset_frac_, T_CM, sensor, depth_image_res, funct);
 }
 

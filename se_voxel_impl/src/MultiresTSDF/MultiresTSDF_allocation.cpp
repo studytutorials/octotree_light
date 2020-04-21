@@ -42,37 +42,27 @@
  * \brief Given a depth map and camera matrix it computes the list of
  * voxels intersected but not allocated by the rays around the measurement m in
  * a region comprised between m +/- band.
+ * \param map indexing structure used to index voxel blocks
+ * \param T_wc camera to world frame transformation
+ * \param sensor model
+ * \param size discrete extent of the map, in number of voxels
  * \param allocation_list output list of keys corresponding to voxel blocks to
  * be allocated
  * \param reserved allocated size of allocation_list
- * \param map indexing structure used to index voxel blocks
- * \param T_wc camera extrinsics matrix
- * \param K camera intrinsics matrix
- * \param depth_map input depth map
- * \param image_size dimensions of depth_map
- * \param volume_size discrete extent of the map, in number of voxels
- * \param voxelSize spacing between two consecutive voxels, in metric space
- * \param band maximum extent of the allocating region, per ray
  */
 size_t MultiresTSDF::buildAllocationList(
-    se::key_t*                           allocation_list,
-    size_t                               reserved,
     se::Octree<MultiresTSDF::VoxelType>& map,
-    const Eigen::Matrix4f&               T_wc,
-    const Eigen::Matrix4f&               K,
-    const float*                         depth_map,
-    const Eigen::Vector2i&               image_size,
-    const float                          mu) {
+    const se::Image<float>&              depth_image,
+    const Eigen::Matrix4f&               T_MC,
+    const SensorImpl&                    sensor,
+    se::key_t*                           allocation_list,
+    size_t                               reserved) {
 
-  const float voxel_size = map.dim() / map.size();
-  const float inverse_voxel_size = 1.f / voxel_size;
-  const Eigen::Matrix4f inv_K = K.inverse();
-  const Eigen::Matrix4f inv_P = T_wc * inv_K;
-  const int volume_size = map.size();
-  const int max_depth = log2(volume_size);
-  const unsigned leaf_depth = max_depth
-      - se::math::log2_const(se::Octree<MultiresTSDF::VoxelType>::blockSide);
-  const float band = 2.f * mu;
+  const Eigen::Vector2i depth_image_res(depth_image.width(), depth_image.height());
+  const int map_size = map.size();
+  const float voxel_dim = map.dim() / map_size;
+  const float inverse_voxel_dim = 1.f / voxel_dim;
+  const float band = 2.f * sensor.mu;
 
 
 
@@ -82,39 +72,43 @@ size_t MultiresTSDF::buildAllocationList(
   unsigned int voxel_count = 0;
 #endif
 
-  const Eigen::Vector3f camera_pos = T_wc.topRightCorner<3, 1>();
-  const int num_steps = ceil(band * inverse_voxel_size);
+  const Eigen::Vector3f t_MC = se::math::to_translation(T_MC);
+  const int num_steps = ceil(band * inverse_voxel_dim);
 #pragma omp parallel for
-  for (int y = 0; y < image_size.y(); ++y) {
-    for (int x = 0; x < image_size.x(); ++x) {
-      if (depth_map[x + y * image_size.x()] == 0.f)
+  for (int y = 0; y < depth_image_res.y(); ++y) {
+    for (int x = 0; x < depth_image_res.x(); ++x) {
+      const Eigen::Vector2i pixel(x, y);
+      if (depth_image(pixel.x(), pixel.y()) == 0.f)
         continue;
 
-      const float depth = depth_map[x + y * image_size.x()];
-      const Eigen::Vector3f world_vertex = (inv_P * Eigen::Vector3f((x + 0.5f) * depth,
-            (y + 0.5f) * depth, depth).homogeneous()).head<3>();
+      const float depth_value = depth_image(pixel.x(), pixel.y());
 
-      const Eigen::Vector3f direction = (camera_pos - world_vertex).normalized();
-      const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
-      const Eigen::Vector3f step = (direction * band) / num_steps;
+      Eigen::Vector3f ray_dir_C;
+      const Eigen::Vector2f pixel_f = pixel.cast<float>();
+      sensor.model.backProject(pixel_f, &ray_dir_C);
+      const Eigen::Vector3f point_M = (T_MC * (depth_value * ray_dir_C).homogeneous()).head<3>();
 
-      Eigen::Vector3f voxel_pos = origin;
+      const Eigen::Vector3f reverse_ray_dir_M = (t_MC - point_M).normalized();
+      const Eigen::Vector3f ray_origin_M = point_M - (band * 0.5f) * reverse_ray_dir_M;
+      const Eigen::Vector3f step = (reverse_ray_dir_M * band) / num_steps;
+
+      Eigen::Vector3f ray_pos_M = ray_origin_M;
       for (int i = 0; i < num_steps; i++) {
 
-        const Eigen::Vector3f voxel_scaled = (voxel_pos * inverse_voxel_size).array().floor();
+        const Eigen::Vector3f voxel_coord_f = (ray_pos_M * inverse_voxel_dim).array().floor();
 
-        if (   (voxel_scaled.x() < volume_size)
-            && (voxel_scaled.y() < volume_size)
-            && (voxel_scaled.z() < volume_size)
-            && (voxel_scaled.x() >= 0)
-            && (voxel_scaled.y() >= 0)
-            && (voxel_scaled.z() >= 0)) {
-          const Eigen::Vector3i voxel = voxel_scaled.cast<int>();
-          se::VoxelBlock<MultiresTSDF::VoxelType> * node_ptr = map.fetch(
-              voxel.x(), voxel.y(), voxel.z());
-          if (node_ptr == nullptr) {
-            const se::key_t k = map.hash(voxel.x(), voxel.y(), voxel.z(),
-                leaf_depth);
+        if (   (voxel_coord_f.x() < map_size)
+            && (voxel_coord_f.y() < map_size)
+            && (voxel_coord_f.z() < map_size)
+            && (voxel_coord_f.x() >= 0)
+            && (voxel_coord_f.y() >= 0)
+            && (voxel_coord_f.z() >= 0)) {
+          const Eigen::Vector3i voxel_coord = voxel_coord_f.cast<int>();
+          se::VoxelBlock<MultiresTSDF::VoxelType>* block = map.fetch(
+              voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
+          if (block == nullptr) {
+            const se::key_t k = map.hash(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(),
+                map.blockDepth());
             const unsigned int idx = voxel_count++;
             if (idx < reserved) {
               allocation_list[idx] = k;
@@ -122,14 +116,12 @@ size_t MultiresTSDF::buildAllocationList(
               break;
             }
           } else {
-            node_ptr->active(true);
+            block->active(true);
           }
         }
-        voxel_pos += step;
+        ray_pos_M += step;
       }
     }
   }
-  const size_t written = voxel_count;
-  return written >= reserved ? reserved : written;
+  return (size_t) voxel_count >= reserved ? reserved : (size_t) voxel_count;
 }
-

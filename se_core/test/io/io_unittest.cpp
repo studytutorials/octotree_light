@@ -38,8 +38,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct TestVoxelT {
   typedef float VoxelData;
-  static inline VoxelData empty(){ return 0.f; }
-  static inline VoxelData initValue(){ return 1.f; }
+  static inline VoxelData invalid(){ return 0.f; }
+  static inline VoxelData initData(){ return 1.f; }
 
   template <typename T>
   using MemoryPoolType = se::PagedMemoryPool<T>;
@@ -52,8 +52,8 @@ struct OccupancyVoxelT {
     float x;
     double y;
   };
-  static inline VoxelData empty(){ return {0.f, 0.}; }
-  static inline VoxelData initValue(){ return {1.f, 0.}; }
+  static inline VoxelData invalid(){ return {0.f, 0.}; }
+  static inline VoxelData initData(){ return {1.f, 0.}; }
 
   template <typename T>
   using MemoryPoolType = se::PagedMemoryPool<T>;
@@ -65,22 +65,22 @@ TEST(SerialiseUnitTest, WriteReadNode) {
   std::string filename = "test.bin";
   {
     std::ofstream os (filename, std::ios::binary);
-    se::Node<TestVoxelT> octant;
-    octant.code_ = 24;
-    octant.side_ = 256;
-    for(int i = 0; i < 8; ++i)
-      octant.value_[i] =  5.f;
-    se::internal::serialise(os, octant);
+    se::Node<TestVoxelT> node;
+    node.code_ = 24;
+    node.size_ = 256;
+    for(int child_idx = 0; child_idx < 8; ++child_idx)
+      node.data_[child_idx] =  5.f;
+    se::internal::serialise(os, node);
   }
 
   {
     std::ifstream is(filename, std::ios::binary);
-    se::Node<TestVoxelT> octant;
-    se::internal::deserialise(octant, is);
-    ASSERT_EQ(octant.code_, 24);
-    ASSERT_EQ(octant.side_, 256);
-    for(int i = 0; i < 8; ++i)
-      ASSERT_EQ(octant.value_[i], 5.f);
+    se::Node<TestVoxelT> node;
+    se::internal::deserialise(node, is);
+    ASSERT_EQ(node.code_, 24);
+    ASSERT_EQ(node.size_, 256);
+    for(int child_idx = 0; child_idx < 8; ++child_idx)
+      ASSERT_EQ(node.data_[child_idx], 5.f);
   }
 }
 
@@ -88,22 +88,22 @@ TEST(SerialiseUnitTest, WriteReadBlock) {
   std::string filename = "test.bin";
   {
     std::ofstream os (filename, std::ios::binary);
-    se::VoxelBlock<TestVoxelT> octant;
-    octant.code_ = 24;
-    octant.coordinates(Eigen::Vector3i(40, 48, 52));
-    for(int i = 0; i < 512; ++i)
-      octant.data(i, 5.f);
-    se::internal::serialise(os, octant);
+    se::VoxelBlock<TestVoxelT> block;
+    block.code_ = 24;
+    block.coordinates(Eigen::Vector3i(40, 48, 52));
+    for(int voxel_idx = 0; voxel_idx < 512; ++voxel_idx)
+      block.data(voxel_idx, 5.f);
+    se::internal::serialise(os, block);
   }
 
   {
     std::ifstream is(filename, std::ios::binary);
-    se::VoxelBlock<TestVoxelT> octant;
-    se::internal::deserialise(octant, is);
-    ASSERT_EQ(octant.code_, 24);
-    ASSERT_TRUE(octant.coordinates() == Eigen::Vector3i(40, 48, 52));
-    for(int i = 0; i < 512; ++i)
-      ASSERT_EQ(octant.data(i), 5.f);
+    se::VoxelBlock<TestVoxelT> block;
+    se::internal::deserialise(block, is);
+    ASSERT_EQ(block.code_, 24);
+    ASSERT_TRUE(block.coordinates() == Eigen::Vector3i(40, 48, 52));
+    for(int voxel_idx = 0; voxel_idx < 512; ++voxel_idx)
+      ASSERT_EQ(block.data(voxel_idx), 5.f);
   }
 }
 
@@ -111,22 +111,22 @@ TEST(SerialiseUnitTest, WriteReadBlockStruct) {
   std::string filename = "test.bin";
   {
     std::ofstream os (filename, std::ios::binary);
-    se::VoxelBlock<OccupancyVoxelT> octant;
-    octant.code_ = 24;
-    octant.coordinates(Eigen::Vector3i(40, 48, 52));
-    for(int i = 0; i < 512; ++i)
-      octant.data(i, {5.f, 2.});
-    se::internal::serialise(os, octant);
+    se::VoxelBlock<OccupancyVoxelT> block;
+    block.code_ = 24;
+    block.coordinates(Eigen::Vector3i(40, 48, 52));
+    for(int voxel_idx = 0; voxel_idx < 512; ++voxel_idx)
+      block.data(voxel_idx, {5.f, 2.});
+    se::internal::serialise(os, block);
   }
 
   {
     std::ifstream is(filename, std::ios::binary);
-    se::VoxelBlock<OccupancyVoxelT> octant;
-    se::internal::deserialise(octant, is);
-    ASSERT_EQ(octant.code_, 24);
-    ASSERT_TRUE(octant.coordinates() == Eigen::Vector3i(40, 48, 52));
-    for(int i = 0; i < 512; ++i) {
-      auto data = octant.data(i);
+    se::VoxelBlock<OccupancyVoxelT> block;
+    se::internal::deserialise(block, is);
+    ASSERT_EQ(block.code_, 24);
+    ASSERT_TRUE(block.coordinates() == Eigen::Vector3i(40, 48, 52));
+    for(int voxel_idx = 0; voxel_idx < 512; ++voxel_idx) {
+      auto data = block.data(voxel_idx);
       ASSERT_EQ(data.x, 5.f);
       ASSERT_EQ(data.y, 2.);
     }
@@ -134,75 +134,69 @@ TEST(SerialiseUnitTest, WriteReadBlockStruct) {
 }
 
 TEST(SerialiseUnitTest, SerialiseTree) {
-  se::Octree<TestVoxelT> tree;
-  tree.init(1024, 10.25);
-  const int side = se::VoxelBlock<TestVoxelT>::side;
-  const int max_depth = log2(tree.size());
-  const int leaves_level = max_depth - log2(side);
+  se::Octree<TestVoxelT> octree;
+  octree.init(1024, 10.25);
+  const int block_depth = octree.blockDepth();
   std::mt19937 gen(1); //Standard mersenne_twister_engine seeded with constant
   std::uniform_int_distribution<> dis(0, 1023);
 
   int num_tested = 0;
-  for(int i = 1, edge = tree.size()/2; i <= leaves_level; ++i, edge = edge/2) {
+  for(int i = 1, size = octree.size() / 2; i <= block_depth; ++i, size = size / 2) {
     for(int j = 0; j < 20; ++j) {
-      Eigen::Vector3i vox(dis(gen), dis(gen), dis(gen));
-      tree.insert(vox(0), vox(1), vox(2), i);
+      Eigen::Vector3i voxel_coord(dis(gen), dis(gen), dis(gen));
+      octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), i);
     }
   }
   std::string filename = "octree-test.bin";
-  tree.save(filename);
+  octree.save(filename);
 
-  se::Octree<TestVoxelT> tree_copy;
-  tree_copy.load(filename);
+  se::Octree<TestVoxelT> octree_copy;
+  octree_copy.load(filename);
 
-  ASSERT_EQ(tree.size(), tree_copy.size());
-  ASSERT_EQ(tree.dim(), tree_copy.dim());
+  ASSERT_EQ(octree.size(), octree_copy.size());
+  ASSERT_EQ(octree.dim(), octree_copy.dim());
 
-  auto& node_buffer_base = tree.pool().nodeBuffer();
-  auto& node_buffer_copy = tree_copy.pool().nodeBuffer();
+  auto& node_buffer_base = octree.pool().nodeBuffer();
+  auto& node_buffer_copy = octree_copy.pool().nodeBuffer();
   ASSERT_EQ(node_buffer_base.size(), node_buffer_copy.size());
   for(int i = 0; i < node_buffer_base.size(); ++i) {
-    se::Node<TestVoxelT> * n  = node_buffer_base[i];
-    se::Node<TestVoxelT> * n1 = node_buffer_copy[i];
-    ASSERT_EQ(n->code_, n1->code_);
-    ASSERT_EQ(n->children_mask_, n1->children_mask_);
+    se::Node<TestVoxelT> * node_base  = node_buffer_base[i];
+    se::Node<TestVoxelT> * node_copy = node_buffer_copy[i];
+    ASSERT_EQ(node_base->code_, node_copy->code_);
+    ASSERT_EQ(node_base->children_mask_, node_copy->children_mask_);
   }
 
-  auto& block_buffer_base = tree.pool().blockBuffer();
-  auto& block_buffer_copy = tree_copy.pool().blockBuffer();
+  auto& block_buffer_base = octree.pool().blockBuffer();
+  auto& block_buffer_copy = octree_copy.pool().blockBuffer();
   ASSERT_EQ(block_buffer_base.size(), block_buffer_copy.size());
 }
 
 TEST(SerialiseUnitTest, SerialiseBlock) {
-  se::Octree<TestVoxelT> tree;
-  tree.init(1024, 10);
-  const int side = se::VoxelBlock<TestVoxelT>::side;
-  const int side_cubed = side * side * side;
-  const int max_depth = log2(tree.size());
-  const int leaves_level = max_depth - log2(side);
+  se::Octree<TestVoxelT> octree;
+  octree.init(1024, 10);
   std::mt19937 gen(1); //Standard mersenne_twister_engine seeded with constant
   std::uniform_int_distribution<> dis(0, 1023);
 
   int num_tested = 0;
   for(int j = 0; j < 20; ++j) {
-    Eigen::Vector3i vox(dis(gen), dis(gen), dis(gen));
-    tree.insert(vox(0), vox(1), vox(2), leaves_level);
-    auto voxel_block = tree.fetch(vox(0), vox(1), vox(2));
-    for(int i = 0; i < side_cubed; ++i)
-      voxel_block->data(i, dis(gen));
+    Eigen::Vector3i voxel_coord(dis(gen), dis(gen), dis(gen));
+    octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), octree.blockDepth());
+    auto block = octree.fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
+    for(int voxel_idx = 0; voxel_idx < se::VoxelBlock<TestVoxelT>::size_cube; ++voxel_idx)
+      block->data(voxel_idx, dis(gen));
   }
 
   std::string filename = "block-test.bin";
-  tree.save(filename);
+  octree.save(filename);
 
-  se::Octree<TestVoxelT> tree_copy;
-  tree_copy.load(filename);
+  se::Octree<TestVoxelT> octree_copy;
+  octree_copy.load(filename);
 
-  auto& block_buffer_base = tree.pool().blockBuffer();
-  auto& block_buffer_copy = tree_copy.pool().blockBuffer();
+  auto& block_buffer_base = octree.pool().blockBuffer();
+  auto& block_buffer_copy = octree_copy.pool().blockBuffer();
   for(int i = 0; i < block_buffer_base.size(); i++) {
-    for(int j = 0; j < side_cubed; j++) {
-      ASSERT_EQ(block_buffer_base[i]->data(j), block_buffer_copy[i]->data(j));
+    for(int voxel_idx = 0; voxel_idx < se::VoxelBlock<TestVoxelT>::size_cube; voxel_idx++) {
+      ASSERT_EQ(block_buffer_base[i]->data(voxel_idx), block_buffer_copy[i]->data(voxel_idx));
     }
   }
 

@@ -73,24 +73,24 @@ inline collision_status update_status(const collision_status previous_status,
  */
 template <typename FieldType, typename TestVoxelF>
 collision_status collides_with(const se::VoxelBlock<FieldType>* block,
-    const Eigen::Vector3i bbox, const Eigen::Vector3i side, TestVoxelF test) {
+    const Eigen::Vector3i bbox_coord, const Eigen::Vector3i size, TestVoxelF test) {
   collision_status status = collision_status::empty;
-  const Eigen::Vector3i blockCoord = block->coordinates();
-  int x, y, z, blockSide;
-  blockSide = (int) se::VoxelBlock<FieldType>::side;
-  int xlast = blockCoord(0) + blockSide;
-  int ylast = blockCoord(1) + blockSide;
-  int zlast = blockCoord(2) + blockSide;
-  for(z = blockCoord(2); z < zlast; ++z){
-    for (y = blockCoord(1); y < ylast; ++y){
-      for (x = blockCoord(0); x < xlast; ++x){
+  const Eigen::Vector3i block_coord = block->coordinates();
+  int x, y, z, block_size;
+  block_size = (int) se::VoxelBlock<FieldType>::size;
+  int x_last = block_coord.x() + block_size;
+  int y_last = block_coord.y() + block_size;
+  int z_last = block_coord.z() + block_size;
+  for(z = block_coord.z(); z < z_last; ++z){
+    for (y = block_coord.y(); y < y_last; ++y){
+      for (x = block_coord.x(); x < x_last; ++x){
 
-        typename se::VoxelBlock<FieldType>::VoxelData value;
-        const Eigen::Vector3i vox{x, y, z};
-        if(!geometry::aabb_aabb_collision(bbox, side,
-          vox, Eigen::Vector3i::Constant(1))) continue;
-        value = block->data(Eigen::Vector3i(x, y, z));
-        status = update_status(status, test(value));
+        typename se::VoxelBlock<FieldType>::VoxelData data;
+        const Eigen::Vector3i voxel_coord{x, y, z};
+        if(!geometry::aabb_aabb_collision(bbox_coord, size,
+          voxel_coord, Eigen::Vector3i::Constant(1))) continue;
+        data = block->data(Eigen::Vector3i(x, y, z));
+        status = update_status(status, test(data));
       }
     }
   }
@@ -98,27 +98,27 @@ collision_status collides_with(const se::VoxelBlock<FieldType>* block,
 }
 
 /*! \brief Perform a collision test between the input octree map and the
- * input axis aligned bounding box bbox of extension side. The test function
- * test takes as input a voxel value and returns a collision_status. This is
+ * input axis aligned bounding box bbox_coord of extension size. The test function
+ * test takes as input a voxel data and returns a collision_status. This is
  * used to distinguish between seen-empty voxels and occupied voxels.
  * \param octree octree map
- * \param bbox test bounding box lower bottom corner
- * \param side extension in number of voxels of the bounding box
- * \param test function that takes a voxel and returns a collision_status value
+ * \param bbox_coord test bounding box lower bottom corner
+ * \param size extension in number of voxels of the bounding box
+ * \param test function that takes a voxel and returns a collision_status data
  */
 
 template <typename FieldType, typename TestVoxelF>
 collision_status collides_with(const Octree<FieldType>& octree,
-    const Eigen::Vector3i bbox, const Eigen::Vector3i side, TestVoxelF test) {
+    const Eigen::Vector3i bbox_coord, const Eigen::Vector3i bbox_size, TestVoxelF test) {
 
   typedef struct stack_entry {
     se::Node<FieldType>* node_ptr;
     Eigen::Vector3i coordinates;
-    int side;
-    typename se::Node<FieldType>::VoxelData parent_val;
+    int size;
+    typename se::Node<FieldType>::VoxelData parent_data;
   } stack_entry;
 
-  stack_entry stack[Octree<FieldType>::max_depth*8 + 1];
+  stack_entry stack[Octree<FieldType>::max_voxel_depth * 8 + 1];
   size_t stack_idx = 0;
 
   se::Node<FieldType>* node = octree.root();
@@ -126,7 +126,7 @@ collision_status collides_with(const Octree<FieldType>& octree,
 
   stack_entry current;
   current.node_ptr = node;
-  current.side = octree.size();
+  current.size = octree.size();
   current.coordinates = {0, 0, 0};
   stack[stack_idx++] = current;
   collision_status status = collision_status::empty;
@@ -134,9 +134,9 @@ collision_status collides_with(const Octree<FieldType>& octree,
   while(stack_idx != 0){
     node = current.node_ptr;
 
-    if(node->isLeaf()){
+    if(node->isBlock()){
       status = collides_with(static_cast<se::VoxelBlock<FieldType>*>(node),
-          bbox, side, test);
+          bbox_coord, bbox_size, test);
     }
 
     if(node->children_mask_ == 0) {
@@ -144,25 +144,25 @@ collision_status collides_with(const Octree<FieldType>& octree,
        continue;
     }
 
-    for(int i = 0; i < 8; ++i){
-      se::Node<FieldType>* child = node->child(i);
+    for(int child_idx = 0; child_idx < 8; ++child_idx){
+      se::Node<FieldType>* child = node->child(child_idx);
       stack_entry child_descr;
-      child_descr.node_ptr = NULL;
-      child_descr.side = current.side / 2;
+      child_descr.node_ptr = nullptr;
+      child_descr.size = current.size / 2;
       child_descr.coordinates =
-        Eigen::Vector3i(current.coordinates(0) + child_descr.side*((i & 1) > 0),
-            current.coordinates(1) + child_descr.side*((i & 2) > 0),
-            current.coordinates(2) + child_descr.side*((i & 4) > 0));
+        Eigen::Vector3i(current.coordinates.x() + child_descr.size*((child_idx & 1) > 0),
+            current.coordinates.y() + child_descr.size*((child_idx & 2) > 0),
+            current.coordinates.z() + child_descr.size*((child_idx & 4) > 0));
 
-      const bool overlaps = geometry::aabb_aabb_collision(bbox, side,
-          child_descr.coordinates, Eigen::Vector3i::Constant(child_descr.side));
+      const bool overlaps = geometry::aabb_aabb_collision(bbox_coord, bbox_size,
+          child_descr.coordinates, Eigen::Vector3i::Constant(child_descr.size));
 
-      if(overlaps && child != NULL) {
+      if(overlaps && child != nullptr) {
         child_descr.node_ptr = child;
-        child_descr.parent_val = node->value_[0];
+        child_descr.parent_data = node->data_[0];
         stack[stack_idx++] = child_descr;
-      } else if(overlaps && child == NULL) {
-        status = update_status(status, test(node->value_[0]));
+      } else if(overlaps && child == nullptr) {
+        status = update_status(status, test(node->data_[0]));
       }
     }
     current = stack[--stack_idx];

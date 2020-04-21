@@ -62,7 +62,7 @@ class DepthReader {
 
     virtual Eigen::Vector4f getK() = 0;
 
-    virtual uint2 getinputSize() = 0;
+    virtual uint2 getInputImageResolution() = 0;
 
     virtual void restart()=0;
 
@@ -216,7 +216,7 @@ class SceneDepthReader: public DepthReader {
       return Eigen::Vector4f(481.20, 480.00, 319.50, 239.50);
     }
 
-    inline uint2 getinputSize() {
+    inline uint2 getInputImageResolution() {
       return _inSize;
     }
 
@@ -481,14 +481,14 @@ class RawDepthReader: public DepthReader {
     /**
      * Returns the dimensions of the frames read.
      */
-    inline uint2 getinputSize() {
+    inline uint2 getInputImageResolution() {
       return _inSize;
     }
 
     /**
      * Returns a vector with the camera matrix parameters. The `x`, `y`, `z`
      * and `w` elements are the x-axis focal length, y-axis focal length,
-     * x-axis optical center and y-axis optical center.
+     * x-axis optical centre and y-axis optical centre.
      */
     inline Eigen::Vector4f getK() {
       return Eigen::Vector4f(531.15, 531.15, 640 / 2, 480 / 2);
@@ -766,7 +766,7 @@ class OpenNIDepthReader: public DepthReader {
       return res;
     }
 
-    inline uint2 getinputSize() {
+    inline uint2 getInputImageResolution() {
       return _inSize;
     }
 
@@ -799,7 +799,7 @@ class OpenNIDepthReader: public DepthReader {
       return Eigen::Vector4f::Constant(0.f);
     }
 
-    uint2 getinputSize() {
+    uint2 getInputImageResolution() {
       return make_uint2(0);
     }
 

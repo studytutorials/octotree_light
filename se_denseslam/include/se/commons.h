@@ -102,7 +102,7 @@ void read_input(std::string inputfile, T * in) {
 	}
 }
 
-inline void gs2rgb(double h, unsigned char rgbw[4]) {
+inline void gs2rgb(double h, unsigned char rgba[4]) {
 	double v = 0;
 	double r = 0, g = 0, b = 0;
 	v = 0.75;
@@ -157,10 +157,10 @@ inline void gs2rgb(double h, unsigned char rgbw[4]) {
 			break;
 		}
 	}
-	rgbw[0] = r * 255;
-	rgbw[1] = g * 255;
-	rgbw[2] = b * 255;
-	rgbw[3] = 255; // Only for padding purposes
+	rgba[0] = r * 255;
+	rgba[1] = g * 255;
+	rgba[2] = b * 255;
+	rgba[3] = 255; // Only for padding purposes
 }
 
 typedef struct Triangle {
@@ -207,22 +207,22 @@ typedef struct Triangle {
     Eigen::Vector3f a = vertexes[1] - vertexes[0];
     Eigen::Vector3f b = vertexes[2] - vertexes[1];
     Eigen::Vector3f v = a.cross(b);
-    surface_area = v.norm()/2;
+    surface_area = v.norm() / 2;
     return surface_area;
   }
 
-  Eigen::Vector3f * uniform_sample(int num){
+  Eigen::Vector3f* uniform_sample(int num){
 
-    Eigen::Vector3f * points = new Eigen::Vector3f[num];
+    Eigen::Vector3f* points = new Eigen::Vector3f[num];
     for(int i = 0; i < num; ++i){
-      float u = ((float)rand())/(float)RAND_MAX;
-      float v = ((float)rand())/(float)RAND_MAX;
+      float u = ((float)rand()) / (float)RAND_MAX;
+      float v = ((float)rand()) / (float)RAND_MAX;
       if(u + v > 1){
         u = 1 - u;
         v = 1 - v;
       }
       float w = 1 - (u + v);
-      points[i] = u*vertexes[0] + v*vertexes[1] + w*vertexes[2];
+      points[i] = u * vertexes[0] + v * vertexes[1] + w * vertexes[2];
     }
 
     return points;
@@ -232,14 +232,14 @@ typedef struct Triangle {
 
     Eigen::Vector3f * points = new Eigen::Vector3f[num];
     for(int i = 0; i < num; ++i){
-      float u = ((float)rand_r(&seed))/(float)RAND_MAX;
-      float v = ((float)rand_r(&seed))/(float)RAND_MAX;
+      float u = ((float)rand_r(&seed)) / (float)RAND_MAX;
+      float v = ((float)rand_r(&seed)) / (float)RAND_MAX;
       if(u + v > 1){
         u = 1 - u;
         v = 1 - v;
       }
       float w = 1 - (u + v);
-      points[i] = u*vertexes[0] + v*vertexes[1] + w*vertexes[2];
+      points[i] = u * vertexes[0] + v * vertexes[1] + w * vertexes[2];
     }
     return points;
   }
@@ -277,7 +277,7 @@ inline Eigen::Matrix4f getInverseCameraMatrix(const Eigen::Vector4f& k) {
 
 static const float epsilon = 0.0000001;
 
-inline void compareTrackData(std::string str, TrackData* l, TrackData * r,
+inline void compareTrackData(std::string str, TrackData* l, TrackData* r,
 		unsigned int size) {
 	for (unsigned int i = 0; i < size; i++) {
 		if (std::abs(l[i].error - r[i].error) > epsilon) {
@@ -305,7 +305,7 @@ inline void compareFloat(std::string str, float* l, float * r, unsigned int size
 }
 
 template<typename T>
-void writefile(std::string prefix, int idx, T * data, unsigned int size) {
+void writefile(std::string prefix, int idx, T* data, unsigned int size) {
 
 	std::string filename = prefix + NumberToString(idx);
 	FILE* pFile = fopen(filename.c_str(), "wb");
@@ -322,46 +322,50 @@ void writefile(std::string prefix, int idx, T * data, unsigned int size) {
 	fclose(pFile);
 }
 
-inline void writeVtkMesh(const char * filename,
+inline void writeVtkMesh(const char*                  filename,
                          const std::vector<Triangle>& mesh,
-                         const Eigen::Vector3f& init_pose,
-                         const float * point_data = NULL,
-                         const float * cell_data = NULL){
-  std::stringstream points;
-  std::stringstream polygons;
-  std::stringstream pointdata;
-  std::stringstream celldata;
+                         const Eigen::Matrix4f&       T_WM,
+                         const float*                 point_data = nullptr,
+                         const float*                 cell_data = nullptr){
+  std::stringstream ss_points_W;
+  std::stringstream ss_polygons;
+  std::stringstream ss_point_data;
+  std::stringstream ss_cell_data;
   int point_count = 0;
   int triangle_count = 0;
-  bool hasPointData = point_data != NULL;
-  bool hasCellData = cell_data != NULL;
+  bool has_point_data = point_data != nullptr;
+  bool has_cell_data = cell_data != nullptr;
 
   for(unsigned int i = 0; i < mesh.size(); ++i ){
-    const Triangle& t = mesh[i];
+    const Triangle& triangle_M = mesh[i];
 
-    points << t.vertexes[0].x() - init_pose.x() << " "
-           << t.vertexes[0].y() - init_pose.y() << " "
-           << t.vertexes[0].z() - init_pose.z() << std::endl;
+    Eigen::Vector3f vertex_0_W = (T_WM * triangle_M.vertexes[0].homogeneous()).head(3);
+    Eigen::Vector3f vertex_1_W = (T_WM * triangle_M.vertexes[1].homogeneous()).head(3);
+    Eigen::Vector3f vertex_2_W = (T_WM * triangle_M.vertexes[2].homogeneous()).head(3);
 
-    points << t.vertexes[1].x() - init_pose.x() << " "
-           << t.vertexes[1].y() - init_pose.y() << " "
-           << t.vertexes[1].z() - init_pose.z() << std::endl;
+    ss_points_W << vertex_0_W.x() << " "
+                << vertex_0_W.y() << " "
+                << vertex_0_W.z() << std::endl;
 
-    points << t.vertexes[2].x() - init_pose.x() << " "
-           << t.vertexes[2].y() - init_pose.y() << " "
-           << t.vertexes[2].z() - init_pose.z() << std::endl;
+    ss_points_W << vertex_1_W.x() << " "
+                << vertex_1_W.y() << " "
+                << vertex_1_W.z() << std::endl;
 
-    polygons << "3 " << point_count << " " << point_count+1 <<
+    ss_points_W << vertex_2_W.x() << " "
+                << vertex_2_W.y() << " "
+                << vertex_2_W.z() << std::endl;
+
+    ss_polygons << "3 " << point_count << " " << point_count+1 <<
       " " << point_count+2 << std::endl;
 
-    if(hasPointData){
-      pointdata << point_data[i*3] << std::endl;
-      pointdata << point_data[i*3 + 1] << std::endl;
-      pointdata << point_data[i*3 + 2] << std::endl;
+    if(has_point_data){
+      ss_point_data << point_data[i*3] << std::endl;
+      ss_point_data << point_data[i*3 + 1] << std::endl;
+      ss_point_data << point_data[i*3 + 2] << std::endl;
     }
 
-    if(hasCellData){
-      celldata << cell_data[i] << std::endl;
+    if(has_cell_data){
+      ss_cell_data << cell_data[i] << std::endl;
     }
 
     point_count +=3;
@@ -376,41 +380,44 @@ inline void writeVtkMesh(const char * filename,
   f << "DATASET POLYDATA" << std::endl;
 
   f << "POINTS " << point_count << " FLOAT" << std::endl;
-  f << points.str();
+  f << ss_points_W.str();
 
   f << "POLYGONS " << triangle_count << " " << triangle_count * 4 << std::endl;
-  f << polygons.str() << std::endl;
-  if(hasPointData){
+  f << ss_polygons.str() << std::endl;
+  if(has_point_data){
     f << "POINT_DATA " << point_count << std::endl;
     f << "SCALARS vertex_scalars float 1" << std::endl;
     f << "LOOKUP_TABLE default" << std::endl;
-    f << pointdata.str();
+    f << ss_point_data.str();
   }
 
-  if(hasCellData){
+  if(has_cell_data){
     f << "CELL_DATA " << triangle_count << std::endl;
     f << "SCALARS cell_scalars float 1" << std::endl;
     f << "LOOKUP_TABLE default" << std::endl;
-    f << celldata.str();
+    f << ss_cell_data.str();
   }
   f.close();
 }
 
-inline void writeObjMesh(const char * filename,
+inline void writeObjMesh(const char* filename,
                          const std::vector<Triangle>& mesh){
-  std::stringstream points;
+  std::stringstream points_M;
   std::stringstream faces;
   int point_count = 0;
   int face_count = 0;
 
   for(unsigned int i = 0; i < mesh.size(); i++){
-    const Triangle& t = mesh[i];
-    points << "v " << t.vertexes[0](0) << " " << t.vertexes[0](1)
-           << " "  << t.vertexes[0](2) << std::endl;
-    points << "v " << t.vertexes[1](0) << " " << t.vertexes[1](1)
-           << " "  << t.vertexes[1](2) << std::endl;
-    points << "v " << t.vertexes[2](0) << " " << t.vertexes[2](1)
-           << " "  << t.vertexes[2](2) << std::endl;
+    const Triangle& triangle_M = mesh[i];
+    points_M << "v " << triangle_M.vertexes[0].x() << " "
+                     << triangle_M.vertexes[0].y() << " "
+                     << triangle_M.vertexes[0].z() << std::endl;
+    points_M << "v " << triangle_M.vertexes[1].x() << " "
+                     << triangle_M.vertexes[1].y() << " "
+                     << triangle_M.vertexes[1].z() << std::endl;
+    points_M << "v " << triangle_M.vertexes[2].x() << " "
+                     << triangle_M.vertexes[2].y() << " "
+                     << triangle_M.vertexes[2].z() << std::endl;
 
     faces  << "f " << (face_count*3)+1 << " " << (face_count*3)+2
            << " " << (face_count*3)+3 << std::endl;
@@ -423,7 +430,7 @@ inline void writeObjMesh(const char * filename,
   f << "# OBJ file format with ext .obj" << std::endl;
   f << "# vertex count = " << point_count << std::endl;
   f << "# face count = " << face_count << std::endl;
-  f << points.str();
+  f << points_M.str();
   f << faces.str();
   f.close();
   std::cout << "Written " << face_count << " faces and " << point_count

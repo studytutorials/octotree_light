@@ -53,8 +53,8 @@ namespace se {
     template <typename T>
     std::ofstream& serialise(std::ofstream& out, Node<T>& node) {
       out.write(reinterpret_cast<char *>(&node.code_), sizeof(key_t));
-      out.write(reinterpret_cast<char *>(&node.side_), sizeof(int));
-      out.write(reinterpret_cast<char *>(&node.value_), sizeof(node.value_));
+      out.write(reinterpret_cast<char *>(&node.size_), sizeof(int));
+      out.write(reinterpret_cast<char *>(&node.data_), sizeof(node.data_));
       return out;
     }
 
@@ -67,8 +67,8 @@ namespace se {
     template <typename T>
     void deserialise(Node<T>& node, std::ifstream& in) {
       in.read(reinterpret_cast<char *>(&node.code_), sizeof(key_t));
-      in.read(reinterpret_cast<char *>(&node.side_), sizeof(int));
-      in.read(reinterpret_cast<char *>(&node.value_), sizeof(node.value_));
+      in.read(reinterpret_cast<char *>(&node.size_), sizeof(int));
+      in.read(reinterpret_cast<char *>(&node.data_), sizeof(node.data_));
     }
 
     /*

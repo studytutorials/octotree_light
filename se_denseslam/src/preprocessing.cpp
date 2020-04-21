@@ -42,51 +42,52 @@
 
 
 
-void bilateralFilterKernel(se::Image<float>&         out,
-                           const se::Image<float>&   in,
+void bilateralFilterKernel(se::Image<float>&         output_image,
+                           const se::Image<float>&   input_image,
                            const std::vector<float>& gaussian,
                            const float               e_d,
                            const int                 radius) {
 
-  if ((in.width() != out.width()) || in.height() != out.height()) {
+  if ((input_image.width() != output_image.width()) ||
+       input_image.height() != output_image.height()) {
     std::cerr << "input/output image sizes differ." << std::endl;
     exit(1);
   }
 
   TICK()
-  const int width = in.width();
-  const int height = in.height();
+  const int width = input_image.width();
+  const int height = input_image.height();
   const float e_d_squared_2 = e_d * e_d * 2.f;
 #pragma omp parallel for
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      const unsigned int pos = x + y * width;
-      if (in[pos] == 0) {
-        out[pos] = 0;
+      const unsigned int pixel_idx = x + y * width;
+      if (input_image[pixel_idx] == 0) {
+        output_image[pixel_idx] = 0;
         continue;
       }
 
-      float sum = 0.0f;
-      float t = 0.0f;
+      float factor_count = 0.0f;
+      float filter_value_sum = 0.0f;
 
-      const float center = in[pos];
+      const float centre_value = input_image[pixel_idx];
 
       for (int i = -radius; i <= radius; ++i) {
         for (int j = -radius; j <= radius; ++j) {
-          const Eigen::Vector2i curr_pos = Eigen::Vector2i(
+          const Eigen::Vector2i pixel_tmp = Eigen::Vector2i(
               se::math::clamp(x + i, 0, width  - 1),
               se::math::clamp(y + j, 0, height - 1));
-          const float curr_pix = in[curr_pos.x() + curr_pos.y() * width];
-          if (curr_pix > 0.f) {
-            const float mod = se::math::sq(curr_pix - center);
+          const float pixel_value_tmp = input_image[pixel_tmp.x() + pixel_tmp.y() * width];
+          if (pixel_value_tmp > 0.f) {
+            const float mod = se::math::sq(pixel_value_tmp - centre_value);
             const float factor = gaussian[i + radius]
                 * gaussian[j + radius] * expf(-mod / e_d_squared_2);
-            t += factor * curr_pix;
-            sum += factor;
+            filter_value_sum += factor * pixel_value_tmp;
+            factor_count += factor;
           }
         }
       }
-      out[pos] = t / sum;
+      output_image[pixel_idx] = filter_value_sum / factor_count;
     }
   }
   TOCK("bilateralFilterKernel", width * height);
@@ -94,204 +95,210 @@ void bilateralFilterKernel(se::Image<float>&         out,
 
 
 
-void depth2vertexKernel(se::Image<Eigen::Vector3f>& vertex,
-                        const se::Image<float>&     depth,
-                        const Eigen::Matrix4f&      inv_K) {
+void depthToPointCloudKernel(se::Image<Eigen::Vector3f>& point_cloud_C,
+                             const se::Image<float>&     depth_image,
+                             const SensorImpl&           sensor) {
 
   TICK();
 #pragma omp parallel for
-  for (int y = 0; y < depth.height(); y++) {
-    for (int x = 0; x < depth.width(); x++) {
-
-      if (depth[x + y * depth.width()] > 0) {
-        vertex[x + y * depth.width()] = (depth[x + y * depth.width()]
-            * inv_K * Eigen::Vector4f(x, y, 1.f, 0.f)).head<3>();
+  for (int y = 0; y < depth_image.height(); y++) {
+    for (int x = 0; x < depth_image.width(); x++) {
+      const Eigen::Vector2i pixel(x, y);
+      if (depth_image(pixel.x(), pixel.y()) > 0) {
+        const Eigen::Vector2f pixel_f = pixel.cast<float>();
+        Eigen::Vector3f ray_dir_C;
+        sensor.model.backProject(pixel_f, &ray_dir_C);
+        point_cloud_C[pixel.x() + pixel.y() * depth_image.width()] = depth_image(pixel.x(), pixel.y()) * ray_dir_C;
       } else {
-        vertex[x + y * depth.width()] = Eigen::Vector3f::Zero();
+        point_cloud_C[pixel.x() + pixel.y() * depth_image.width()] = Eigen::Vector3f::Zero();
       }
     }
   }
-  TOCK("depth2vertexKernel", depth.width() * depth.height());
+  TOCK("depthToPointCloudKernel", depth_image.width() * depth_image.height());
 }
 
 
 
-void vertex2depthKernel(se::Image<float>&                 depth,
-                        const se::Image<Eigen::Vector3f>& vertex,
-                        const Eigen::Matrix4f&            T_cw) {
+void pointCloudToDepthKernel(se::Image<float>&            depth_image,
+                        const se::Image<Eigen::Vector3f>& point_cloud_X,
+                        const Eigen::Matrix4f&            T_CX) {
 
   TICK();
 #pragma omp parallel for
-  for (int y = 0; y < depth.height(); y++) {
-    for (int x = 0; x < depth.width(); x++) {
-      depth(x, y) = (T_cw * vertex(x, y).homogeneous()).z();
+  for (int y = 0; y < depth_image.height(); y++) {
+    for (int x = 0; x < depth_image.width(); x++) {
+      depth_image(x, y) = (T_CX * point_cloud_X(x, y).homogeneous()).z();
     }
   }
-  TOCK("vertex2depthKernel", depth.width() * depth.height());
+  TOCK("pointCloudToDepthKernel", depth_image.width() * depth_image.height());
 }
 
 
 
 // Explicit template instantiation
-template void vertex2normalKernel<true>(se::Image<Eigen::Vector3f>&       out,
-                                        const se::Image<Eigen::Vector3f>& in);
-template void vertex2normalKernel<false>(se::Image<Eigen::Vector3f>&       out,
-                                         const se::Image<Eigen::Vector3f>& in);
+template void pointCloudToNormalKernel<true>(se::Image<Eigen::Vector3f>&       normals,
+                                             const se::Image<Eigen::Vector3f>& point_cloud);
+template void pointCloudToNormalKernel<false>(se::Image<Eigen::Vector3f>&       normals,
+                                              const se::Image<Eigen::Vector3f>& point_cloud);
 
 template <bool NegY>
-void vertex2normalKernel(se::Image<Eigen::Vector3f>&       out,
-                         const se::Image<Eigen::Vector3f>& in) {
+void pointCloudToNormalKernel(se::Image<Eigen::Vector3f>&       normals,
+                              const se::Image<Eigen::Vector3f>& point_cloud) {
 
   TICK();
-  const int width = in.width();
-  const int height = in.height();
+  const int width = point_cloud.width();
+  const int height = point_cloud.height();
 #pragma omp parallel for
   for (int y = 0; y < height; y++) {
     for (int x = 0; x < width; x++) {
-      const Eigen::Vector3f center = in[x + width * y];
-      if (center.z() == 0.f) {
-        out[x + y * width].x() = INVALID;
+      const Eigen::Vector3f point = point_cloud[x + width * y];
+      if (point.z() == 0.f) {
+        normals[x + y * width].x() = INVALID;
         continue;
       }
 
-      const Eigen::Vector2i pleft
+      const Eigen::Vector2i p_left
           = Eigen::Vector2i(std::max(int(x) - 1, 0), y);
-      const Eigen::Vector2i pright
+      const Eigen::Vector2i p_right
           = Eigen::Vector2i(std::min(x + 1, (int) width - 1), y);
 
       // Swapped to match the left-handed coordinate system of ICL-NUIM
-      Eigen::Vector2i pup, pdown;
+      Eigen::Vector2i p_up, p_down;
       if (NegY) {
-        pup   = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
-        pdown = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
+        p_up   = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
+        p_down = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
       } else {
-        pdown = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
-        pup   = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
+        p_down = Eigen::Vector2i(x, std::max(int(y) - 1, 0));
+        p_up   = Eigen::Vector2i(x, std::min(y + 1, ((int) height) - 1));
       }
 
-      const Eigen::Vector3f left  = in[pleft.x()  + width * pleft.y()];
-      const Eigen::Vector3f right = in[pright.x() + width * pright.y()];
-      const Eigen::Vector3f up    = in[pup.x()    + width * pup.y()];
-      const Eigen::Vector3f down  = in[pdown.x()  + width * pdown.y()];
+      const Eigen::Vector3f left  = point_cloud[p_left.x()  + width * p_left.y()];
+      const Eigen::Vector3f right = point_cloud[p_right.x() + width * p_right.y()];
+      const Eigen::Vector3f up    = point_cloud[p_up.x()    + width * p_up.y()];
+      const Eigen::Vector3f down  = point_cloud[p_down.x()  + width * p_down.y()];
 
       if (left.z() == 0 || right.z() == 0 || up.z() == 0 || down.z() == 0) {
-        out[x + y * width].x() = INVALID;
+        normals[x + y * width].x() = INVALID;
         continue;
       }
-      const Eigen::Vector3f dxv = right - left;
-      const Eigen::Vector3f dyv = up - down;
-      out[x + y * width] =  dxv.cross(dyv).normalized();
+      const Eigen::Vector3f dv_x = right - left;
+      const Eigen::Vector3f dv_y = up - down;
+      normals[x + y * width] =  dv_x.cross(dv_y).normalized();
     }
   }
-  TOCK("vertex2normalKernel", width * height);
+  TOCK("pointCloudToNormalKernel", width * height);
 }
 
 
 
-void mm2metersKernel(se::Image<float>&      out,
-                     const uint16_t*        in,
-                     const Eigen::Vector2i& input_size) {
+void mm2metersKernel(se::Image<float>&      m_depth_image,
+                     const uint16_t*        mm_depth_image_data,
+                     const Eigen::Vector2i& mm_depth_image_res) {
   TICK();
   // Check for unsupported conditions
-  if ((input_size.x() < out.width()) || input_size.y() < out.height()) {
+  if ((mm_depth_image_res.x() < m_depth_image.width()) ||
+       mm_depth_image_res.y() < m_depth_image.height()) {
     std::cerr << "Invalid ratio." << std::endl;
     exit(1);
   }
-  if ((input_size.x() % out.width() != 0) || (input_size.y() % out.height() != 0)) {
+  if ((mm_depth_image_res.x() % m_depth_image.width() != 0) ||
+      (mm_depth_image_res.y() % m_depth_image.height() != 0)) {
     std::cerr << "Invalid ratio." << std::endl;
     exit(1);
   }
-  if ((input_size.x() / out.width() != input_size.y() / out.height())) {
+  if ((mm_depth_image_res.x() / m_depth_image.width() !=
+       mm_depth_image_res.y() / m_depth_image.height())) {
     std::cerr << "Invalid ratio." << std::endl;
     exit(1);
   }
 
-  const int ratio = input_size.x() / out.width();
+  const int ratio = mm_depth_image_res.x() / m_depth_image.width();
 #pragma omp parallel for
-  for (int y_out = 0; y_out < out.height(); y_out++)
-    for (int x_out = 0; x_out < out.width(); x_out++) {
-      size_t n_valid = 0;
-      float pix_mean = 0;
+  for (int y_out = 0; y_out < m_depth_image.height(); y_out++)
+    for (int x_out = 0; x_out < m_depth_image.width(); x_out++) {
+      size_t valid_count = 0;
+      float pixel_value_sum = 0;
       for (int b = 0; b < ratio; b++)
         for (int a = 0; a < ratio; a++) {
           const int y_in = y_out * ratio + b;
           const int x_in = x_out * ratio + a;
-          if (in[x_in + input_size.x() * y_in] == 0)
+          if (mm_depth_image_data[x_in + mm_depth_image_res.x() * y_in] == 0)
             continue;
-          pix_mean += in[x_in + input_size.x() * y_in];
-          n_valid++;
+          pixel_value_sum += mm_depth_image_data[x_in + mm_depth_image_res.x() * y_in];
+          valid_count++;
         }
-      out[x_out + out.width() * y_out]
-          = (n_valid > 0) ? pix_mean / (n_valid * 1000.0f) : 0;
+      m_depth_image(x_out, y_out)
+          = (valid_count > 0) ? pixel_value_sum / (valid_count * 1000.0f) : 0;
     }
-  TOCK("mm2metersKernel", out.width() * out.height());
+  TOCK("mm2metersKernel", m_depth_image.width() * m_depth_image.height());
 }
 
 
 
-void halfSampleRobustImageKernel(se::Image<float>&       out,
-                                 const se::Image<float>& in,
+void halfSampleRobustImageKernel(se::Image<float>&       output_image,
+                                 const se::Image<float>& input_image,
                                  const float             e_d,
-                                 const int               r) {
+                                 const int               radius) {
 
-  if ((in.width() / out.width() != 2) || ( in.height() / out.height() != 2)) {
+  if ((input_image.width() / output_image.width() != 2) ||
+      (input_image.height() / output_image.height() != 2)) {
     std::cerr << "Invalid ratio." << std::endl;
     exit(1);
   }
 
   TICK();
 #pragma omp parallel for
-  for (int y = 0; y < out.height(); y++) {
-    for (int x = 0; x < out.width(); x++) {
-      const Eigen::Vector2i pixel = Eigen::Vector2i(x, y);
-      const Eigen::Vector2i center_pixel = 2 * pixel;
+  for (int y = 0; y < output_image.height(); y++) {
+    for (int x = 0; x < output_image.width(); x++) {
+      const Eigen::Vector2i out_pixel = Eigen::Vector2i(x, y);
+      const Eigen::Vector2i in_pixel = 2 * out_pixel;
 
-      float sum = 0.0f;
-      float t = 0.0f;
-      const float center = in[center_pixel.x() + center_pixel.y() * in.width()];
-      for (int i = -r + 1; i <= r; ++i) {
-        for (int j = -r + 1; j <= r; ++j) {
-          Eigen::Vector2i curr = center_pixel + Eigen::Vector2i(j, i);
-          se::math::clamp(curr,
+      float pixel_count = 0.0f;
+      float pixel_value_sum = 0.0f;
+      const float in_pixel_value = input_image[in_pixel.x() + in_pixel.y() * input_image.width()];
+      for (int i = -radius + 1; i <= radius; ++i) {
+        for (int j = -radius + 1; j <= radius; ++j) {
+          Eigen::Vector2i in_pixel_tmp = in_pixel + Eigen::Vector2i(j, i);
+          se::math::clamp(in_pixel_tmp,
               Eigen::Vector2i::Zero(),
-              Eigen::Vector2i(2 * out.width() - 1, 2 * out.height() - 1));
-          const float current = in[curr.x() + curr.y() * in.width()];
-          if (fabsf(current - center) < e_d) {
-            sum += 1.0f;
-            t += current;
+              Eigen::Vector2i(2 * output_image.width() - 1, 2 * output_image.height() - 1));
+          const float in_pixel_value_tmp = input_image[in_pixel_tmp.x() + in_pixel_tmp.y() * input_image.width()];
+          if (fabsf(in_pixel_value_tmp - in_pixel_value) < e_d) {
+            pixel_count += 1.0f;
+            pixel_value_sum += in_pixel_value_tmp;
           }
         }
       }
-      out[pixel.x() + pixel.y() * out.width()] = t / sum;
+      output_image[out_pixel.x() + out_pixel.y() * output_image.width()] = pixel_value_sum / pixel_count;
     }
   }
-  TOCK("halfSampleRobustImageKernel", out.width() * out.height());
+  TOCK("halfSampleRobustImageKernel", output_image.width() * output_image.height());
 }
 
 
 
-void downsampleImageKernel(const uint8_t*         input_RGB,
-                           const Eigen::Vector2i& input_size,
-                           se::Image<uint32_t>&   output_RGBA) {
+void downsampleImageKernel(const uint8_t*         input_RGB_image_data,
+                           const Eigen::Vector2i& input_RGB_image_res,
+                           se::Image<uint32_t>&   output_RGBA_image) {
 
   TICK();
   // Check for correct image sizes.
-  assert((input_size.x() >= output_RGBA.width())
+  assert((input_RGB_image_res.x() >= output_RGBA.width())
       && "Error: input width must be greater than output width");
-  assert((input_size.y() >= output_RGBA.height())
+  assert((input_RGB_image_res.y() >= output_RGBA.height())
       && "Error: input height must be greater than output height");
-  assert((input_size.x() % output_RGBA.width() == 0)
+  assert((input_RGB_image_res.x() % output_RGBA.width() == 0)
       && "Error: input width must be an integer multiple of output width");
-  assert((input_size.y() % output_RGBA.height() == 0)
+  assert((input_RGB_image_res.y() % output_RGBA.height() == 0)
       && "Error: input height must be an integer multiple of output height");
-  assert((input_size.x() / output_RGBA.width() == input_size.y() / output_RGBA.height())
+  assert((input_RGB_image_res.x() / output_RGBA.width() == input_RGB_image_res.y() / output_RGBA.height())
       && "Error: input and output width and height ratios must be the same");
 
-  const int ratio = input_size.x() / output_RGBA.width();
+  const int ratio = input_RGB_image_res.x() / output_RGBA_image.width();
   // Iterate over each output pixel.
 #pragma omp parallel for
-  for (int y_out = 0; y_out < output_RGBA.height(); ++y_out) {
-    for (int x_out = 0; x_out < output_RGBA.width(); ++x_out) {
+  for (int y_out = 0; y_out < output_RGBA_image.height(); ++y_out) {
+    for (int x_out = 0; x_out < output_RGBA_image.width(); ++x_out) {
 
       // Average the neighboring pixels by iterating over the nearby input
       // pixels.
@@ -300,9 +307,9 @@ void downsampleImageKernel(const uint8_t*         input_RGB,
         for (int xx = 0; xx < ratio; ++xx) {
           const int x_in = x_out * ratio + xx;
           const int y_in = y_out * ratio + yy;
-          r += input_RGB[3 * (x_in + input_size.x() * y_in)    ];
-          g += input_RGB[3 * (x_in + input_size.x() * y_in) + 1];
-          b += input_RGB[3 * (x_in + input_size.x() * y_in) + 2];
+          r += input_RGB_image_data[3 * (x_in + input_RGB_image_res.x() * y_in)    ];
+          g += input_RGB_image_data[3 * (x_in + input_RGB_image_res.x() * y_in) + 1];
+          b += input_RGB_image_data[3 * (x_in + input_RGB_image_res.x() * y_in) + 2];
         }
       }
       r /= ratio * ratio;
@@ -310,10 +317,10 @@ void downsampleImageKernel(const uint8_t*         input_RGB,
       b /= ratio * ratio;
 
       // Combine into a uint32_t by adding an alpha channel with 100% opacity.
-      const uint32_t pixel = to_rgba(r, g, b, 255);
-      output_RGBA[x_out + output_RGBA.width() * y_out] = pixel;
+      const uint32_t rgba = to_rgba(r, g, b, 255);
+      output_RGBA_image[x_out + output_RGBA_image.width() * y_out] = rgba;
     }
   }
-  TOCK("downsampleImageKernel", output_RGBA.width() * output_RGBA.height());
+  TOCK("downsampleImageKernel", output_RGBA_image.width() * output_RGBA_image.height());
 }
 

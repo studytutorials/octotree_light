@@ -53,9 +53,9 @@ template<> struct gl<uint32_t> {
 
 template<typename T>
 void drawit(const T*               scene,
-            const Eigen::Vector2i& size) {
+            const Eigen::Vector2i& res) {
 
-  const Eigen::Vector2i content_size (size);
+  const Eigen::Vector2i content_res (res);
 
   // Create a GLUT window if one does not already exist.
   if (glutGetWindow() == 0) {
@@ -63,11 +63,11 @@ void drawit(const T*               scene,
     char* argv = (char*) "supereight";
     glutInit(&argc, &argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowSize(content_size.x(), content_size.y());
+    glutInitWindowSize(content_res.x(), content_res.y());
     glutCreateWindow("supereight display");
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, content_size.x());
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, content_res.x());
 
     // Change raster coordinates from [-1, 1] to [0, 1].
     glMatrixMode(GL_PROJECTION);
@@ -75,15 +75,15 @@ void drawit(const T*               scene,
     glMatrixMode(GL_MODELVIEW);
   }
 
-  // Get the window size and the scaling factor to scale the content to the
+  // Get the window resolution and the scaling factor to scale the content to the
   // window.
-  const Eigen::Vector2i window_size = Eigen::Vector2i(
+  const Eigen::Vector2i window_res = Eigen::Vector2i(
       glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
-  const float width_factor  = (float) window_size.x() / content_size.x();
-  const float height_factor = (float) window_size.y() / content_size.y();
+  const float width_factor  = (float) window_res.x() / content_res.x();
+  const float height_factor = (float) window_res.y() / content_res.y();
   const float factor = std::min(width_factor, height_factor);
 
-  glViewport(0, 0, window_size.x(), window_size.y());
+  glViewport(0, 0, window_res.x(), window_res.y());
 
   glClear(GL_COLOR_BUFFER_BIT);
 
@@ -92,7 +92,7 @@ void drawit(const T*               scene,
     glRasterPos2i(0, 1);
     // Scale the image and flip it up-down.
     glPixelZoom(factor, -factor);
-    glDrawPixels(size.x(), size.y(), gl<T>::format, gl<T>::type, scene);
+    glDrawPixels(res.x(), res.y(), gl<T>::format, gl<T>::type, scene);
   }
 
   glutSwapBuffers();
@@ -101,15 +101,15 @@ void drawit(const T*               scene,
 
 
 template<typename A, typename B, typename C, typename D>
-void drawthem(const A* scene_1, const Eigen::Vector2i& size_1,
-              const B* scene_2, const Eigen::Vector2i& size_2,
-              const C* scene_3, const Eigen::Vector2i& size_3,
-              const D* scene_4, const Eigen::Vector2i& size_4) {
+void drawthem(const A* scene_1, const Eigen::Vector2i& res_1,
+              const B* scene_2, const Eigen::Vector2i& res_2,
+              const C* scene_3, const Eigen::Vector2i& res_3,
+              const D* scene_4, const Eigen::Vector2i& res_4) {
 
-  const Eigen::Vector2i grid_size (2, 2);
-  const Eigen::Vector2i image_size (size_2);
-  const Eigen::Vector2i content_size = grid_size.cwiseProduct(image_size);
-  const Eigen::Vector2f grid_step (1.f / grid_size.x(), 1.f / grid_size.y());
+  const Eigen::Vector2i grid_res (2, 2);
+  const Eigen::Vector2i image_res (res_2);
+  const Eigen::Vector2i content_res = grid_res.cwiseProduct(image_res);
+  const Eigen::Vector2f grid_step (1.f / grid_res.x(), 1.f / grid_res.y());
 
   // Create a GLUT window if one does not already exist.
   if (glutGetWindow() == 0) {
@@ -117,7 +117,7 @@ void drawthem(const A* scene_1, const Eigen::Vector2i& size_1,
     char* argv = (char*) "supereight";
     glutInit(&argc, &argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowSize(content_size.x(), content_size.y());
+    glutInitWindowSize(content_res.x(), content_res.y());
     glutCreateWindow("supereight display");
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -128,40 +128,40 @@ void drawthem(const A* scene_1, const Eigen::Vector2i& size_1,
     glMatrixMode(GL_MODELVIEW);
   }
 
-  // Get the window size and the scaling factor to scale the content to the
+  // Get the window resolution and the scaling factor to scale the content to the
   // window.
-  const Eigen::Vector2i window_size = Eigen::Vector2i(
+  const Eigen::Vector2i window_res = Eigen::Vector2i(
       glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
-  const float width_factor  = (float) window_size.x() / content_size.x();
-  const float height_factor = (float) window_size.y() / content_size.y();
+  const float width_factor  = (float) window_res.x() / content_res.x();
+  const float height_factor = (float) window_res.y() / content_res.y();
   const float factor = std::min(width_factor, height_factor);
 
-  glViewport(0, 0, window_size.x(), window_size.y());
+  glViewport(0, 0, window_res.x(), window_res.y());
 
   glClear(GL_COLOR_BUFFER_BIT);
 
   if (scene_1 != nullptr) {
     glRasterPos2f(0 * grid_step.x(), 2 * grid_step.y());
     glPixelZoom(factor, -factor);
-    glDrawPixels(size_1.x(), size_1.y(), gl<A>::format, gl<A>::type, scene_1);
+    glDrawPixels(res_1.x(), res_1.y(), gl<A>::format, gl<A>::type, scene_1);
   }
 
   if (scene_2 != nullptr) {
     glRasterPos2f(1 * grid_step.x(), 2 * grid_step.y());
     glPixelZoom(factor, -factor);
-    glDrawPixels(size_2.x(), size_2.y(), gl<B>::format, gl<B>::type, scene_2);
+    glDrawPixels(res_2.x(), res_2.y(), gl<B>::format, gl<B>::type, scene_2);
   }
 
   if (scene_3 != nullptr) {
     glRasterPos2f(0 * grid_step.x(), 1 * grid_step.y());
     glPixelZoom(factor, -factor);
-    glDrawPixels(size_3.x(), size_3.y(), gl<C>::format, gl<C>::type, scene_3);
+    glDrawPixels(res_3.x(), res_3.y(), gl<C>::format, gl<C>::type, scene_3);
   }
 
   if (scene_4 != nullptr) {
     glRasterPos2f(1 * grid_step.x(), 1 * grid_step.y());
     glPixelZoom(factor, -factor);
-    glDrawPixels(size_4.x(), size_4.y(), gl<D>::format, gl<D>::type, scene_4);
+    glDrawPixels(res_4.x(), res_4.y(), gl<D>::format, gl<D>::type, scene_4);
   }
 
   glutSwapBuffers();

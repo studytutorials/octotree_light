@@ -41,11 +41,11 @@ typedef uint64_t key_t;
 //   typedef long long int morton_type; 
 }
 
-#define BLOCK_SIDE 8
+#define BLOCK_SIZE 8
 #define MAX_BITS 21
 #define CAST_STACK_DEPTH 23
 #define NUM_DIM 3
-constexpr se::key_t SCALE_MASK = (1 << (NUM_DIM * se::math::log2_const(BLOCK_SIDE))) - 1;
+constexpr se::key_t SCALE_MASK = (1 << (NUM_DIM * se::math::log2_const(BLOCK_SIZE))) - 1;
 
 /*
  * Mask generated with:  

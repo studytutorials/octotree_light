@@ -32,6 +32,7 @@
 #include "se/octree.hpp"
 #include "se/image/image.hpp"
 #include "se/continuous/volume_template.hpp"
+#include "se/sensor_implementation.hpp"
 
 
 
@@ -52,8 +53,8 @@ struct OFusion {
       double y; /**< The timestamp of the last update. */
     };
 
-    static inline VoxelData empty()     { return {0.f, 0.f}; }
-    static inline VoxelData initValue() { return {0.f, 0.f}; }
+    static inline VoxelData invalid()     { return {0.f, 0.f}; }
+    static inline VoxelData initData() { return {0.f, 0.f}; }
 
     template <typename T>
     using MemoryPoolType = se::PagedMemoryPool<T>;
@@ -99,26 +100,24 @@ struct OFusion {
    * camera pose.
    */
   static size_t buildAllocationList(
-      se::key_t*                      allocation_list,
-      size_t                          reserved,
       se::Octree<OFusion::VoxelType>& map,
-      const Eigen::Matrix4f&          T_wc,
-      const Eigen::Matrix4f&          K,
-      const float*                    depth_map,
-      const Eigen::Vector2i&          image_size,
-      const float                     mu);
+      const se::Image<float>&         depth_image,
+      const Eigen::Matrix4f&          T_MC,
+      const SensorImpl&               sensor,
+      se::key_t*                      allocation_list,
+      size_t                          reserved);
 
 
 
   /**
    * Integrate a depth image into the map.
    */
-  static void integrate(se::Octree<OFusion::VoxelType>& map,
-                        const Sophus::SE3f&             T_cw,
-                        const Eigen::Matrix4f&          K,
-                        const se::Image<float>&         depth,
-                        const float                     mu,
-                        const unsigned                  frame);
+  static void integrate(
+      se::Octree<OFusion::VoxelType>& map,
+      const se::Image<float>&         depth_image,
+      const Eigen::Matrix4f&          T_CM,
+      const SensorImpl&               sensor,
+      const unsigned                  frame);
 
 
 
@@ -127,13 +126,13 @@ struct OFusion {
    */
   static Eigen::Vector4f raycast(
       const VolumeTemplate<OFusion, se::Octree>& volume,
-      const Eigen::Vector3f&                     origin,
-      const Eigen::Vector3f&                     direction,
-      const float                                tnear,
-      const float                                tfar,
-      const float								 mu,
+      const Eigen::Vector3f&                     ray_origin_M,
+      const Eigen::Vector3f&                     ray_dir_M,
+      const float                                near_plane,
+      const float                                far_plane,
+      const float                                mu,
       const float                                step,
-      const float								 large_step);
+      const float                                large_step);
 };
 
 #endif

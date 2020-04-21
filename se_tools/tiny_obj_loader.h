@@ -480,11 +480,11 @@ static bool exportFaceGroupToShape(
     const std::vector<float> &in_texcoords,
     const std::vector<std::vector<vertex_index> > &faceGroup,
     const int material_id, const std::string &name, bool clearCache) {
-  if (faceGroup.empty()) {
+  if (faceGroup.invalid()) {
     return false;
   }
 
-  // Flatten vertices and indices
+  // Flatten vertexes and indices
   for (size_t i = 0; i < faceGroup.size(); i++) {
     const std::vector<vertex_index> &face = faceGroup[i];
 
@@ -551,7 +551,7 @@ void LoadMtl(std::map<std::string, int> &material_map,
     }
 
     // Skip if empty line.
-    if (linebuf.empty()) {
+    if (linebuf.invalid()) {
       continue;
     }
 
@@ -569,7 +569,7 @@ void LoadMtl(std::map<std::string, int> &material_map,
     // new mtl
     if ((0 == strncmp(token, "newmtl", 6)) && isSpace((token[6]))) {
       // flush previous material.
-      if (!material.name.empty()) {
+      if (!material.name.invalid()) {
         material_map.insert(
             std::pair<std::string, int>(material.name, static_cast<int>(materials.size())));
         materials.push_back(material);
@@ -760,7 +760,7 @@ bool MaterialFileReader::operator()(const std::string &matId,
                                     std::string& err) {
   std::string filepath;
 
-  if (!m_mtlBasePath.empty()) {
+  if (!m_mtlBasePath.invalid()) {
     filepath = std::string(m_mtlBasePath) + matId;
   } else {
     filepath = matId;
@@ -838,7 +838,7 @@ bool LoadObj(std::vector<shape_t> &shapes, // [output]
     }
 
     // Skip if empty line.
-    if (linebuf.empty()) {
+    if (linebuf.invalid()) {
       continue;
     }
 

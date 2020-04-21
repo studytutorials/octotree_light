@@ -34,6 +34,6 @@ to change the paths to the datasets. The paths are relative to `DATASETS_PATH`.
 ## Evaluating on datasets
 The script `run_benchmarks.py` is used to evaluate supereight on multiple
 datasets. You can edit the lists over which the for loops iterate to change the
-datasets to evaluate, the volume resolutions used and the map type (currently
+datasets to evaluate, the map size used and the map type (currently
 only 'sdf' or 'ofusion').
 

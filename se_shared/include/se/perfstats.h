@@ -116,7 +116,7 @@ struct PerfStats {
 		last = get_time();
 		return last;
 	}
-	double sample(const std::string &key) {
+	double sample(const std::string& key) {
 		const double now = get_time();
 		sample(key, now - last, TIME);
 		last = now;
@@ -128,17 +128,17 @@ struct PerfStats {
 	void reset(void) {
 		stats.clear();
 	}
-	void reset(const std::string & key);
-	double getLastData(const std::string & key);
-	Type getType(const std::string & key);
-	double getSampleTime(const std::string & key);
+	void reset(const std::string& key);
+	double getLastData(const std::string& key);
+	Type getType(const std::string& key);
+	double getSampleTime(const std::string& key);
 	void print(std::ostream& out = std::cout) const;
 	void debug();
 	void print_all_data(std::ostream& out, bool include_all_data = true) const;
 	double lastTime;
 };
 
-inline void PerfStats::reset(const std::string & key) {
+inline void PerfStats::reset(const std::string& key) {
 	std::map<std::string, Stats>::iterator s = stats.find(key);
 	if (s != stats.end())
 		s->second.data.clear();
@@ -155,9 +155,9 @@ inline void PerfStats::reset(const std::string & key) {
  */
 inline void PerfStats::print(std::ostream& out) const {
 	static int first = 1;
-	if (first) {
+	if(first) {
 
-		for (std::map<int, std::string>::const_iterator it = order.begin();
+		for(std::map<int, std::string>::const_iterator it = order.begin();
 				it != order.end(); it++) {
 
 			out << std::left << std::setw(10) << it->second << "\t";
@@ -168,11 +168,11 @@ inline void PerfStats::print(std::ostream& out) const {
 	out.setf(std::ios::fixed, std::ios::floatfield);
 	out.precision(10);
 	//for (std::map<std::string,Stats>::const_iterator it=stats.begin(); it!=stats.end(); it++){
-	for (std::map<int, std::string>::const_iterator kt = order.begin();
+	for(std::map<int, std::string>::const_iterator kt = order.begin();
 			kt != order.end(); kt++) {
 		std::map<std::string, Stats>::const_iterator it = stats.find(
 				kt->second);
-		if (it == stats.end())
+		if(it == stats.end())
 			continue;
 		switch (it->second.type) {
 		case TIME: {
@@ -208,7 +208,7 @@ inline void PerfStats::print(std::ostream& out) const {
 }
 inline double PerfStats::getLastData(const std::string & key) {
 	std::map<std::string, Stats>::iterator s = stats.find(key);
-	if (s != stats.end())
+	if(s != stats.end())
 		return (s->second.data.back());
 
 	return (0);
@@ -216,7 +216,7 @@ inline double PerfStats::getLastData(const std::string & key) {
 
 inline double PerfStats::getSampleTime(const std::string & key) {
 	std::map<std::string, Stats>::iterator s = stats.find(key);
-	if (s != stats.end()) {
+	if(s != stats.end()) {
 		return (s->second.lastPeriod);
 	}
 	return (0.0);
@@ -224,14 +224,14 @@ inline double PerfStats::getSampleTime(const std::string & key) {
 
 inline PerfStats::Type PerfStats::getType(const std::string & key) {
 	std::map<std::string, Stats>::iterator s = stats.find(key);
-	if (s != stats.end())
+	if(s != stats.end())
 		return (s->second.type);
 	return (UNDEFINED);
 }
 
 inline void PerfStats::print_all_data(std::ostream& out, bool include_all_data) const {
-	struct Results *res = NULL;
-	struct Results *resPtr = NULL;
+	struct Results* res = nullptr;
+	struct Results* resPtr = nullptr;
 	int frames = 0;
 	bool done = false;
 	unsigned int idx = 0;
@@ -240,11 +240,11 @@ inline void PerfStats::print_all_data(std::ostream& out, bool include_all_data) 
 	out.precision(10);
 	res = resPtr;
 	//for (std::map<std::string,Stats>::const_iterator it=stats.begin(); it!=stats.end(); it++){
-	for (std::map<int, std::string>::const_iterator kt = order.begin();
+	for(std::map<int, std::string>::const_iterator kt = order.begin();
 		 kt != order.end(); kt++) {
 		std::map<std::string, Stats>::const_iterator it = stats.find(
 				kt->second);
-		if (it == stats.end())
+		if(it == stats.end())
 			continue;
 
 		(*res).mean = 0.0;
@@ -263,14 +263,14 @@ inline void PerfStats::print_all_data(std::ostream& out, bool include_all_data) 
 		 kt != order.end(); kt++) {
 		std::map<std::string, Stats>::const_iterator it = stats.find(
 				kt->second);
-		if (it == stats.end())
+		if(it == stats.end())
 			continue;
 
-		for (idx = 0; idx < it->second.data.size(); idx++) {
+		for(idx = 0; idx < it->second.data.size(); idx++) {
 			(*res).mean = (*res).mean + it->second.data[idx];
-			if (it->second.data[idx] > (*res).max)
+			if(it->second.data[idx] > (*res).max)
 				(*res).max = it->second.data[idx];
-			if (it->second.data[idx] < (*res).min)
+			if(it->second.data[idx] < (*res).min)
 				(*res).min = it->second.data[idx];
 			frames++;
 		}
@@ -285,24 +285,24 @@ inline void PerfStats::print_all_data(std::ostream& out, bool include_all_data) 
 
 	int count =0;
 
-	if (include_all_data)
+	if(include_all_data)
 		std::cerr << " Done max min\n";
 
-	while (count < insertion_id) {
+	while(count < insertion_id) {
 		res = resPtr;
-		for (std::map<int, std::string>::const_iterator kt = order.begin();
+		for(std::map<int, std::string>::const_iterator kt = order.begin();
 			 kt != order.end(); kt++) {
 			std::map<std::string, Stats>::const_iterator it = stats.find(
 					kt->second);
-			if (it == stats.end()) {
+			if(it == stats.end()) {
 				res++;
 				continue;
 			}
 
 
-			if (idx < it->second.data.size()) {
-				if (include_all_data) {
-					switch (it->second.type) {
+			if(idx < it->second.data.size()) {
+				if(include_all_data) {
+					switch(it->second.type) {
 						case TIME: {
 							out << it->second.data[idx] << "\t";
 						}
@@ -336,18 +336,18 @@ inline void PerfStats::print_all_data(std::ostream& out, bool include_all_data) 
 							+ ((it->second.data[idx] - (*res).mean)
 							   * (it->second.data[idx] - (*res).mean));
 			} else {
-				if (idx == it->second.data.size())
+				if(idx == it->second.data.size())
 					count++;
 			}
 			res++;
 		}
-		if (include_all_data && done) {
+		if(include_all_data && done) {
 			out << "# End of file";
 		}
 
 		idx++;
 
-		if (include_all_data)
+		if(include_all_data)
 			out << std::endl;
 	}
 
@@ -356,9 +356,9 @@ inline void PerfStats::print_all_data(std::ostream& out, bool include_all_data) 
 	int i = 0;
 	int max = order.size();
 
-	for (std::map<int, std::string>::const_iterator kt = order.begin(); kt != order.end(); kt++) {
+	for(std::map<int, std::string>::const_iterator kt = order.begin(); kt != order.end(); kt++) {
 		std::map<std::string, Stats>::const_iterator it = stats.find(kt->second);
-		if (it == stats.end())
+		if(it == stats.end())
 			continue;
 
 		std::cout.precision(10);
@@ -371,7 +371,7 @@ inline void PerfStats::print_all_data(std::ostream& out, bool include_all_data) 
 		std::cout << "\"sum\":\"" << (*res).sum << "\"";
 		std::cout << "}";
 
-		if (i + 1 != max)
+		if(i + 1 != max)
 		{
 			std::cout << ", ";
 		}

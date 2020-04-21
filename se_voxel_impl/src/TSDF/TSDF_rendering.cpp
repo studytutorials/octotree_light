@@ -38,46 +38,47 @@
 
 Eigen::Vector4f TSDF::raycast(
     const VolumeTemplate<TSDF, se::Octree>& volume,
-    const Eigen::Vector3f&                  origin,
-    const Eigen::Vector3f&                  direction,
-    const float                             tnear,
-    const float                             tfar,
+    const Eigen::Vector3f&                  ray_origin_M,
+    const Eigen::Vector3f&                  ray_dir_M,
+    const float                             near_plane,
+    const float                             far_plane,
     const float                             mu,
     const float                             step,
     const float                             large_step) {
 
-  auto select_depth = [](const auto& val){ return val.x; };
-  if (tnear < tfar) {
+  auto select_node_dist = [](const auto& data){ return TSDF::VoxelType::initData().x; };
+  auto select_voxel_dist = [](const auto& data){ return data.x; };
+  if (near_plane < far_plane) {
     // first walk with largesteps until we found a hit
-    float t = tnear;
+    float t = near_plane;
     float step_size = large_step;
-    Eigen::Vector3f position = origin + direction * t;
-    float f_t = volume.interp(position, select_depth).first;
+    Eigen::Vector3f ray_pos_M = ray_origin_M + ray_dir_M * t;
+    float f_t = volume.interp(ray_pos_M, select_node_dist, select_voxel_dist).first;
     float f_tt = 0;
     if (f_t > 0) { // ups, if we were already in it, then don't render anything here
-      for (; t < tfar; t += step_size) {
-        TSDF::VoxelType::VoxelData data = volume.get(position);
+      for (; t < far_plane; t += step_size) {
+        TSDF::VoxelType::VoxelData data = volume.get(ray_pos_M);
         if (data.y == 0) {
           step_size = large_step;
-          position += step_size * direction;
+          ray_pos_M += step_size * ray_dir_M;
           continue;
         }
         f_tt = data.x;
         if (f_tt <= 0.1 && f_tt >= -0.5f) {
-          f_tt = volume.interp(position, 0, select_depth).first;
+          f_tt = volume.interp(ray_pos_M, select_node_dist, select_voxel_dist).first;
         }
         if (f_tt < 0)                  // got it, jump out of inner loop
           break;
         step_size = fmaxf(f_tt * mu, step);
-        position += step_size * direction;
+        ray_pos_M += step_size * ray_dir_M;
         f_t = f_tt;
       }
       if (f_tt < 0) {
         // got it, calculate accurate intersection
         t = t + step_size * f_tt / (f_t - f_tt);
-        Eigen::Vector4f res = (origin + direction * t).homogeneous();
-        res.w() = 0.f;
-        return res;
+        Eigen::Vector4f surface_point_M = (ray_origin_M + ray_dir_M * t).homogeneous();
+        surface_point_M.w() = 0.f;
+        return surface_point_M;
       }
     }
   }

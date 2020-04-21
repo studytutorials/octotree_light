@@ -61,7 +61,7 @@ struct ExampleVoxelT {
    * \warning This function declaration is required and the function name must
    * always be `initValue`.
    */
-  static inline VoxelData initValue() { return 1.f; }
+  static inline VoxelData initData() { return 1.f; }
 
 
 
@@ -71,7 +71,7 @@ struct ExampleVoxelT {
    * \warning This function declaration is required and the function name must
    * always be `empty`.
    */
-  static inline VoxelData empty()     { return 0.f; }
+  static inline VoxelData invalid()     { return 0.f; }
 };
 
 #endif

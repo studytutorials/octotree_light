@@ -44,8 +44,8 @@ namespace se {
         return static_cast<SpecialisedHandlerT *>(this)->get();
       }
 
-      void set(const typename NodeT::VoxelData& val) {
-        static_cast<SpecialisedHandlerT *>(this)->set(val);
+      void set(const typename NodeT::VoxelData& data) {
+        static_cast<SpecialisedHandlerT *>(this)->set(data);
       }
     };
 
@@ -59,22 +59,22 @@ namespace se {
           /*!
            * \param[in] ptr Pointer to the VoxelBlock.
            * \param[in] v Coordinates of the voxel to get/set the data of. The
-           * elements of v must be in the in the interval [0, BLOCK_SIDE-1].
+           * elements of v must be in the in the interval [0, BLOCK_SIZE-1].
            */
-          VoxelBlockHandler(se::VoxelBlock<FieldType>* ptr, Eigen::Vector3i v) :
-            _block(ptr), _voxel(v) {}
+          VoxelBlockHandler(se::VoxelBlock<FieldType>* block, Eigen::Vector3i voxel_coord) :
+            block_(block), voxel_coord_(voxel_coord) {}
 
           typename se::VoxelBlock<FieldType>::VoxelData get() {
-            return _block->data(_voxel);
+            return block_->data(voxel_coord_);
           }
 
-          void set(const typename se::VoxelBlock<FieldType>::VoxelData& val) {
-            _block->data(_voxel, val);
+          void set(const typename se::VoxelBlock<FieldType>::VoxelData& voxel_data) {
+            block_->data(voxel_coord_, voxel_data);
           }
 
         private:
-          se::VoxelBlock<FieldType> * _block;
-          Eigen::Vector3i _voxel;
+          se::VoxelBlock<FieldType>* block_;
+          Eigen::Vector3i voxel_coord_;
       };
 
   /*! \brief Get and set the data of a child of an intermediate (Node) Octree
@@ -88,19 +88,19 @@ namespace se {
          * \param[in] i Index of the child node to get/set the data of. i must
          * be in the in the interval [0, 7].
          */
-        NodeHandler(se::Node<FieldType>* ptr, int i) : _node(ptr), _idx(i) {}
+        NodeHandler(se::Node<FieldType>* node, int child_idx) : node_(node), child_idx_(child_idx) {}
 
         typename se::Node<FieldType>::VoxelData get() {
-          return _node->value_[_idx];
+          return node_->data_[child_idx_];
         }
 
-        void set(const typename se::Node<FieldType>::VoxelData& val) {
-          _node->value_[_idx] = val;
+        void set(const typename se::Node<FieldType>::VoxelData& node_data) {
+          node_->data_[child_idx_] = node_data;
         }
 
       private:
-        se::Node<FieldType> * _node;
-        int _idx;
+        se::Node<FieldType>* node_;
+        int child_idx_;
     };
 
 } // namespace se

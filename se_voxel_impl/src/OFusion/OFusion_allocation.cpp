@@ -38,52 +38,48 @@
 
 
 /* Compute step size based on distance travelled along the ray */
-static inline float ofusion_compute_stepsize(const float dist_travelled,
-                                             const float band,
-                                             const float voxel_size) {
+static inline float ofusionComputeStepSize(const float dist_travelled,
+                                              const float band,
+                                              const float voxel_dim) {
 
-  float new_stepsize;
-  float half = band * 0.5f;
+  float new_step_size;
+  float half_band = band * 0.5f;
   if (dist_travelled < band) {
-    new_stepsize = voxel_size;
-  } else if (dist_travelled < band + half) {
-    new_stepsize = 10.f * voxel_size;
+    new_step_size = voxel_dim;
+  } else if (dist_travelled < band + half_band) {
+    new_step_size = 10.f * voxel_dim;
   } else {
-    new_stepsize = 30.f * voxel_size;
+    new_step_size = 30.f * voxel_dim;
   }
-  return new_stepsize;
+  return new_step_size;
 }
 
 
 
 /* Compute octree level given a step size */
-static inline int ofusion_step_to_depth(const float step,
-                                        const int   max_depth,
-                                        const float voxel_size) {
+static inline int ofusionStepToDepth(const float step,
+                                        const int   voxel_depth,
+                                        const float voxel_dim) {
 
-  return static_cast<int>(floorf(std::log2f(voxel_size/step)) + max_depth);
+  return static_cast<int>(floorf(std::log2f(voxel_dim / step)) + voxel_depth);
 }
 
 
 
 size_t OFusion::buildAllocationList(
-    se::key_t*                      allocation_list,
-    size_t                          reserved,
     se::Octree<OFusion::VoxelType>& map,
-    const Eigen::Matrix4f&          T_wc,
-    const Eigen::Matrix4f&          K,
-    const float*                    depth_map,
-    const Eigen::Vector2i&          image_size,
-    const float                     mu) {
+    const se::Image<float>&         depth_image,
+    const Eigen::Matrix4f&          T_MC,
+    const SensorImpl&               sensor,
+    se::key_t*                      allocation_list,
+    size_t                          reserved) {
 
-  const float voxel_size = map.dim() / map.size();
-  const float inverse_voxel_size = 1.f / voxel_size;
-  const Eigen::Matrix4f inv_K = K.inverse();
-  const Eigen::Matrix4f inv_P = T_wc * inv_K;
-  const int volume_size = map.size();
-  const int max_depth = log2(volume_size);
-  const int leaf_depth = max_depth
-      - se::math::log2_const(se::Octree<OFusion::VoxelType>::blockSide);
+  const Eigen::Vector2i depth_image_res (depth_image.width(), depth_image.height());
+  const float voxel_dim = map.dim() / map.size();
+  const float inverse_voxel_dim = 1.f / voxel_dim;
+  const int map_size = map.size();
+  const int voxel_depth = map.voxelDepth();
+  const int block_depth = map.blockDepth();
 
 #ifdef _OPENMP
   std::atomic<unsigned int> voxel_count (0);
@@ -91,58 +87,61 @@ size_t OFusion::buildAllocationList(
   unsigned int voxel_count = 0;
 #endif
 
-  const Eigen::Vector3f camera_pos = T_wc.topRightCorner<3, 1>();
+  const Eigen::Vector3f t_MC = T_MC.topRightCorner<3, 1>();
 #pragma omp parallel for
-  for (int y = 0; y < image_size.y(); ++y) {
-    for (int x = 0; x < image_size.x(); ++x) {
-      if (depth_map[x + y * image_size.x()] == 0) {
+  for (unsigned int y = 0; y < depth_image_res.y(); ++y) {
+    for (unsigned int x = 0; x < depth_image_res.x(); ++x) {
+      const Eigen::Vector2i pixel(x, y);
+      if (depth_image(pixel.x(), pixel.y()) == 0) {
         continue;
       }
-      int tree_depth = max_depth;
-      float stepsize = voxel_size;
-      const float depth = depth_map[x + y * image_size.x()];
-      const Eigen::Vector3f world_vertex = (inv_P * Eigen::Vector3f((x + 0.5f) * depth,
-            (y + 0.5f) * depth, depth).homogeneous()).head<3>();
+      int depth = voxel_depth;
+      float step_size = voxel_dim;
+      const float depth_value = depth_image(pixel.x(), pixel.y());
 
-      const Eigen::Vector3f direction = (camera_pos - world_vertex).normalized();
-      const float sigma = se::math::clamp(mu * se::math::sq(depth), 2 * voxel_size, 0.05f);
+      Eigen::Vector3f ray_dir_C;
+      const Eigen::Vector2f pixel_f = pixel.cast<float>();
+      sensor.model.backProject(pixel_f, &ray_dir_C);
+      const Eigen::Vector3f surface_vertex_M = (T_MC * (depth_value * ray_dir_C).homogeneous()).head<3>();
+
+      const Eigen::Vector3f reverse_ray_dir_M = (t_MC - surface_vertex_M).normalized();
+      const float sigma = se::math::clamp(sensor.mu * se::math::sq(depth_value), 2 * voxel_dim, 0.05f);
       const float band = 2 * sigma;
-      const Eigen::Vector3f origin = world_vertex - (band * 0.5f) * direction;
-      const float dist = (camera_pos - origin).norm();
-      Eigen::Vector3f step = direction * stepsize;
+      const Eigen::Vector3f ray_origin_M = surface_vertex_M - (band * 0.5f) * reverse_ray_dir_M;
+      const float dist = (t_MC - ray_origin_M).norm();
+      Eigen::Vector3f step = reverse_ray_dir_M * step_size;
 
-      Eigen::Vector3f voxel_pos = origin;
+      Eigen::Vector3f ray_pos_M = ray_origin_M;
       float travelled = 0.f;
-      for (; travelled < dist; travelled += stepsize) {
+      for (; travelled < dist; travelled += step_size) {
 
-        const Eigen::Vector3f voxel_scaled
-            = (voxel_pos * inverse_voxel_size).array().floor();
-        if (   (voxel_scaled.x() < volume_size)
-            && (voxel_scaled.y() < volume_size)
-            && (voxel_scaled.z() < volume_size)
-            && (voxel_scaled.x() >= 0)
-            && (voxel_scaled.y() >= 0)
-            && (voxel_scaled.z() >= 0)) {
-          const Eigen::Vector3i voxel = voxel_scaled.cast<int>();
-          auto node_ptr = map.fetch_octant(
-              voxel.x(), voxel.y(), voxel.z(), tree_depth);
+        const Eigen::Vector3i voxel_coord
+            = (ray_pos_M * inverse_voxel_dim).cast<int>();
+        if (   (voxel_coord.x() < map_size)
+            && (voxel_coord.y() < map_size)
+            && (voxel_coord.z() < map_size)
+            && (voxel_coord.x() >= 0)
+            && (voxel_coord.y() >= 0)
+            && (voxel_coord.z() >= 0)) {
+          auto node_ptr = map.fetch_node(
+              voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), depth);
           if (node_ptr == nullptr) {
-            const se::key_t k = map.hash(voxel.x(), voxel.y(), voxel.z(),
-                std::min(tree_depth, leaf_depth));
+            const se::key_t voxel_key = map.hash(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(),
+                std::min(depth, block_depth));
             const unsigned int idx = voxel_count++;
             if (idx < reserved) {
-              allocation_list[idx] = k;
+              allocation_list[idx] = voxel_key;
             }
-          } else if (tree_depth >= leaf_depth) {
+          } else if (depth >= block_depth) {
             static_cast<se::VoxelBlock<OFusion::VoxelType>*>(node_ptr)->active(true);
           }
         }
 
-        stepsize = ofusion_compute_stepsize(travelled, band, voxel_size);
-        tree_depth = ofusion_step_to_depth(stepsize, max_depth, voxel_size);
+        step_size = ofusionComputeStepSize(travelled, band, voxel_dim);
+        depth = ofusionStepToDepth(step_size, voxel_depth, voxel_dim);
 
-        step = direction * stepsize;
-        voxel_pos += step;
+        step = reverse_ray_dir_M * step_size;
+        ray_pos_M += step;
       }
     }
   }

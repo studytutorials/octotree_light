@@ -19,6 +19,7 @@ namespace se {
     // General
     int width = 0;
     int height = 0;
+    bool left_hand_frame = false;
     float near_plane = 0.f;
     float far_plane = INFINITY;
     float mu = 0.1f;
@@ -38,11 +39,20 @@ namespace se {
 
   struct PinholeCamera {
     PinholeCamera(const SensorConfig& c);
+    PinholeCamera(const PinholeCamera& pinhole_camera,
+                  const float          scaling_factor);
+    int computeIntegrationScale(const float dist,
+                                const float voxel_dim,
+                                const int   last_scale,
+                                const int   min_scale,
+                                const int   max_block_scale) const;
 
-    srl::projection::PinholeCamera<srl::projection::NoDistortion> sensor;
+    srl::projection::PinholeCamera<srl::projection::NoDistortion> model;
+    bool  left_hand_frame;
     float near_plane;
     float far_plane;
     float mu;
+    float scaled_pixel;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
@@ -51,8 +61,16 @@ namespace se {
 
   struct OusterLidar {
     OusterLidar(const SensorConfig& c);
+    OusterLidar(const OusterLidar& ouster_lidar,
+                const float        scaling_factor);
+    int computeIntegrationScale(const float dist,
+                                const float voxel_dim,
+                                const int   last_scale,
+                                const int   min_scale,
+                                const int   max_block_scale) const {return 0;};
 
-    srl::projection::OusterLidar sensor;
+    srl::projection::OusterLidar model;
+    bool  left_hand_frame;
     float near_plane;
     float far_plane;
     float mu;

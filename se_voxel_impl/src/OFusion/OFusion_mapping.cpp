@@ -34,8 +34,9 @@
 #include <algorithm>
 
 #include "se/node.hpp"
-#include "se/functors/projective_functor.hpp"
+#include "se/projective_functor.hpp"
 #include "se/image/image.hpp"
+#include "se/image_utils.hpp"
 #include "OFusion_bspline_lookup.cc"
 
 
@@ -49,10 +50,10 @@
  */
 static inline float ofusion_bspline_memoized(float t) {
   float value = 0.f;
-  constexpr float inverseRange = 1.f / 6.f;
+  constexpr float inverse_range = 1.f / 6.f;
   if (t >= -3.0f && t <= 3.0f) {
     const unsigned int idx
-        = ((t + 3.f) * inverseRange) * (bspline_num_samples - 1) + 0.5f;
+        = ((t + 3.f) * inverse_range) * (bspline_num_samples - 1) + 0.5f;
     return bspline_lookup[idx];
   } else if (t > 3.f) {
     value = 1.f;
@@ -110,41 +111,39 @@ static inline float ofusion_apply_window(const float occupancy,
  * depth frame.
  */
 struct bfusion_update {
-  const float* depth;
-  Eigen::Vector2i depth_size;
+  const se::Image<float>& depth_image;
   float mu;
   float timestamp;
-  float voxel_size;
+  float voxel_dim;
 
 
 
-  bfusion_update(const float*           depth,
-                 const Eigen::Vector2i& depth_size,
-                 float                  mu,
-                 float                  timestamp,
-                 float                  voxel_size)
-    : depth(depth), depth_size(depth_size), mu(mu),
-      timestamp(timestamp), voxel_size(voxel_size) {};
+  bfusion_update(const se::Image<float>& depth_image,
+                 float                   mu,
+                 float                   timestamp,
+                 float                   voxel_dim)
+    : depth_image(depth_image), mu(mu),
+      timestamp(timestamp), voxel_dim(voxel_dim) {};
 
 
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
                   const Eigen::Vector3i&,
-                  const Eigen::Vector3f& pos,
-                  const Eigen::Vector2f& pixel) {
+                  const Eigen::Vector3f& point_C,
+                  const Eigen::Vector2f& pixel_f) {
 
-    const Eigen::Vector2i px = pixel.cast <int> ();
-    const float depth_sample = depth[px.x() + depth_size.x() * px.y()];
+    const Eigen::Vector2i pixel = round_pixel(pixel_f);
+    const float depth_value = depth_image(pixel.x(), pixel.y());
     // Return on invalid depth measurement.
-    if (depth_sample <= 0.f)
+    if (depth_value <= 0.f)
       return;
 
     // Compute the occupancy probability for the current measurement.
-    const float diff = (pos.z() - depth_sample);
-    const float sigma = se::math::clamp(mu * se::math::sq(pos.z()),
-        2 * voxel_size, 0.05f);
-    float sample = ofusion_H(diff / sigma, pos.z());
+    const float diff = (point_C.z() - depth_value);
+    const float sigma = se::math::clamp(mu * se::math::sq(point_C.z()),
+        2 * voxel_dim, 0.05f);
+    float sample = ofusion_H(diff / sigma, point_C.z());
     if (sample == 0.5f)
       return;
     sample = se::math::clamp(sample, 0.03f, 0.97f);
@@ -166,18 +165,17 @@ struct bfusion_update {
 
 
 void OFusion::integrate(se::Octree<OFusion::VoxelType>& map,
-                        const Sophus::SE3f&             T_cw,
-                        const Eigen::Matrix4f&          K,
-                        const se::Image<float>&         depth,
-                        const float                     mu,
+                        const se::Image<float>&         depth_image,
+                        const Eigen::Matrix4f&          T_CM,
+                        const SensorImpl&               sensor,
                         const unsigned                  frame) {
 
-  const Eigen::Vector2i depth_size (depth.width(), depth.height());
   const float timestamp = (1.f / 30.f) * frame;
-  const float voxel_size =  map.dim() / map.size();
+  const float voxel_dim =  map.dim() / map.size();
+  const Eigen::Vector2i depth_image_res(depth_image.width(), depth_image.height());
 
-  struct bfusion_update funct(depth.data(), depth_size, mu, timestamp, voxel_size);
+  struct bfusion_update funct(depth_image, sensor.mu, timestamp, voxel_dim);
 
-  se::functor::projective_octree(map, map._offset, T_cw, K, depth_size, funct);
+  se::functor::projective_octree(map, map.sample_offset_frac_, T_CM, sensor, depth_image_res, funct);
 }
 

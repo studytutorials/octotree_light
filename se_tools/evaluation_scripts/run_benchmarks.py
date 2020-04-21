@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
         # Iterate over list of datasets to benchmark
         for sequence in ICL + TUM_RGBD_FR1 + TUM_RGBD_FR2 + TUM_RGBD_FR3:
-            # Iterate over list of volume resolution values in voxels.
+            # Iterate over list of map size values in voxels.
             for resol in [512]:
                 # Iterate over map types.
                 for version in ['tsdf', 'multirestsdf', 'ofusion']:
@@ -56,8 +56,8 @@ if __name__ == "__main__":
                     else:
                         mu = 0.1
                     algorithm.impl = version
-                    algorithm.volume_resolution = str(resol)
-                    algorithm.compute_size_ratio = 2
+                    algorithm.map_size = str(resol)
+                    algorithm.image_downsampling_factor = 2
                     algorithm.integration_rate = 1
                     algorithm.mu = mu
                     algorithm.init_pose = sequence.init_pose

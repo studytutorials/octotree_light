@@ -40,8 +40,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct TestVoxelT {
   typedef float VoxelData;
-  static inline VoxelData empty(){ return 0.f; }
-  static inline VoxelData initValue(){ return 1.f; }
+  static inline VoxelData invalid(){ return 0.f; }
+  static inline VoxelData initData(){ return 1.f; }
 
   template <typename T>
   using MemoryPoolType = se::PagedMemoryPool<T>;
@@ -50,22 +50,22 @@ struct TestVoxelT {
 };
 
 float test_fun(float x, float y, float z) {
-  return se::math::sq(z) + std::sin(2*x + y);
+  return se::math::sq(z) + std::sin(2 * x + y);
 }
 
 float sphere_dist(const Eigen::Vector3f& p, const Eigen::Vector3f& C,
     const float radius) {
   const Eigen::Vector3f dir = (C - p).normalized();
-  const Eigen::Vector3f vox_o = p - C;
+  const Eigen::Vector3f centre_offset = p - C;
 
   const float a = dir.dot(dir);
-  const float b = 2 * dir.dot(vox_o);
-  const float c = vox_o.dot(vox_o) - radius*radius;
-  const float delta = b*b - 4*a*c;
+  const float b = 2 * dir.dot(centre_offset);
+  const float c = centre_offset.dot(centre_offset) - radius * radius;
+  const float delta = b * b - 4 * a * c;
   float dist = std::numeric_limits<int>::max();
   if(delta > 0) {
     dist = std::min(-b + sqrtf(delta), -b - sqrtf(delta));
-    dist /= 2*a;
+    dist /= 2 * a;
   }
   return dist;
 }
@@ -75,75 +75,75 @@ class InterpolationTest : public ::testing::Test {
     virtual void SetUp() {
       unsigned size = 256;
       float dim = 5.f;
-      oct_.init(size, dim); // 5 meters
+      octree_.init(size, dim); // 5 meters
 
-      const unsigned center = size >> 1;
+      const unsigned centre = size >> 1;
       const unsigned radius = size >> 2;
-      const Eigen::Vector3f C(center, center, center);
+      const Eigen::Vector3f C(centre, centre, centre);
 
-      for(int z = center - radius; z < (center + radius); ++z) {
-        for(int y = center - radius; y < (center + radius); ++y) {
-          for(int x = center - radius; x < (center + radius); ++x) {
-            const Eigen::Vector3i vox(x, y, z);
-            const float dist = fabs(sphere_dist(vox.cast<float>(), C, radius));
+      for(int z = centre - radius; z < (centre + radius); ++z) {
+        for(int y = centre - radius; y < (centre + radius); ++y) {
+          for(int x = centre - radius; x < (centre + radius); ++x) {
+            const Eigen::Vector3i voxel_coord(x, y, z);
+            const float dist = fabs(sphere_dist(voxel_coord.cast<float>(), C, radius));
             if(dist > 20.f && dist < 25.f) {
-              alloc_list.push_back(oct_.hash(vox(0), vox(1), vox(2)));
+              allocation_list.push_back(octree_.hash(voxel_coord.x(), voxel_coord.y(), voxel_coord.z()));
             }
           }
         }
       }
-      oct_.allocate(alloc_list.data(), alloc_list.size());
+      octree_.allocate(allocation_list.data(), allocation_list.size());
 
-      auto circle_dist = [C, radius](auto& handler, const Eigen::Vector3i& v) {
-        float data = sphere_dist(v.cast<float>(), C, radius);
+      auto circle_dist = [C, radius](auto& handler, const Eigen::Vector3i& voxel_coord) {
+        float data = sphere_dist(voxel_coord.cast<float>(), C, radius);
         handler.set(data);
       };
-      se::functor::axis_aligned_map(oct_, circle_dist);
+      se::functor::axis_aligned_map(octree_, circle_dist);
 
-      se::print_octree("./test-sphere.ply", oct_);
+      se::print_octree("./test-sphere.ply", octree_);
       {
         std::stringstream f;
         f << "./sphere-interp.vtk";
-        save3DSlice(oct_, Eigen::Vector3i(0, oct_.size()/2, 0),
-            Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()),
-            [](const float& val) { return val; }, oct_.maxBlockScale(), f.str().c_str());
+        save3DSlice(octree_, Eigen::Vector3i(0, octree_.size()/2, 0),
+            Eigen::Vector3i(octree_.size(), octree_.size()/2 + 1, octree_.size()),
+            [](const float& data) { return data; }, octree_.maxBlockScale(), f.str().c_str());
       }
 
       // balance and print.
-      se::balance(oct_);
-      se::functor::axis_aligned_map(oct_, circle_dist);
-      se::print_octree("./test-sphere-balanced.ply", oct_);
+      se::balance(octree_);
+      se::functor::axis_aligned_map(octree_, circle_dist);
+      se::print_octree("./test-sphere-balanced.ply", octree_);
       {
         std::stringstream f;
         f << "./sphere-interp-balanced.vtk";
-        save3DSlice(oct_, Eigen::Vector3i(0, oct_.size()/2, 0),
-            Eigen::Vector3i(oct_.size(), oct_.size()/2 + 1, oct_.size()),
-            [](const float& val) { return val; }, oct_.maxBlockScale(), f.str().c_str());
+        save3DSlice(octree_, Eigen::Vector3i(0, octree_.size()/2, 0),
+            Eigen::Vector3i(octree_.size(), octree_.size()/2 + 1, octree_.size()),
+            [](const float& data) { return data; }, octree_.maxBlockScale(), f.str().c_str());
       }
 
     }
 
   typedef se::Octree<TestVoxelT> OctreeF;
-  OctreeF oct_;
-  std::vector<se::key_t> alloc_list;
+  OctreeF octree_;
+  std::vector<se::key_t> allocation_list;
 };
 
 TEST_F(InterpolationTest, IDWInterp) {
-  Eigen::Vector3f pos(128.4f, 129.1, 127.5);
-  auto select =  [](const TestVoxelT::VoxelData& val){ return val; };
-  se::internal::idw_interp<TestVoxelT::VoxelData>(oct_, pos, select);
+  Eigen::Vector3f voxel_coord_f(128.4f, 129.1f, 127.5f);
+  auto select_value =  [](const TestVoxelT::VoxelData& data) { return data; };
+  se::internal::idw_interp<TestVoxelT::VoxelData>(octree_, voxel_coord_f, select_value);
 
 }
 
 // TEST_F(InterpolationTest, InterpAtPoints) {
 //
-//   auto test = [this](auto& handler, const Eigen::Vector3i& v) {
+//   auto test = [this](auto& handler, const Eigen::Vector3i& voxel_coord) {
 //     auto data = handler.get();
-//     TestVoxelT::VoxelData interpolated = oct_.interp(make_float3(v(0), v(1), v(2)), [](const auto& val){ return val(0); });
-//     ASSERT_EQ(data(0), interpolated);
+//     TestVoxelT::VoxelData interpolated = octree_.interp(make_float3(voxel_coord.x(), voxel_coord.y(), voxel_coord.z()), [](const auto& data){ return val.x(); });
+//     ASSERT_EQ(data.x(), interpolated);
 //   };
 //
 //   se::functor::axis_aligned<TestVoxelT, Octree, decltype(test)>
-//     funct_test(oct_, test);
+//     funct_test(octree_, test);
 //   funct_test.apply();
 // }

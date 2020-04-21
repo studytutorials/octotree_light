@@ -250,15 +250,15 @@ class KinectFusion(SLAMAlgorithm):
 
         self.fps = 0
 
-        self.compute_size_ratio = 2
+        self.image_downsampling_factor = 2
         self.icp_threshold = math.pow(10, -5)
         self.mu = 0.1
         self.init_pose = '0.5,0.5,0'
 
-        self.volume_size = '5'
+        self.map_dim = '5'
 
         self.integration_rate = 1
-        self.volume_resolution = '512'
+        self.map_size = '512'
         self.pyramid_levels = '10,5,4'
         self.rendering_rate = 4
         self.tracking_rate = 1
@@ -287,15 +287,15 @@ class KinectFusion(SLAMAlgorithm):
         if dataset.init_pose:
             self.init_pose = dataset.init_pose
 
-        if dataset.volume_size:
-            self.volume_size = dataset.volume_size
+        if dataset.map_dim:
+            self.map_dim = dataset.map_dim
 
         self.camera = dataset.camera
         #self.ate_associate_identity = dataset.ate_associate_identity
 
     def _generate_run_command(self, camera_calib_path, dataset_path, results_path):
         args = []
-        args.extend(['--compute-size-ratio', str(self.compute_size_ratio)])
+        args.extend(['--image-downsampling-factor', str(self.image_downsampling_factor)])
         args.extend(['--fps', str(self.fps)])
         args.extend(['--block-read', str(self.blocking)])
         args.extend(['--input-file', dataset_path])
@@ -305,9 +305,9 @@ class KinectFusion(SLAMAlgorithm):
         args.extend(['--init-pose', str(self.init_pose)])
         args.extend(['--no-gui'])
         args.extend(['--integration-rate', str(self.integration_rate)])
-        args.extend(['--volume-size', str(self.volume_size)])
+        args.extend(['--volume-size', str(self.map_dim)])
         args.extend(['--tracking-rate', str(self.tracking_rate)])
-        args.extend(['--volume-resolution', str(self.volume_resolution)])
+        args.extend(['--map-size', str(self.map_size)])
         args.extend(['--pyramid-levels', str(self.pyramid_levels)])
         args.extend(['--rendering-rate', str(self.rendering_rate)])
         if self.dump_volume != "":
@@ -324,16 +324,16 @@ class KinectFusion(SLAMAlgorithm):
         return [self.bin_path + 'se-denseslam-' + self.impl + '-main'] + (args)
 
     def _store_variables(self, res):
-        res['compute-size-ratio'] = str(self.compute_size_ratio)
+        res['image-downsampling-factor'] = str(self.image_downsampling_factor)
         res['fps'] = str(self.fps)
         res['block-read'] = str(self.blocking)
         res['icp-threshold'] = str(self.icp_threshold)
         res['mu'] = str(self.mu)
         res['init-pose'] = str(self.init_pose)
         res['integration-rate'] = str(self.integration_rate)
-        res['volume-size'] = str(self.volume_size)
+        res['volume-size'] = str(self.map_dim)
         res['tracking-rate'] = str(self.tracking_rate)
-        res['volume-resolution'] = str(self.volume_resolution)
+        res['map-size'] = str(self.map_size)
         res['pyramid-levels'] = str(self.pyramid_levels)
         res['rendering-rate'] = str(self.rendering_rate)
         res['version'] = str(self.impl)

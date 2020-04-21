@@ -32,6 +32,7 @@
 #include "se/octree.hpp"
 #include "se/image/image.hpp"
 #include "se/continuous/volume_template.hpp"
+#include "se/sensor_implementation.hpp"
 
 
 
@@ -52,8 +53,8 @@ struct TSDF {
       float y; /**< The number of measurements integrated in the voxel. */
     };
 
-    static inline VoxelData empty()     { return {1.f, -1.f}; }
-    static inline VoxelData initValue() { return {1.f,  0.f}; }
+    static inline VoxelData invalid()     { return {1.f, -1.f}; }
+    static inline VoxelData initData() { return {1.f,  0.f}; }
 
     template <typename T>
     using MemoryPoolType = se::PagedMemoryPool<T>;
@@ -80,14 +81,12 @@ struct TSDF {
    * camera pose.
    */
   static size_t buildAllocationList(
-      se::key_t*                   allocation_list,
-      size_t                       reserved,
       se::Octree<TSDF::VoxelType>& map,
-      const Eigen::Matrix4f&       T_wc,
-      const Eigen::Matrix4f&       K,
-      const float*                 depth_map,
-      const Eigen::Vector2i&       image_size,
-      const float                  mu);
+      const se::Image<float>&      depth_image,
+      const Eigen::Matrix4f&       T_MC,
+      const SensorImpl&            sensor,
+      se::key_t*                   allocation_list,
+      size_t                       reserved);
 
 
 
@@ -95,10 +94,9 @@ struct TSDF {
    * Integrate a depth image into the map.
    */
   static void integrate(se::Octree<TSDF::VoxelType>& map,
-                        const Sophus::SE3f&          T_cw,
-                        const Eigen::Matrix4f&       K,
-                        const se::Image<float>&      depth,
-                        const float                  mu,
+                        const se::Image<float>&      depth_image,
+                        const Eigen::Matrix4f&       T_CM,
+                        const SensorImpl&            sensor,
                         const unsigned               frame);
 
 
@@ -108,10 +106,10 @@ struct TSDF {
    */
   static Eigen::Vector4f raycast(
       const VolumeTemplate<TSDF, se::Octree>& volume,
-      const Eigen::Vector3f&                  origin,
-      const Eigen::Vector3f&                  direction,
-      const float                             tnear,
-      const float                             tfar,
+      const Eigen::Vector3f&                  ray_origin_M,
+      const Eigen::Vector3f&                  ray_dir_M,
+      const float                             near_plane,
+      const float                             far_plane,
       const float                             mu,
       const float                             step,
       const float                             large_step);
