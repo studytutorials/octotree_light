@@ -184,14 +184,15 @@ struct Configuration {
    */
   float mu;
 
-  /*
-   * TODO
+  /**
+   * Read frames at the specified rate, waiting if the computation rate is
+   * higher than se::Configuration::fps.
    *
    * @note Must be non-negative.
    *
    * <br>\em Default: 0
    */
-  int fps;
+  float fps;
 
   /*
    * TODO

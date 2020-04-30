@@ -208,7 +208,7 @@ namespace algorithms {
         const Eigen::Vector3i& start_coord = block->coordinates();
         const Eigen::Vector3i last_coord =
           (block->coordinates() + Eigen::Vector3i::Constant(block_size)).cwiseMin(
-              Eigen::Vector3i::Constant(block_size-1));
+              Eigen::Vector3i::Constant(map_size-1));
         for (int x = start_coord.x(); x < last_coord.x(); x++) {
           for (int y = start_coord.y(); y < last_coord.y(); y++) {
             for (int z = start_coord.z(); z < last_coord.z(); z++) {

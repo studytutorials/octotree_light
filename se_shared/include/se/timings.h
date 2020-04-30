@@ -1,18 +1,27 @@
 #ifndef TIMINGS_H
 #define TIMINGS_H
 
-#include <cstdlib>
 #include <chrono>
 
 #include "perfstats.h"
 
+#if defined(SE_ENABLE_TICKTOCK) && SE_ENABLE_TICKTOCK
+
 #define TICK() { \
-  std::chrono::time_point<std::chrono::steady_clock> tickdata;\
-    tickdata = std::chrono::steady_clock::now();
+  const auto tickdata = std::chrono::steady_clock::now();
 
 #define TOCK(str, size) \
-  auto tockdata = std::chrono::steady_clock::now(); \
-  auto diff = tockdata - tickdata;\
-  Stats.sample(str, std::chrono::duration_cast<std::chrono::nanoseconds>(diff).count()); \
+  const auto tockdata = std::chrono::steady_clock::now(); \
+  const auto diff = tockdata - tickdata; \
+  stats.sample(str, std::chrono::duration_cast<std::chrono::nanoseconds>(diff).count()); \
 }
-#endif //TIMINGS_H
+
+#else
+
+#define TICK()
+#define TOCK(str, size)
+
+#endif
+
+#endif // TIMINGS_H
+

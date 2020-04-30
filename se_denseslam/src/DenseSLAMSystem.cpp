@@ -47,7 +47,7 @@
 #include "se/rendering.hpp"
 
 
-extern PerfStats Stats;
+extern PerfStats stats;
 static bool print_kernel_timing = false;
 
 DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& image_res,
@@ -201,7 +201,6 @@ bool DenseSLAMSystem::track(const SensorImpl& sensor,
 bool DenseSLAMSystem::integrate(const SensorImpl&  sensor,
                                 const unsigned     frame) {
 
-  const float voxel_dim = volume_.dim() / volume_.size();
   const int num_blocks_per_pixel = volume_.size()
     / ((se::VoxelBlock<VoxelImpl::VoxelType>::size));
   const size_t num_blocks_total = num_blocks_per_pixel
@@ -311,7 +310,7 @@ void DenseSLAMSystem::dump_mesh(const std::string filename){
           } else {
             voxel_data.y = 0;
           }
-          block->data(voxel_coord, 0, voxel_data);
+          block->setData(voxel_coord, 0, voxel_data);
         }
   };
 

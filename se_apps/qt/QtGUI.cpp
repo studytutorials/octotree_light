@@ -77,8 +77,7 @@ static bool loopEnabled = false;
 void setLoopMode(bool value) {
 	loopEnabled = value;
 }
-//Should we have a powerMonitor in the main code we can
-extern PowerMonitor *powerMonitor;
+extern PowerMonitor *power_monitor;
 
 // We can pass this to the QT and it will allow us to change features in the DenseSLAMSystem
 static void newDenseSLAMSystem(bool resetPose) {
@@ -179,9 +178,9 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 						if(oldReader!=NULL)
 						delete(oldReader);
 						oldReader=NULL;
-						Stats.reset();
-						if((powerMonitor!=NULL) && powerMonitor->isActive())
-						powerMonitor->powerStats.reset();
+						stats.reset();
+						if((power_monitor!=NULL) && power_monitor->isActive())
+						power_monitor->powerStats.reset();
 					}
 				}
 			} else {
@@ -273,16 +272,16 @@ void dumpLog() {
 			"*.log (*.log);; All files (*.*)");
 	if (filename != "") {
 		std::ofstream logStream(filename.c_str());
-		Stats.print_all_data(logStream);
+		stats.print_all_data(logStream);
 		logStream.close();
 	}
 }
 void dumpPowerLog() {
 	std::string filename = appWindow->fileSaveSelector("Save power log", ".",
 			"log (*.prpt);; All files (*.*)");
-	if (filename != "" && powerMonitor && powerMonitor->isActive()) {
+	if (filename != "" && power_monitor && power_monitor->isActive()) {
 		std::ofstream logStream(filename.c_str());
-		powerMonitor->powerStats.print_all_data(logStream);
+		power_monitor->powerStats.print_all_data(logStream);
 		logStream.close();
 	}
 }
@@ -327,7 +326,7 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 	appWindow->setDumpFunction("Save Volume", &dump_volume);
 	appWindow->setDumpFunction("Save Mesh", &dump_mesh);
 	appWindow->setDumpFunction("Save Statistics log", &dumpLog);
-	if (powerMonitor && powerMonitor->isActive())
+	if (power_monitor && power_monitor->isActive())
 		appWindow->setDumpFunction("Save power log ", &dumpPowerLog);
 
 	//Fuction to control camera action, running, paused, closed or file to open, enables various options
@@ -391,15 +390,15 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 	//The following enables the stats Viewer, the statsEnabled variable is to enable the removal of the capture phase
 	//although this is currently not implemented (N.B clearly the variable wouldn't be local!!)
 	bool statsEnabled = true;
-	appWindow->viewers->addViewer(&Stats, (const char *) "Performance",
+	appWindow->viewers->addViewer(&stats, (const char *) "Performance",
 			(const char*) "Performance Statistics", &statsEnabled);
 	appWindow->viewers->setStatEntry("Performance", { "X", "Y", "Z", "tracked",
 			"integrated", "frame" }, false);
 	//this is the default field used for calculating the frame rate
 	appWindow->setFrameRateField((char *) "computation");
 
-	if (powerMonitor != NULL && powerMonitor->isActive()) {
-		appWindow->viewers->addViewer(&(powerMonitor->powerStats),
+	if (power_monitor != NULL && power_monitor->isActive()) {
+		appWindow->viewers->addViewer(&(power_monitor->powerStats),
 				(const char *) "Energy", (const char*) "Energy Statistics",
 				&statsEnabled);
 		appWindow->viewers->setStatEntry("Energy", { "Sample_time" }, false);

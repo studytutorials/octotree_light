@@ -43,6 +43,24 @@ def _get_next_res_file():
     _RES_COUNTER += 1
     return os.path.join(_RESULTS_DIR, str(_RES_COUNTER))
 
+def _generate_position_file(results_file):
+    """Generate a file with rows ID X Y Z from the --no-gui output"""
+    position_file = results_file + "_position"
+    with open(results_file, 'r') as fr, open(position_file, 'w') as fp:
+        for line in fr:
+            line = line.strip()
+            if line[0].isdigit():
+                cols = line.replace(",", " ").replace("\t", " ").split()
+                id = cols[0]
+                x = cols[10]
+                y = cols[11]
+                z = cols[12]
+                # TODO Remove the trailing tab once it's certain it does not
+                # break code.
+                fp.write(id + "\t" + x + "\t" + y + "\t" + z + "\t\n")
+    return position_file
+
+
 
 class SLAMAlgorithm:
     """ A general SLAM algorithm evaluator.
@@ -86,12 +104,13 @@ class SLAMAlgorithm:
         self._setup_from_dataset(dataset)
         self._run_internal(dataset.camera_file,
                            dataset.dataset_path, results_path)
+        position_file = _generate_position_file(results_path)
 
         if self.failed:
             return res
 
         self._calculate_ate(dataset.ground_truth,
-                            results_path, dataset.pre_assoc_file_path)
+                            position_file, dataset.pre_assoc_file_path)
 
         res = self._store_variables(res)
 
@@ -305,7 +324,7 @@ class KinectFusion(SLAMAlgorithm):
         args.extend(['--init-pose', str(self.init_pose)])
         args.extend(['--no-gui'])
         args.extend(['--integration-rate', str(self.integration_rate)])
-        args.extend(['--volume-size', str(self.map_dim)])
+        args.extend(['--map-dim', str(self.map_dim)])
         args.extend(['--tracking-rate', str(self.tracking_rate)])
         args.extend(['--map-size', str(self.map_size)])
         args.extend(['--pyramid-levels', str(self.pyramid_levels)])
@@ -315,13 +334,10 @@ class KinectFusion(SLAMAlgorithm):
                 str(self.dump_volume)])
         args.extend(['-k', str(self.camera)])
 
-        if self.quat:
-            args.extend(['-a', str(self.quat)])
-
         if self.bilateral_filter:
             args.extend(['-F', ''])
 
-        return [self.bin_path + 'se-denseslam-' + self.impl + '-main'] + (args)
+        return [self.bin_path + 'se-denseslam-' + self.impl + '-pinholecamera-main'] + (args)
 
     def _store_variables(self, res):
         res['image-downsampling-factor'] = str(self.image_downsampling_factor)
@@ -331,7 +347,7 @@ class KinectFusion(SLAMAlgorithm):
         res['mu'] = str(self.mu)
         res['init-pose'] = str(self.init_pose)
         res['integration-rate'] = str(self.integration_rate)
-        res['volume-size'] = str(self.map_dim)
+        res['map-dim'] = str(self.map_dim)
         res['tracking-rate'] = str(self.tracking_rate)
         res['map-size'] = str(self.map_size)
         res['pyramid-levels'] = str(self.pyramid_levels)

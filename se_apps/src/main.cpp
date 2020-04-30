@@ -23,20 +23,19 @@
 
 #include "se/DenseSLAMSystem.h"
 #include "se/perfstats.h"
+#include "se/system_info.hpp"
 
 #include "default_parameters.h"
 #include "interface.h"
 #include "PowerMonitor.h"
-#ifndef __QT__
-#ifndef SE_BENCHMARK_APP
+#ifdef SE_GLUT
 #include "draw.h"
 #endif
-#endif
 
 
 
-PerfStats Stats;
-PowerMonitor* powerMonitor = nullptr;
+PerfStats stats;
+PowerMonitor* power_monitor = nullptr;
 static uint16_t* input_depth_image_data = nullptr;
 static uchar3* input_rgb_image_data = nullptr;
 static uint32_t* rgba_render = nullptr;
@@ -70,26 +69,26 @@ void qtLinkKinectQt(int               argc,
                     void*             rgba_render);
 
 void storeStats(
-    int                                                 frame,
-    std::chrono::time_point<std::chrono::steady_clock>* timings,
-    const Eigen::Vector3f&                              position,
-    bool                                                tracked,
-    bool                                                integrated) {
+    int                                                              frame,
+    std::vector<std::chrono::time_point<std::chrono::steady_clock>>& timings,
+    const Eigen::Vector3f&                                           t_WC,
+    bool                                                             tracked,
+    bool                                                             integrated) {
 
-  Stats.sample("frame", frame, PerfStats::FRAME);
-  Stats.sample("acquisition",  std::chrono::duration<double>(timings[1] - timings[0]).count(), PerfStats::TIME);
-  Stats.sample("preprocessing",std::chrono::duration<double>(timings[2] - timings[1]).count(), PerfStats::TIME);
-  Stats.sample("tracking",     std::chrono::duration<double>(timings[3] - timings[2]).count(), PerfStats::TIME);
-  Stats.sample("integration",  std::chrono::duration<double>(timings[4] - timings[3]).count(), PerfStats::TIME);
-  Stats.sample("raycasting",   std::chrono::duration<double>(timings[5] - timings[4]).count(), PerfStats::TIME);
-  Stats.sample("rendering",    std::chrono::duration<double>(timings[6] - timings[5]).count(), PerfStats::TIME);
-  Stats.sample("computation",  std::chrono::duration<double>(timings[5] - timings[1]).count(), PerfStats::TIME);
-  Stats.sample("total",        std::chrono::duration<double>(timings[6] - timings[0]).count(), PerfStats::TIME);
-  Stats.sample("X", position.x(), PerfStats::DISTANCE);
-  Stats.sample("Y", position.y(), PerfStats::DISTANCE);
-  Stats.sample("Z", position.z(), PerfStats::DISTANCE);
-  Stats.sample("tracked", tracked, PerfStats::INT);
-  Stats.sample("integrated", integrated, PerfStats::INT);
+  stats.sample("frame", frame, PerfStats::FRAME);
+  stats.sample("acquisition",   std::chrono::duration<double>(timings[1] - timings[0]).count(), PerfStats::TIME);
+  stats.sample("preprocessing", std::chrono::duration<double>(timings[2] - timings[1]).count(), PerfStats::TIME);
+  stats.sample("tracking",      std::chrono::duration<double>(timings[3] - timings[2]).count(), PerfStats::TIME);
+  stats.sample("integration",   std::chrono::duration<double>(timings[4] - timings[3]).count(), PerfStats::TIME);
+  stats.sample("raycasting",    std::chrono::duration<double>(timings[5] - timings[4]).count(), PerfStats::TIME);
+  stats.sample("rendering",     std::chrono::duration<double>(timings[6] - timings[5]).count(), PerfStats::TIME);
+  stats.sample("computation",   std::chrono::duration<double>(timings[5] - timings[1]).count(), PerfStats::TIME);
+  stats.sample("total",         std::chrono::duration<double>(timings[6] - timings[0]).count(), PerfStats::TIME);
+  stats.sample("X", t_WC.x(), PerfStats::DISTANCE);
+  stats.sample("Y", t_WC.y(), PerfStats::DISTANCE);
+  stats.sample("Z", t_WC.z(), PerfStats::DISTANCE);
+  stats.sample("tracked", tracked, PerfStats::INT);
+  stats.sample("integrated", integrated, PerfStats::INT);
 }
 
 /***
@@ -99,13 +98,13 @@ void storeStats(
 int main(int argc, char** argv) {
 
   Configuration config = parseArgs(argc, argv);
-  powerMonitor = new PowerMonitor();
+  power_monitor = new PowerMonitor();
 
   // ========= READER INITIALIZATION  =========
   reader = createReader(&config);
 
   //  =========  BASIC PARAMETERS  (input image size / image size )  =========
-  Eigen::Vector2i input_image_res = (reader != nullptr)
+  const Eigen::Vector2i input_image_res = (reader != nullptr)
       ? Eigen::Vector2i(reader->getInputImageResolution().x, reader->getInputImageResolution().y)
       : Eigen::Vector2i(640, 480);
   const Eigen::Vector2i image_res
@@ -133,20 +132,28 @@ int main(int argc, char** argv) {
     log_file_stream.open(config.log_file.c_str());
     log_stream = &log_file_stream;
   }
-
-#ifdef SE_BENCHMARK_APP
-  *log_stream << "frame\tacquisition\tpreprocessing\ttracking\tintegration"
-      << "\traycasting\trendering\tcomputation\ttotal    "
-      << "\tX          \tY          \tZ         \ttracked   \tintegrated\n";
-#endif
   log_stream->setf(std::ios::fixed, std::ios::floatfield);
 
   //temporary fix to test rendering fullsize
   config.render_volume_fullsize = false;
 
-  //The following runs the process loop for processing all the frames, if QT is specified use that, else use GLUT
-  //We can opt to not run the gui which would be faster
-  if (!config.no_gui) {
+#if !defined(SE_GLUT) && !defined(__QT__)
+  // Force no_gui if compiled without GUI support
+  config.no_gui = true;
+#endif
+  // The following runs the process loop for processing all the frames, if Qt
+  // is specified use that, else use GLUT. We can opt to not run the gui which
+  // would be faster.
+  if (config.no_gui) {
+    if ((reader == nullptr) || (reader->cameraActive == false)) {
+      std::cerr << "No valid input file specified\n";
+      exit(1);
+    }
+    *log_stream << "frame\tacquisition\tpreprocessing\ttracking\tintegration"
+        << "\traycasting\trendering\tcomputation\ttotal    \tRAM usage (MB)"
+        << "\tX          \tY          \tZ         \ttracked   \tintegrated\n";
+    while (processAll(reader, true, false, &config, false) == 0) {}
+  } else {
 #ifdef __QT__
     qtLinkKinectQt(argc,argv, &pipeline, &reader, &config,
         depth_render, track_render, volume_render, rgba_render);
@@ -156,7 +163,7 @@ int main(int argc, char** argv) {
       exit(1);
     }
     while (processAll(reader, true, true, &config, false) == 0) {
-#ifndef SE_BENCHMARK_APP
+#ifdef SE_GLUT
       drawthem(rgba_render,   image_res,
                depth_render,  image_res,
                track_render,  image_res,
@@ -164,54 +171,35 @@ int main(int argc, char** argv) {
 #endif
     }
 #endif
-  } else {
-    if ((reader == nullptr) || (reader->cameraActive == false)) {
-      std::cerr << "No valid input file specified\n";
-      exit(1);
-    }
-    while (processAll(reader, true, true, &config, false) == 0) {
-    }
-    std::cout << __LINE__ << std::endl;
   }
-  // ==========     DUMP VOLUME      =========
 
+  // ==========     DUMP VOLUME      =========
   if (config.dump_volume_file != "") {
-    auto start = std::chrono::steady_clock::now();
+    const auto start = std::chrono::steady_clock::now();
     pipeline->dump_mesh(config.dump_volume_file.c_str());
-    auto end = std::chrono::steady_clock::now();
-    Stats.sample("meshing",
+    const auto end = std::chrono::steady_clock::now();
+    stats.sample("meshing",
         std::chrono::duration<double>(end - start).count(),
         PerfStats::TIME);
   }
 
-#ifndef SE_BENCHMARK_APP
-  //if (config.log_file != "") {
-  //  std::ofstream logStream(config.log_file.c_str());
-  //  Stats.print_all_data(logStream);
-  //  logStream.close();
-  //}
-  //
-  if (powerMonitor && powerMonitor->isActive()) {
+  if (power_monitor && power_monitor->isActive()) {
     std::ofstream powerStream("power.rpt");
-    powerMonitor->powerStats.print_all_data(powerStream);
+    power_monitor->powerStats.print_all_data(powerStream);
     powerStream.close();
   }
   std::cout << "{";
-  //powerMonitor->powerStats.print_all_data(std::cout, false);
-  //std::cout << ",";
-  Stats.print_all_data(std::cout, false);
-  std::cout << "}" << std::endl;
-#endif
+  stats.print_all_data(std::cout, false);
+  std::cout << "}\n";
 
   //  =========  FREE BASIC BUFFERS  =========
-
   delete pipeline;
-  delete input_depth_image_data;
-  delete input_rgb_image_data;
-  delete rgba_render;
-  delete depth_render;
-  delete track_render;
-  delete volume_render;
+  delete[] input_depth_image_data;
+  delete[] input_rgb_image_data;
+  delete[] rgba_render;
+  delete[] depth_render;
+  delete[] track_render;
+  delete[] volume_render;
 }
 
 int processAll(DepthReader*   reader,
@@ -224,7 +212,8 @@ int processAll(DepthReader*   reader,
   static bool first_frame = true;
   bool tracked = false;
   bool integrated = false;
-  std::chrono::time_point<std::chrono::steady_clock> timings[7];
+  const bool track = (config->groundtruth_file == "");
+  const bool raycast = (track || render_images);
   int frame = 0;
   const Eigen::Vector2i input_image_res = (reader != nullptr)
       ? Eigen::Vector2i(reader->getInputImageResolution().x, reader->getInputImageResolution().y)
@@ -244,11 +233,11 @@ int processAll(DepthReader*   reader,
   }
 
   if (process_frame) {
-    Stats.start();
+    stats.start();
   }
-  Eigen::Matrix4f T_WC;
   Eigen::Matrix4f gt_T_WC;
-  timings[0] = std::chrono::steady_clock::now();
+  const std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
+  std::vector<std::chrono::time_point<std::chrono::steady_clock>> timings (7, now);
 
   if (process_frame) {
 
@@ -271,8 +260,8 @@ int processAll(DepthReader*   reader,
 
     // Process read frames
     frame = reader->getFrameNumber() - frame_offset;
-    if (powerMonitor != nullptr && !first_frame)
-      powerMonitor->start();
+    if (power_monitor != nullptr && !first_frame)
+      power_monitor->start();
 
     timings[1] = std::chrono::steady_clock::now();
 
@@ -282,7 +271,7 @@ int processAll(DepthReader*   reader,
 
     timings[2] = std::chrono::steady_clock::now();
 
-    if (config->groundtruth_file == "") {
+    if (track) {
       // No ground truth used, call track every tracking_rate frames.
       if (frame % config->tracking_rate == 0) {
         tracked = pipeline->track(sensor, config->icp_threshold);
@@ -300,14 +289,14 @@ int processAll(DepthReader*   reader,
     // Integrate only if tracking was successful every integration_rate frames
     // or it is one of the first 4 frames.
     if ((tracked && (frame % config->integration_rate == 0)) || frame <= 3) {
-        integrated = pipeline->integrate(sensor, frame);
+      integrated = pipeline->integrate(sensor, frame);
     } else {
       integrated = false;
     }
 
     timings[4] = std::chrono::steady_clock::now();
 
-    if (frame > 2) {
+    if (raycast && frame > 2) {
       pipeline->raycast(sensor);
     }
 
@@ -320,36 +309,32 @@ int processAll(DepthReader*   reader,
     if (frame % config->rendering_rate == 0) {
       pipeline->renderVolume((unsigned char*)volume_render, pipeline->getImageResolution(), sensor);
     }
-    timings[6] = std::chrono::steady_clock::now();
   }
+  timings[6] = std::chrono::steady_clock::now();
 
-  if (powerMonitor != nullptr && !first_frame)
-    powerMonitor->sample();
+  if (power_monitor != nullptr && !first_frame)
+    power_monitor->sample();
 
-  const Eigen::Vector3f t_MC = pipeline->t_MC();
   const Eigen::Vector3f t_WC = pipeline->t_WC();
   storeStats(frame, timings, t_WC, tracked, integrated);
-  if (config->no_gui){
-    *log_stream << reader->getFrameNumber() << "\t" << t_MC.x() << "\t" << t_MC.y() << "\t" << t_MC.z() << "\t" << std::endl;
+
+  if (config->no_gui) {
+    const Eigen::Vector3f t_MC = pipeline->t_MC();
+    *log_stream << frame << "\t"
+        << std::chrono::duration<double>(timings[1] - timings[0]).count() << "\t" // acquisition
+        << std::chrono::duration<double>(timings[2] - timings[1]).count() << "\t" // preprocessing
+        << std::chrono::duration<double>(timings[3] - timings[2]).count() << "\t" // tracking
+        << std::chrono::duration<double>(timings[4] - timings[3]).count() << "\t" // integration
+        << std::chrono::duration<double>(timings[5] - timings[4]).count() << "\t" // raycasting
+        << std::chrono::duration<double>(timings[6] - timings[5]).count() << "\t" // rendering
+        << std::chrono::duration<double>(timings[5] - timings[1]).count() << "\t" // computation
+        << std::chrono::duration<double>(timings[6] - timings[0]).count() << "\t" // total
+        << se::ram_usage_self() / 1024.0 / 1024.0 << "\t" // RAM usage (MB)
+        << t_MC.x() << "\t" << t_MC.y() << "\t" << t_MC.z() << "\t" // position
+        << tracked << "\t" << integrated // tracked and integrated flags
+        << std::endl;
   }
 
-#ifdef SE_BENCHMARK_APP
-  *log_stream << frame << "\t"
-    << std::chrono::duration<double>(timings[1] - timings[0]).count() << "\t" // acquisition
-    << std::chrono::duration<double>(timings[2] - timings[1]).count() << "\t" // preprocessing
-    << std::chrono::duration<double>(timings[3] - timings[2]).count() << "\t" // tracking
-    << std::chrono::duration<double>(timings[4] - timings[3]).count() << "\t" // integration
-    << std::chrono::duration<double>(timings[5] - timings[4]).count() << "\t" // raycasting
-    << std::chrono::duration<double>(timings[6] - timings[5]).count() << "\t" // rendering
-    << std::chrono::duration<double>(timings[5] - timings[1]).count() << "\t" // computation
-    << std::chrono::duration<double>(timings[6] - timings[0]).count() << "\t" // total
-    << t_MC.x() << "\t" << t_MC.y() << "\t" << t_MC.z() << "\t" // position
-    << tracked << "        \t" << integrated // tracked and integrated flags
-    << "\n";
-#endif
-
-  //if (config->no_gui && (config->log_file == ""))
-  //  Stats.print();
   first_frame = false;
 
   return false;

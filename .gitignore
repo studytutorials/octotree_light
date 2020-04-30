@@ -36,7 +36,7 @@
 
 # Directories
 build
-doc
+doc/html
 se_tools/evaluation_scripts/results
 
 # Benchmark results

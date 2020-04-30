@@ -385,6 +385,6 @@ inline void PerfStats::print_all_data(std::ostream& out, bool include_all_data) 
 
 }
 
-extern PerfStats Stats;
+extern PerfStats stats;
 
 #endif // PERFSTATS_H

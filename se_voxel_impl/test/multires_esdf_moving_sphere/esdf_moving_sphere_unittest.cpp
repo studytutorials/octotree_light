@@ -49,7 +49,7 @@ void updateBlock(se::VoxelBlock<T>*     block,
         voxel_data.delta_y++;
         voxel_data.x = (voxel_data.x * voxel_data.y + tsdf_value) / (voxel_data.y + 1);
         voxel_data.y = voxel_data.y + 1;
-        block->data(voxel_coord, scale, voxel_data);
+        block->setData(voxel_coord, scale, voxel_data);
       }
     }
   }

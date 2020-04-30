@@ -46,7 +46,7 @@ Eigen::Vector4f MultiresTSDF::raycast(
     const float                                     step,
     const float                                     large_step) {
 
-  auto select_node_dist = [](const auto& data){ return MultiresTSDF::VoxelType::initData().x; };
+  auto select_node_dist = [](const auto&){ return MultiresTSDF::VoxelType::initData().x; };
   auto select_voxel_dist = [](const auto& data){ return data.x; };
   if (near_plane < far_plane) {
     // first walk with largesteps until we found a hit
@@ -54,7 +54,6 @@ Eigen::Vector4f MultiresTSDF::raycast(
     float step_size = large_step;
     Eigen::Vector3f ray_pos_M = ray_origin_M + ray_dir_M * t;
     const int scale = 0;
-    bool is_valid;
     auto interp_res = volume.interp(ray_pos_M, scale, select_node_dist, select_voxel_dist);
     float f_t = interp_res.first;
     float f_tt = 0;

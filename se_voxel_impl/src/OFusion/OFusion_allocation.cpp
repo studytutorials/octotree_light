@@ -89,8 +89,8 @@ size_t OFusion::buildAllocationList(
 
   const Eigen::Vector3f t_MC = T_MC.topRightCorner<3, 1>();
 #pragma omp parallel for
-  for (unsigned int y = 0; y < depth_image_res.y(); ++y) {
-    for (unsigned int x = 0; x < depth_image_res.x(); ++x) {
+  for (int y = 0; y < depth_image_res.y(); ++y) {
+    for (int x = 0; x < depth_image_res.x(); ++x) {
       const Eigen::Vector2i pixel(x, y);
       if (depth_image(pixel.x(), pixel.y()) == 0) {
         continue;

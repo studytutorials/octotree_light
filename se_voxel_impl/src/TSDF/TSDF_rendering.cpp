@@ -46,7 +46,7 @@ Eigen::Vector4f TSDF::raycast(
     const float                             step,
     const float                             large_step) {
 
-  auto select_node_dist = [](const auto& data){ return TSDF::VoxelType::initData().x; };
+  auto select_node_dist = [](const auto&){ return TSDF::VoxelType::initData().x; };
   auto select_voxel_dist = [](const auto& data){ return data.x; };
   if (near_plane < far_plane) {
     // first walk with largesteps until we found a hit

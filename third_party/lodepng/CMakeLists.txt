@@ -44,8 +44,7 @@ install(TARGETS ${PROJECT_NAME}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-# This is required so that the exported target has the name Projection and not
-# srl-projection
+# This is required so that the exported target has the name lodepng
 set_target_properties(${PROJECT_NAME} PROPERTIES EXPORT_NAME lodepng)
 
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

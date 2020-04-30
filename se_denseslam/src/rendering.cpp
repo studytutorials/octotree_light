@@ -162,8 +162,8 @@ inline void printNormals(const se::Image<Eigen::Vector3f>& normals,
                          const char*                       filename) {
 
   unsigned char* normal_RGBA_image_data = new unsigned char [normals.width() * normals.height() * 4];
-  for (unsigned int y = 0; y < normals.height(); ++y) {
-    for (unsigned int x = 0; x < normals.width(); ++x){
+  for (int y = 0; y < normals.height(); ++y) {
+    for (int x = 0; x < normals.width(); ++x){
       const Eigen::Vector3f n = normals[x + normals.width() * y];
       normal_RGBA_image_data[4 * normals.width() * y + 4 * x + 0] = (n.x() / 2 + 0.5) * 255;
       normal_RGBA_image_data[4 * normals.width() * y + 4 * x + 1] = (n.y() / 2 + 0.5) * 255;

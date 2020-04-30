@@ -34,7 +34,7 @@ enum ReaderType {
 
 struct ReaderConfiguration {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  int fps;
+  float fps;
   bool blocking_read;
   std::string data_path;
   std::string groundtruth_path;
@@ -84,7 +84,7 @@ class DepthReader {
       //			fflush(stdout);
       //		}
 
-      if (_fps == 0) {
+      if (_fps == 0.0f) {
         _frame++;
         return;
       }
@@ -158,7 +158,7 @@ class DepthReader {
   protected:
     int _frame;
     size_t _pose_num;
-    int _fps;
+    float _fps;
     bool _blocking_read;
     std::string _data_path;
     std::string _groundtruth_path;
@@ -188,7 +188,7 @@ class SceneDepthReader: public DepthReader {
     SceneDepthReader(const ReaderConfiguration& config)
       : SceneDepthReader(config.data_path, config.fps, config.blocking_read){ }
 
-    SceneDepthReader(std::string dir, int fps, bool blocking_read) :
+    SceneDepthReader(std::string dir, float fps, bool blocking_read) :
       DepthReader(), _dir(dir), _inSize(make_uint2(640, 480)) {
         std::cerr << "No such directory " << dir << std::endl;
         struct stat st;
@@ -333,7 +333,7 @@ class RawDepthReader: public DepthReader {
      *
      * @deprecated Might be removed in the future.
      */
-    RawDepthReader(std::string filename, int fps, bool blocking_read) :
+    RawDepthReader(std::string filename, float fps, bool blocking_read) :
       DepthReader(), _rawFilePtr(fopen(filename.c_str(), "rb")) {
 
         size_t res = fread(&(_inSize), sizeof(_inSize), 1, _rawFilePtr);
@@ -577,7 +577,7 @@ class OpenNIDepthReader: public DepthReader {
     OpenNIDepthReader(const ReaderConfiguration& config)
       : OpenNIDepthReader(config.data_path, config.fps, config.blocking_read){ }
 
-    OpenNIDepthReader(std::string filename, int fps, bool blocking_read) :
+    OpenNIDepthReader(std::string filename, float fps, bool blocking_read) :
       DepthReader(), _pFile(fopen(filename.c_str(), "rb")) {
 
         cameraActive = false;
@@ -635,7 +635,7 @@ class OpenNIDepthReader: public DepthReader {
         if(!device.isFile())
         {
           openni::VideoMode newDepthMode;
-          newDepthMode.setFps(fps == 0 ? 30 : fps);
+          newDepthMode.setFps(fps == 0.0f ? 30 : fps);
           newDepthMode.setPixelFormat(openni::PIXEL_FORMAT_DEPTH_1_MM);
           newDepthMode.setResolution(640,480);
 
@@ -648,7 +648,7 @@ class OpenNIDepthReader: public DepthReader {
           }
 
           openni::VideoMode newRGBMode;
-          newRGBMode.setFps(fps == 0 ? 30 : fps);
+          newRGBMode.setFps(fps == 0.0f ? 30 : fps);
           newRGBMode.setPixelFormat(openni::PIXEL_FORMAT_RGB888);
           newRGBMode.setResolution(640,480);
 

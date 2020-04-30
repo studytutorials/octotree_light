@@ -75,8 +75,11 @@ public:
 
   virtual ~Node(){};
 
-  Node*& child(const int x, const int y,
-      const int z) {
+  Node*& child(const int x, const int y, const int z) {
+    return child_ptr_[x + y * 2 + z * 4];
+  };
+
+  const Node* child(const int x, const int y, const int z) const {
     return child_ptr_[x + y * 2 + z * 4];
   };
 
@@ -84,7 +87,15 @@ public:
     return child_ptr_[child_idx];
   }
 
+  const Node* child(const int child_idx ) const {
+    return child_ptr_[child_idx];
+  }
+
   Node*& parent() {
+    return parent_ptr_;
+  }
+
+  const Node* parent() const {
     return parent_ptr_;
   }
 
@@ -94,7 +105,7 @@ public:
   void active(const bool a){ active_ = a; }
   bool active() const { return active_; }
 
-  virtual bool isBlock() { return false; }
+  virtual bool isBlock() const { return false; }
 
 protected:
     Node* parent_ptr_;
@@ -126,28 +137,28 @@ class VoxelBlock: public Node<T> {
       }
     }
 
-    bool isBlock(){ return true; }
+    bool isBlock() const { return true; }
 
     Eigen::Vector3i coordinates() const { return coordinates_; }
     void coordinates(const Eigen::Vector3i& block_coord){ coordinates_ = block_coord; }
 
     VoxelData data(const Eigen::Vector3i& voxel_coord) const;
-    void data(const Eigen::Vector3i& voxel_coord, const VoxelData& voxel_data);
+    void setData(const Eigen::Vector3i& voxel_coord, const VoxelData& voxel_data);
 
     VoxelData data(const Eigen::Vector3i& voxel_coord, const int scale) const;
-    void data(const Eigen::Vector3i& voxel_coord, const int scale, const VoxelData& voxel_data);
+    void setData(const Eigen::Vector3i& voxel_coord, const int scale, const VoxelData& voxel_data);
 
     VoxelData data(const int voxel_idx) const;
-    void data(const int voxel_idx, const VoxelData& voxel_data);
+    void setData(const int voxel_idx, const VoxelData& voxel_data);
 
-    int current_scale() { return current_scale_; }
+    int current_scale() const { return current_scale_; }
     void current_scale(const int s) { current_scale_ = s; }
 
-    int min_scale() { return min_scale_; }
+    int min_scale() const { return min_scale_; }
     void min_scale(const int s) { min_scale_ = s; }
 
-    VoxelData* getBlockRawPtr(){ return voxel_block_; }
-    static constexpr int data_size(){ return sizeof(VoxelBlock<T>); }
+    VoxelData* getBlockRawPtr() { return voxel_block_; }
+    static constexpr int data_size() { return sizeof(VoxelBlock<T>); }
 
   private:
     VoxelBlock(const VoxelBlock&) = delete;
@@ -201,14 +212,14 @@ VoxelBlock<T>::data(const Eigen::Vector3i& voxel_coord, const int scale) const {
 }
 
 template <typename T>
-inline void VoxelBlock<T>::data(const Eigen::Vector3i& voxel_coord,
+inline void VoxelBlock<T>::setData(const Eigen::Vector3i& voxel_coord,
                                 const VoxelData& voxel_data){
   Eigen::Vector3i voxel_offset = voxel_coord - coordinates_;
   voxel_block_[voxel_offset.x() + voxel_offset.y() * size + voxel_offset.z() * size_sq] = voxel_data;
 }
 
 template <typename T>
-inline void VoxelBlock<T>::data(const Eigen::Vector3i& voxel_coord, const int scale,
+inline void VoxelBlock<T>::setData(const Eigen::Vector3i& voxel_coord, const int scale,
                                 const VoxelData& voxel_data){
   Eigen::Vector3i voxel_offset = voxel_coord - coordinates_;
   int scale_offset = 0;
@@ -234,7 +245,7 @@ VoxelBlock<T>::data(const int voxel_idx) const {
 }
 
 template <typename T>
-inline void VoxelBlock<T>::data(const int voxel_idx, const VoxelData& voxel_data){
+inline void VoxelBlock<T>::setData(const int voxel_idx, const VoxelData& voxel_data){
   voxel_block_[voxel_idx] = voxel_data;
 }
 }

@@ -58,8 +58,8 @@ namespace se {
 
     se::Node<T>* root() { return root_; };
 
-    void reserveNodes(const size_t n) { };
-    void reserveBlocks(const size_t n) { };
+    void reserveNodes(const size_t /* n */) { };
+    void reserveBlocks(const size_t /* n */) { };
 
     se::Node<T>*       acquireNode(typename T::VoxelData init_data = T::initData())  { nodes_updated_ = false; return new se::Node<T>(init_data); };
     se::VoxelBlock<T>* acquireBlock(typename T::VoxelData init_data = T::initData()) { blocks_updated_ = false; return new se::VoxelBlock<T>(init_data); };

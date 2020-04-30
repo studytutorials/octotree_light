@@ -39,13 +39,30 @@ namespace se {
 
   struct PinholeCamera {
     PinholeCamera(const SensorConfig& c);
+
     PinholeCamera(const PinholeCamera& pinhole_camera,
                   const float          scaling_factor);
+
+    /**
+     * \brief Computes the scale corresponding to the back-projected pixel size
+     * in voxel space
+     * \param[in] dist            Distance from the camera to the voxel
+     *                            block centre.
+     * \param[in] voxel_dim       The voxel edge length in meters.
+     * \param[in] last_scale      Scale from which propagate up voxel
+     *                            values.
+     * \param[in] min_scale
+     * \param[in] max_block_scale The maximum allowed scale within a
+     *                            VoxelBlock.
+     * \return The scale that should be used for the integration.
+     */
     int computeIntegrationScale(const float dist,
                                 const float voxel_dim,
                                 const int   last_scale,
                                 const int   min_scale,
                                 const int   max_block_scale) const;
+
+
 
     srl::projection::PinholeCamera<srl::projection::NoDistortion> model;
     bool  left_hand_frame;
@@ -61,13 +78,17 @@ namespace se {
 
   struct OusterLidar {
     OusterLidar(const SensorConfig& c);
+
     OusterLidar(const OusterLidar& ouster_lidar,
                 const float        scaling_factor);
-    int computeIntegrationScale(const float dist,
-                                const float voxel_dim,
-                                const int   last_scale,
-                                const int   min_scale,
-                                const int   max_block_scale) const {return 0;};
+
+    int computeIntegrationScale(const float,
+                                const float,
+                                const int,
+                                const int,
+                                const int) const {return 0;};
+
+
 
     srl::projection::OusterLidar model;
     bool  left_hand_frame;

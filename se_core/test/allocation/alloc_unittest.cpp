@@ -64,7 +64,7 @@ TEST(AllocationTest, SetSingleVoxel) {
 
   se::VoxelBlock<TestVoxelT>* block = octree.fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
   TestVoxelT::VoxelData written_data = 2.f;
-  block->data(voxel_coord, written_data);
+  block->setData(voxel_coord, written_data);
 
   const TestVoxelT::VoxelData read_data = octree.get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
   EXPECT_EQ(written_data, read_data);

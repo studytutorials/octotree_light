@@ -70,8 +70,6 @@ class DenseSLAMSystem {
     Eigen::Vector3f map_dim_;
     Eigen::Vector3i map_size_;
     std::vector<int> iterations_;
-    bool tracked_;
-    bool integrated_;
     bool need_render_ = false;
     Configuration config_;
 
@@ -137,10 +135,6 @@ class DenseSLAMSystem {
                     const Eigen::Matrix4f& T_MW,
                     std::vector<int> &     pyramid,
                     const Configuration&   config_);
-
-    ~DenseSLAMSystem() {
-        delete render_T_MC_;
-    }
 
     /**
      * Preprocess a single depth frame and add it to the pipeline.
@@ -304,22 +298,8 @@ class DenseSLAMSystem {
     /*
      * TODO Document this.
      */
-    void getMap(std::shared_ptr<se::Octree<VoxelImpl::VoxelType> >& map) {
-      map = map_;
-    }
-
-    /*
-     * TODO Document this.
-     */
-    bool getTracked() {
-      return (tracked_);
-    }
-
-    /*
-     * TODO Document this.
-     */
-    bool getIntegrated() {
-      return (integrated_);
+    std::shared_ptr<se::Octree<VoxelImpl::VoxelType> > getMap() {
+      return map_;
     }
 
     /**
@@ -534,12 +514,5 @@ class DenseSLAMSystem {
       return (image_res_);
     }
 };
-
-/**
- * Synchronize CPU and GPU.
- *
- * @note This function does nothing in the C++ implementation.
- */
-void synchroniseDevices();
 
 #endif

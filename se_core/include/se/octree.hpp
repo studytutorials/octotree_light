@@ -34,6 +34,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring>
 #include <algorithm>
+#include <vector>
 #include "utils/math_utils.h"
 #include "octree_defines.h"
 #include "utils/morton_utils.hpp"
@@ -111,7 +112,7 @@ public:
   inline int voxelDepth() const { return voxel_depth_; }
   inline int maxBlockScale() const { return max_block_scale_; }
   inline int blockDepth() const { return block_depth_; }
-  inline Node<T>* const root() const { return root_; }
+  inline Node<T>* root() const { return root_; }
 
   /*! \brief Sets voxel data at coordinates (x,y,z), if not present it
    * allocates it. This method is not thread safe.
@@ -303,21 +304,21 @@ public:
 
 private:
 
-  Node<T>* root_;
-  int size_;
-  float dim_;
-  int num_levels_;
-  int voxel_depth_;
-  int max_block_scale_;
-  int block_depth_;
+  Node<T>* root_ = nullptr;
+  int size_ = 0;
+  float dim_ = 0.f;
+  int num_levels_ = 0;
+  int voxel_depth_ = 0;
+  int max_block_scale_ = 0;
+  int block_depth_ = 0;
   typename T::template MemoryPoolType<T> pool_;
 
   friend class VoxelBlockRayIterator<T>;
   friend class node_iterator<T>;
 
   // Allocation specific variables
-  key_t* keys_at_depth_;
-  int reserved_;
+  std::vector<key_t> keys_at_depth_;
+  int reserved_ = 0;
 
   // Private implementation of cached methods
   VoxelData get(const int x, const int y, const int z, VoxelBlock<T>* cached) const;
@@ -409,7 +410,7 @@ inline void  Octree<T>::set(const int x,
     node = node_tmp;
   }
 
-  static_cast<VoxelBlock<T> *>(node)->data(Eigen::Vector3i(x, y, z), data);
+  static_cast<VoxelBlock<T> *>(node)->setData(Eigen::Vector3i(x, y, z), data);
 }
 
 template <typename T>
@@ -447,7 +448,8 @@ inline typename Octree<T>::VoxelData Octree<T>::get_fine(const int x,
 
   const unsigned min_node_size = std::max((1 << scale), (int) block_size);
   unsigned node_size = size_ >> 1;
-  int child_idx;
+  // Initialize just to stop the compiler from complaining.
+  int child_idx = -1;
   for(; node_size >= min_node_size; node_size = node_size >> 1) {
     child_idx  = ((x & node_size) > 0) + 2 * ((y & node_size) > 0) + 4*((z & node_size) > 0);
     Node<T>* node_tmp = node->child(child_idx);
@@ -566,8 +568,7 @@ void Octree<T>::init(int size, float dim) {
   root_ = pool_.root();
   root_->size_ = size;
   reserved_ = 1024;
-  keys_at_depth_ = new key_t[reserved_];
-  std::memset(keys_at_depth_, 0, reserved_);
+  keys_at_depth_.resize(reserved_, 0);
 }
 
 template <typename T>
@@ -978,8 +979,7 @@ void Octree<T>::reserveBuffers(const int num_blocks){
 
   if(num_blocks > reserved_){
     // std::cout << "Reserving " << n << " entries in allocation buffers" << std::endl;
-    delete[] keys_at_depth_;
-    keys_at_depth_ = new key_t[num_blocks];
+    keys_at_depth_.resize(num_blocks);
     reserved_ = num_blocks;
   }
   pool_.reserveBlocks(num_blocks);
@@ -1003,9 +1003,9 @@ std::sort(keys, keys + num_elem);
   const unsigned int shift = MAX_BITS - voxel_depth_ - 1;
   for (int depth = 1; depth <= block_depth_; depth++){
     const key_t mask = MASK[depth + shift] | SCALE_MASK;
-    compute_prefix(keys, keys_at_depth_, num_elem, mask);
-    last_elem = algorithms::unique_multiscale(keys_at_depth_, num_elem);
-    success = allocate_depth(keys_at_depth_, last_elem, depth);
+    compute_prefix(keys, keys_at_depth_.data(), num_elem, mask);
+    last_elem = algorithms::unique_multiscale(keys_at_depth_.data(), num_elem);
+    success = allocate_depth(keys_at_depth_.data(), last_elem, depth);
   }
   return success;
 }

@@ -215,9 +215,9 @@ TEST(MultiscaleBlock, ReadWrite) {
           const Eigen::Vector3i voxel_coord_scale_0 = block_coord + Eigen::Vector3i(x, y, z);
           const Eigen::Vector3i voxel_coord_scale_1 = (voxel_coord_scale_0 / 2) * 2;
           const Eigen::Vector3i voxel_coord_scale_2 = (voxel_coord_scale_0 / 4) * 4;
-          block->data(voxel_coord_scale_0, voxel_coord_scale_0);
-          block->data(voxel_coord_scale_0, 1, voxel_coord_scale_1);
-          block->data(voxel_coord_scale_0, 2, voxel_coord_scale_2);
+          block->setData(voxel_coord_scale_0, voxel_coord_scale_0);
+          block->setData(voxel_coord_scale_0, 1, voxel_coord_scale_1);
+          block->setData(voxel_coord_scale_0, 2, voxel_coord_scale_2);
         }
       }
     }

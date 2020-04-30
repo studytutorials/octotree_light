@@ -21,10 +21,10 @@ se::PinholeCamera::PinholeCamera(const SensorConfig& c)
   assert(c.near_plane >= 0.f);
   assert(c.far_plane > c.near_plane);
   assert(c.mu > 0.f);
-  assert(!isnan(c.fx));
-  assert(!isnan(c.fy));
-  assert(!isnan(c.cx));
-  assert(!isnan(c.cy));
+  assert(!std::isnan(c.fx));
+  assert(!std::isnan(c.fy));
+  assert(!std::isnan(c.cx));
+  assert(!std::isnan(c.cy));
 }
 
 se::PinholeCamera::PinholeCamera(const PinholeCamera& pc, const float sf)
@@ -34,12 +34,6 @@ se::PinholeCamera::PinholeCamera(const PinholeCamera& pc, const float sf)
             left_hand_frame(pc.left_hand_frame), near_plane(pc.near_plane), far_plane(pc.far_plane), mu(pc.mu) {
 }
 
-/**
- * \brief Computes the scale corresponding to the back-projected pixel size
- * in voxel space
- * \param[in] depth distance from the camera to the voxel block centre
- * \param[out] scale scale from which propagate up voxel values
- */
 int se::PinholeCamera::computeIntegrationScale(const float dist,
                                                const float voxel_dim,
                                                const int   last_scale,
@@ -74,6 +68,7 @@ int se::PinholeCamera::computeIntegrationScale(const float dist,
     return scale;
   }
 }
+
 
 
 se::OusterLidar::OusterLidar(const SensorConfig& c)

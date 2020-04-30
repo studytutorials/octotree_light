@@ -8,7 +8,6 @@ project(se-voxel-impl)
 
 # Find dependencies.
 find_package(Eigen3 REQUIRED)
-find_package(Sophus REQUIRED)
 if(WITH_OPENMP)
   find_package(OpenMP)
   if(OPENMP_FOUND)

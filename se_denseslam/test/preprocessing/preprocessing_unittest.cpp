@@ -40,7 +40,7 @@
 
 // Needed due to the way the TICK and TOCK macros used in preprocessing are
 // defined.
-PerfStats Stats;
+PerfStats stats;
 
 
 

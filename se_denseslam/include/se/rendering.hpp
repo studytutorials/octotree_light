@@ -39,8 +39,6 @@
 
 #include <cstdint>
 
-#include <sophus/se3.hpp>
-
 #include "se/utils/math_utils.h"
 #include "se/commons.h"
 #include "lodepng.h"

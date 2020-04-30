@@ -92,7 +92,7 @@ TEST(SerialiseUnitTest, WriteReadBlock) {
     block.code_ = 24;
     block.coordinates(Eigen::Vector3i(40, 48, 52));
     for(int voxel_idx = 0; voxel_idx < 512; ++voxel_idx)
-      block.data(voxel_idx, 5.f);
+      block.setData(voxel_idx, 5.f);
     se::internal::serialise(os, block);
   }
 
@@ -115,7 +115,7 @@ TEST(SerialiseUnitTest, WriteReadBlockStruct) {
     block.code_ = 24;
     block.coordinates(Eigen::Vector3i(40, 48, 52));
     for(int voxel_idx = 0; voxel_idx < 512; ++voxel_idx)
-      block.data(voxel_idx, {5.f, 2.});
+      block.setData(voxel_idx, {5.f, 2.});
     se::internal::serialise(os, block);
   }
 
@@ -183,7 +183,7 @@ TEST(SerialiseUnitTest, SerialiseBlock) {
     octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), octree.blockDepth());
     auto block = octree.fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
     for(int voxel_idx = 0; voxel_idx < se::VoxelBlock<TestVoxelT>::size_cube; ++voxel_idx)
-      block->data(voxel_idx, dis(gen));
+      block->setData(voxel_idx, dis(gen));
   }
 
   std::string filename = "block-test.bin";

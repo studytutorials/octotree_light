@@ -222,7 +222,7 @@ private:
 	int idleTimer;
 	QString frameRateField;
 	QTimer *powerTimer;
-	PowerMonitor *powerMonitor;
+	PowerMonitor *power_monitor;
 	QString dirname;
 	void readConfig(QString filename = "./.kfusion_kinectrc");
 	void writeConfig(QString filename = "./.kfusion_kinectrc");

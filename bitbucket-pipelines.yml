@@ -1,7 +1,8 @@
-image: sotirisp/supereight-testing:latest
+image: sotirisp/supereight-ci:18.04
 
 pipelines:
-  default:
+  branches:
+    '{master, devel}':
     - step:
         script:
           - sed -i 's|\.\./srl_projection\.git|git@bitbucket.org:smartroboticslab/srl_projection\.git|' .gitmodules

@@ -75,7 +75,7 @@ configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/SESharedConfig.cma
 
 # Install the Config file
 install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/SRLProjectionConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/SESharedConfig.cmake
   DESTINATION ${INSTALL_CONFIGDIR}
 )
 

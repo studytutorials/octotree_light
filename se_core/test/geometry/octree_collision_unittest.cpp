@@ -147,9 +147,9 @@ TEST_F(OctreeCollisionTest, CollisionFreeLeaf){
     for (y = block_coord.y(); y < y_last; ++y){
       for (x = block_coord.x(); x < x_last; ++x){
         if(x < x_last / 2 && y < y_last / 2 && z < z_last / 2)
-          block->data(Eigen::Vector3i(x, y, z), 2.f);
+          block->setData(Eigen::Vector3i(x, y, z), 2.f);
         else
-          block->data(Eigen::Vector3i(x, y, z), 10.f);
+          block->setData(Eigen::Vector3i(x, y, z), 10.f);
 
       }
     }

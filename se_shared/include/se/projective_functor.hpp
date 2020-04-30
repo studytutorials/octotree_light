@@ -32,7 +32,6 @@
 #include <functional>
 #include <vector>
 
-#include <sophus/se3.hpp>
 #include "se/utils/math_utils.h"
 #include "filter.hpp"
 #include "se/node.hpp"
@@ -48,7 +47,7 @@ namespace functor {
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       projective_functor(OctreeT<FieldType>&    octree,
-                         UpdateF                funct,
+                         UpdateF&               funct,
                          const Eigen::Matrix4f& T_CM,
                          const SensorImpl       sensor,
                          const Eigen::Vector3f& sample_offset_frac,
@@ -166,7 +165,7 @@ namespace functor {
 
     private:
       OctreeT<FieldType>& octree_;
-      UpdateF funct_;
+      UpdateF& funct_;
       const Eigen::Matrix4f& T_CM_;
       const SensorImpl sensor_;
       const Eigen::Vector3f sample_offset_frac_;
@@ -183,7 +182,7 @@ namespace functor {
                          const Eigen::Matrix4f& T_CM,
                          const SensorImpl&      sensor,
                          const Eigen::Vector2i& image_res,
-                         UpdateF                funct) {
+                         UpdateF&               funct) {
 
     projective_functor<FieldType, OctreeT, UpdateF>
       it(octree, funct, T_CM, sensor, sample_offset_frac, image_res);

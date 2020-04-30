@@ -69,7 +69,7 @@ namespace se {
           }
 
           void set(const typename se::VoxelBlock<FieldType>::VoxelData& voxel_data) {
-            block_->data(voxel_coord_, voxel_data);
+            block_->setData(voxel_coord_, voxel_data);
           }
 
         private:

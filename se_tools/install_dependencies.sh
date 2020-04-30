@@ -8,7 +8,7 @@ set -eu
 IFS="$(printf '%b_' '\t\n')" ; IFS="${IFS%_}"
 
 # Required dependencies
-sudo apt-get --yes install build-essential git cmake libeigen3-dev libgtest-dev
+sudo apt-get --yes install build-essential git cmake libeigen3-dev libopencv-dev
 
 # Required source dependencies
 sophus_dir='/tmp/Sophus'
@@ -21,5 +21,5 @@ cd "$sophus_dir/build" && make && make test && sudo make install
 
 # Optional dependencies
 sudo apt-get --yes install freeglut3-dev libopenni2-dev libpapi-dev \
-    qtbase5-dev python3 python3-numpy
+    qtbase5-dev python3 python3-numpy liboctomap-dev
 

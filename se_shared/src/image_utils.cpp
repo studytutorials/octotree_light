@@ -11,9 +11,9 @@
 
 
 
-int save_depth_png(const uint16_t*        depth_image_data,
-                   const Eigen::Vector2i& depth_image_res,
-                   const std::string&     filename) {
+int se::save_depth_png(const uint16_t*        depth_image_data,
+                       const Eigen::Vector2i& depth_image_res,
+                       const std::string&     filename) {
 
   // Allocate a new image buffer to use for changing the image data from little
   // endian (used in x86 and ARM CPUs) to big endian order (used in PNG).
@@ -43,9 +43,9 @@ int save_depth_png(const uint16_t*        depth_image_data,
 
 
 
-int load_depth_png(uint16_t**         depth_image_data,
-                   Eigen::Vector2i&   depth_image_res,
-                   const std::string& filename) {
+int se::load_depth_png(uint16_t**         depth_image_data,
+                       Eigen::Vector2i&   depth_image_res,
+                       const std::string& filename) {
 
   // Load the image.
   const unsigned ret = lodepng_decode_file(
@@ -73,9 +73,9 @@ int load_depth_png(uint16_t**         depth_image_data,
 
 
 
-int save_depth_pgm(const uint16_t*        depth_image_data,
-                   const Eigen::Vector2i& depth_image_res,
-                   const std::string&     filename) {
+int se::save_depth_pgm(const uint16_t*        depth_image_data,
+                       const Eigen::Vector2i& depth_image_res,
+                       const std::string&     filename) {
 
   // Open the file for writing.
   std::ofstream file (filename.c_str());
@@ -110,9 +110,9 @@ int save_depth_pgm(const uint16_t*        depth_image_data,
 
 
 
-int load_depth_pgm(uint16_t**         depth_image_data,
-                   Eigen::Vector2i&   depth_image_res,
-                   const std::string& filename) {
+int se::load_depth_pgm(uint16_t**         depth_image_data,
+                       Eigen::Vector2i&   depth_image_res,
+                       const std::string& filename) {
 
   // Open the file for reading.
   std::ifstream file (filename.c_str());

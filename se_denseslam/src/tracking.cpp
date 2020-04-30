@@ -36,6 +36,8 @@
 
 #include "se/tracking.hpp"
 
+#include <sophus/se3.hpp>
+
 
 
 static inline Eigen::Matrix<float, 6, 6> makeJTJ(
@@ -268,12 +270,12 @@ void trackKernel(TrackData*                        output_data,
       const Eigen::Vector3f point_M = (T_MC * point_C.homogeneous()).head<3>();
 
       Eigen::Vector2f ref_pixel_f;
-      if (sensor.model.project(point_C, &ref_pixel_f) == srl::projection::ProjectionStatus::OutsideImage) {
+      if (sensor.model.project(point_C, &ref_pixel_f) != srl::projection::ProjectionStatus::Successful) {
         row.result = -2;
         continue;
       }
 
-      const Eigen::Vector2i ref_pixel = round_pixel(ref_pixel_f);
+      const Eigen::Vector2i ref_pixel = se::round_pixel(ref_pixel_f);
       const Eigen::Vector3f ref_normal_M
           = surface_normals_M[ref_pixel.x() + ref_pixel.y() * ref_res.x()];
 

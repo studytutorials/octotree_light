@@ -11,9 +11,9 @@ namespace se {
     class Image {
 
       public:
-        Image(const unsigned w, const unsigned h) : width_(w), height_(h) {
+        Image(const unsigned w, const unsigned h)
+            : width_(w), height_(h), data_(width_ * height_) {
           assert(width_ > 0 && height_ > 0);
-          data_.resize(width_ * height_);
         }
 
         Image(const unsigned w, const unsigned h, const T& val) : width_(w), height_(h) {
@@ -35,8 +35,8 @@ namespace se {
         const T* data() const { return data_.data(); }
 
       private:
-        const int width_;
-        const int height_;
+        int width_;
+        int height_;
         std::vector<T, Eigen::aligned_allocator<T> > data_;
     };
 

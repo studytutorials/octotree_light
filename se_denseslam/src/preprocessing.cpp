@@ -214,11 +214,11 @@ void mm2metersKernel(se::Image<float>&      m_depth_image,
 
   const int ratio = mm_depth_image_res.x() / m_depth_image.width();
 #pragma omp parallel for
-  for (int y_out = 0; y_out < m_depth_image.height(); y_out++)
+  for (int y_out = 0; y_out < m_depth_image.height(); y_out++) {
     for (int x_out = 0; x_out < m_depth_image.width(); x_out++) {
       size_t valid_count = 0;
       float pixel_value_sum = 0;
-      for (int b = 0; b < ratio; b++)
+      for (int b = 0; b < ratio; b++) {
         for (int a = 0; a < ratio; a++) {
           const int y_in = y_out * ratio + b;
           const int x_in = x_out * ratio + a;
@@ -227,9 +227,11 @@ void mm2metersKernel(se::Image<float>&      m_depth_image,
           pixel_value_sum += mm_depth_image_data[x_in + mm_depth_image_res.x() * y_in];
           valid_count++;
         }
+      }
       m_depth_image(x_out, y_out)
           = (valid_count > 0) ? pixel_value_sum / (valid_count * 1000.0f) : 0;
     }
+  }
   TOCK("mm2metersKernel", m_depth_image.width() * m_depth_image.height());
 }
 
@@ -283,15 +285,16 @@ void downsampleImageKernel(const uint8_t*         input_RGB_image_data,
 
   TICK();
   // Check for correct image sizes.
-  assert((input_RGB_image_res.x() >= output_RGBA.width())
+  assert((input_RGB_image_res.x() >= output_RGBA_image.width())
       && "Error: input width must be greater than output width");
-  assert((input_RGB_image_res.y() >= output_RGBA.height())
+  assert((input_RGB_image_res.y() >= output_RGBA_image.height())
       && "Error: input height must be greater than output height");
-  assert((input_RGB_image_res.x() % output_RGBA.width() == 0)
+  assert((input_RGB_image_res.x() % output_RGBA_image.width() == 0)
       && "Error: input width must be an integer multiple of output width");
-  assert((input_RGB_image_res.y() % output_RGBA.height() == 0)
+  assert((input_RGB_image_res.y() % output_RGBA_image.height() == 0)
       && "Error: input height must be an integer multiple of output height");
-  assert((input_RGB_image_res.x() / output_RGBA.width() == input_RGB_image_res.y() / output_RGBA.height())
+  assert((input_RGB_image_res.x() / output_RGBA_image.width()
+      == input_RGB_image_res.y() / output_RGBA_image.height())
       && "Error: input and output width and height ratios must be the same");
 
   const int ratio = input_RGB_image_res.x() / output_RGBA_image.width();
@@ -317,8 +320,8 @@ void downsampleImageKernel(const uint8_t*         input_RGB_image_data,
       b /= ratio * ratio;
 
       // Combine into a uint32_t by adding an alpha channel with 100% opacity.
-      const uint32_t rgba = to_rgba(r, g, b, 255);
-      output_RGBA_image[x_out + output_RGBA_image.width() * y_out] = rgba;
+      const uint32_t rgba = se::pack_rgba(r, g, b, 255);
+      output_RGBA_image(x_out, y_out) = rgba;
     }
   }
   TOCK("downsampleImageKernel", output_RGBA_image.width() * output_RGBA_image.height());

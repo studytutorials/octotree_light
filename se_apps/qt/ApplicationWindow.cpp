@@ -35,7 +35,7 @@ void ApplicationWindow::enableMenuItem(FileMenuEnum entry) {
 ApplicationWindow::ApplicationWindow() {
 	viewers = new Viewers(this);
 	timer = new QTimer(this);
-	powerMonitor = NULL;
+	power_monitor = NULL;
 	cameraButton = NULL;
 	powerTimer = new QTimer(this);
 	powerTimer->setInterval(200);
@@ -890,7 +890,7 @@ case 'T':
 	break;
 	//case 'I':
 	//  if(should_integrate){
-	//      *should_integrate = !(*should_integrate);           
+	//      *should_integrate = !(*should_integrate);
 	//  }
 	// break;
 case 'Q':
@@ -906,7 +906,7 @@ case 'C':
 }
 void ApplicationWindow::timerEvent(QTimerEvent *) {
 
-// This should run the callback whenever we have finished all events in our queue  
+// This should run the callback whenever we have finished all events in our queue
 
 if ((*cameraOpen || requireUpdate) && !viewers->holdProcessing()
 		&& !holdProcessing) {
@@ -1208,10 +1208,10 @@ lo = fLayout->itemAt(1, QFormLayout::ItemRole::FieldRole);
 _appWindow->setConditionalStart(((QLineEdit *) lo->widget())->text().toInt());
 
 for (int i = 2; i < fLayout->rowCount(); i++) {
-	//this should give us the button boxes layout		
+	//this should give us the button boxes layout
 	lo = fLayout->itemAt(i, QFormLayout::ItemRole::LabelRole);
 	QString label = ((QLabel *) lo->widget())->text();
-	lo = fLayout->itemAt(i, QFormLayout::ItemRole::FieldRole); //			
+	lo = fLayout->itemAt(i, QFormLayout::ItemRole::FieldRole); //
 	QPushButton *button = (QPushButton *) (lo->layout()->itemAt(0)->widget());
 	_appWindow->setConditionalBreakpoint(label, button->group()->checkedId());
 }

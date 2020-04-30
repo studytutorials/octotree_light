@@ -42,11 +42,11 @@ Eigen::Vector4f OFusion::raycast(
     const Eigen::Vector3f&                     ray_dir_M,
     const float                                near_plane,
     const float                                far_plane,
-    const float                                mu,
+    const float                                ,
     const float                                step,
-    const float                                large_step) {
+    const float                                ) {
 
-  auto select_node_occupancy = [](const auto& data){ return OFusion::VoxelType::initData().x; };
+  auto select_node_occupancy = [](const auto&){ return OFusion::VoxelType::initData().x; };
   auto select_voxel_occupancy = [](const auto& data){ return data.x; };
   if (near_plane < far_plane) {
     float t = near_plane;

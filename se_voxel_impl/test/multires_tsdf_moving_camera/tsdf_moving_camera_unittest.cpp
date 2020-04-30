@@ -5,7 +5,6 @@
 #include "se/filter.hpp"
 #include "se/io/vtk-io.h"
 #include "se/io/ply_io.hpp"
-#include "sophus/se3.hpp"
 #include "se/utils/math_utils.h"
 #include "se/node.hpp"
 #include "se/functors/data_handler.hpp"
@@ -310,13 +309,13 @@ void propagateDown(se::VoxelBlock<T>* block, const int scale) {
                   voxel_data.y  =  fminf(voxel_data.y + parent_data.delta_y, MAX_WEIGHT);
                   voxel_data.delta_y = parent_data.delta_y;
                 }
-                block->data(voxel_coord, voxel_scale - 1, voxel_data);
+                block->setData(voxel_coord, voxel_scale - 1, voxel_data);
               }
             }
           }
           parent_data.x_last = parent_data.x;
           parent_data.delta_y = 0;
-          block->data(parent_coord, voxel_scale, parent_data);
+          block->setData(parent_coord, voxel_scale, parent_data);
         }
   }
 }
@@ -360,7 +359,7 @@ void propagateUp(se::VoxelBlock<T>* block, const int scale) {
             parent_data = MultiresTSDF::VoxelType::initData();
           }
           parent_data.delta_y = 0;
-          block->data(voxel_coord, voxel_scale + 1, parent_data);
+          block->setData(voxel_coord, voxel_scale + 1, parent_data);
         }
   }
 }
@@ -421,7 +420,7 @@ void foreach(float                                  voxel_dim,
             parent_data.delta_y++;
             parent_data.y = parent_data.y + 1;
 
-            block->data(voxel_coord, scale, parent_data);
+            block->setData(voxel_coord, scale, parent_data);
           }
         }
       }
@@ -446,7 +445,7 @@ std::vector<se::VoxelBlock<MultiresTSDF::VoxelType>*> buildActiveList(se::Octree
   std::vector<se::VoxelBlock<MultiresTSDF::VoxelType>*> active_list;
   auto in_frustum_predicate =
       std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresTSDF::VoxelType>>,
-                std::placeholders::_1, voxel_dim, T_CM.matrix(), sensor);
+                std::placeholders::_1, voxel_dim, T_CM, sensor);
   se::algorithms::filter(active_list, block_buffer, in_frustum_predicate);
   return active_list;
 }
@@ -457,9 +456,9 @@ protected:
     depth_image_res_(640, 480),
     focal_length_mm_(1.95),
     pixel_dim_(0.006),
-    K_(depth_image_res_.x() / 2, depth_image_res_.y() / 2),
+    K_(525.f, 525.f, depth_image_res_.x() / 2, depth_image_res_.y() / 2),
     sensor_({depth_image_res_.x(), depth_image_res_.y(), false,
-             0, 0, 0,
+             0.f, 10.f, 0.1f,
              K_(0), K_(1), K_(2), K_(3),
              Eigen::VectorXf(0), Eigen::VectorXf(0)})
 
@@ -553,9 +552,9 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereRotation) {
   std::vector<obstacle*> spheres;
 
   // Allocate spheres in world frame
-  sphere_obstacle* sphere_close = new sphere_obstacle(voxel_dim_ 
+  sphere_obstacle* sphere_close = new sphere_obstacle(voxel_dim_
       * Eigen::Vector3f(size_ * 1 / 8, size_ * 2 / 3, size_ / 2), 0.3f);
-  sphere_obstacle* sphere_far   = new sphere_obstacle(voxel_dim_ 
+  sphere_obstacle* sphere_far   = new sphere_obstacle(voxel_dim_
       * Eigen::Vector3f(size_ * 7 / 8, size_ * 1 / 3, size_ / 2), 0.3f);
   spheres.push_back(sphere_close);
   spheres.push_back(sphere_far);
@@ -604,9 +603,9 @@ TEST_F(MultiscaleTSDFMovingCameraTest, BoxTranslation) {
   std::vector<obstacle*> boxes;
 
   // Allocate boxes in world frame
-  boxes.push_back(new box_obstacle(voxel_dim_ * Eigen::Vector3f(size_ * 1 / 2, size_ * 1 / 4, size_ / 2), voxel_dim_ 
+  boxes.push_back(new box_obstacle(voxel_dim_ * Eigen::Vector3f(size_ * 1 / 2, size_ * 1 / 4, size_ / 2), voxel_dim_
   * Eigen::Vector3f(size_ * 1 / 4, size_ * 1 / 4, size_ / 4)));
-  boxes.push_back(new box_obstacle(voxel_dim_ * Eigen::Vector3f(size_ * 1 / 2, size_ * 3 / 4, size_ / 2), voxel_dim_ 
+  boxes.push_back(new box_obstacle(voxel_dim_ * Eigen::Vector3f(size_ * 1 / 2, size_ * 3 / 4, size_ / 2), voxel_dim_
   * Eigen::Vector3f(size_ * 1 / 4, size_ * 1 / 4, size_ / 4)));
   generate_depth_image_ = generate_depth_image(depth_image_data_, boxes);
 
@@ -648,7 +647,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereBoxTranslation) {
   std::vector<obstacle*> obstacles;
 
   // Allocate boxes in world frame
-  obstacles.push_back(new box_obstacle(voxel_dim_ * Eigen::Vector3f(size_ * 1 / 2, size_ * 1 / 4, size_ / 2), voxel_dim_ 
+  obstacles.push_back(new box_obstacle(voxel_dim_ * Eigen::Vector3f(size_ * 1 / 2, size_ * 1 / 4, size_ / 2), voxel_dim_
   * Eigen::Vector3f(size_ * 1 / 4, size_ * 1 / 4, size_ / 4)));
   obstacles.push_back(new sphere_obstacle(voxel_dim_ * Eigen::Vector3f(size_ * 1 / 2, size_ * 1 / 2, size_ / 2), 0.5f));
   generate_depth_image_ = generate_depth_image(depth_image_data_, obstacles);

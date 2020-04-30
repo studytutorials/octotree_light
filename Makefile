@@ -1,35 +1,30 @@
 all: release
 
 release:
-	mkdir -p build/
-	cd build/ && cmake -DCMAKE_BUILD_TYPE=Release \
-		$(CMAKE_ARGUMENTS) ..
-	$(MAKE) -C build  $(MFLAGS) $(SPECIFIC_TARGET)
+	mkdir -p build/release
+	cd build/release && cmake -DCMAKE_BUILD_TYPE=Release $(CMAKE_ARGUMENTS) ../..
+	$(MAKE) -C build/release $(MFLAGS) $(SPECIFIC_TARGET)
 
 release-with-debug:
-	mkdir -p build/
-	cd build/ && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-		$(CMAKE_ARGUMENTS) ..
-	$(MAKE) -C build  $(MFLAGS) $(SPECIFIC_TARGET)
+	mkdir -p build/relwithdebinfo
+	cd build/relwithdebinfo && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo $(CMAKE_ARGUMENTS) ../..
+	$(MAKE) -C build/relwithdebinfo $(MFLAGS) $(SPECIFIC_TARGET)
 
 debug:
-	mkdir -p build/
-	mkdir -p build/logs/
-	cd build/ && cmake -DCMAKE_BUILD_TYPE=Debug \
-		$(CMAKE_ARGUMENTS) ..
-	$(MAKE) -C build $(MFLAGS)
+	mkdir -p build/debug/logs
+	cd build/debug && cmake -DCMAKE_BUILD_TYPE=Debug $(CMAKE_ARGUMENTS) ../..
+	$(MAKE) -C build/debug $(MFLAGS) $(SPECIFIC_TARGET)
 
 stats:
-	mkdir -p build/
-	mkdir -p build/logs/
-	cd build/ && cmake -DSTATS=ON ..
-	$(MAKE) -C build $(MFLAGS)
+	mkdir -p build/release/logs
+	cd build/release && cmake -DSTATS=ON -DCMAKE_BUILD_TYPE=Release $(CMAKE_ARGUMENTS) ../..
+	$(MAKE) -C build/release $(MFLAGS) $(SPECIFIC_TARGET)
 
 install:
-	cd build && make install
+	$(MAKE) -C build/release $(MFLAGS) install
 
 uninstall:
-	cd build && make uninstall
+	$(MAKE) -C build/release $(MFLAGS) uninstall
 
 
 
@@ -57,8 +52,8 @@ clean-tests:
 #### DATA SET GENERATION ####
 
 living_room_traj%_loop.raw : living_room_traj%_loop
-	if test -x ./build/thirdparty/scene2raw ; then echo "..." ; else echo "do make before"; false ; fi
-	./build/thirdparty/scene2raw living_room_traj$(*F)_loop living_room_traj$(*F)_loop.raw
+	if test -x ./build/release/thirdparty/scene2raw ; then echo "..." ; else echo "do make before"; false ; fi
+	./build/release/thirdparty/scene2raw living_room_traj$(*F)_loop living_room_traj$(*F)_loop.raw
 
 living_room_traj%_loop :
 	mkdir $@
@@ -69,13 +64,13 @@ livingRoom%.gt.freiburg :
 	if test -x $@ ; then echo "Done" ; else wget http://www.doc.ic.ac.uk/~ahanda/VaFRIC/$@ ; fi
 
 live.log :
-	./build/kfusion-qt-openmp $(live)
+	./build/release/kfusion-qt-openmp $(live)
 
 demo-ofusion:
-	./build/kfusion-main-openmp --image-resolution-ratio 2 --fps 0 --block-read False --input-file /data/ev314/data/living_room_traj2_frei_png/scene.raw --icp-threshold 1e-05 --mu 0.008 --init-pose 0.34,0.5,0.24 --integration-rate 1 --volume-size 5 -B 8 --tracking-rate 1 --map-size 512 --pyramid-levels 10,5,4 --rendering-rate 1 -k 481.2,-480,320,240
+	./build/release/kfusion-main-openmp --image-resolution-ratio 2 --fps 0 --block-read False --input-file /data/ev314/data/living_room_traj2_frei_png/scene.raw --icp-threshold 1e-05 --mu 0.008 --init-pose 0.34,0.5,0.24 --integration-rate 1 --volume-size 5 -B 8 --tracking-rate 1 --map-size 512 --pyramid-levels 10,5,4 --rendering-rate 1 -k 481.2,-480,320,240
 
 demo-kfusion:
-	./build/kfusion-main-openmp --image-resolution-ratio 2 --fps 0 --block-read False --input-file /data/ev314/data/living_room_traj2_frei_png/scene.raw --icp-threshold 1e-05 --mu 0.1 --init-pose 0.34,0.5,0.24 --integration-rate 1 --volume-size 5 -B 8 --tracking-rate 1 --map-size 512 --pyramid-levels 10,5,4 --rendering-rate 1 -k 481.2,-480,320,240
+	./build/release/kfusion-main-openmp --image-resolution-ratio 2 --fps 0 --block-read False --input-file /data/ev314/data/living_room_traj2_frei_png/scene.raw --icp-threshold 1e-05 --mu 0.1 --init-pose 0.34,0.5,0.24 --integration-rate 1 --volume-size 5 -B 8 --tracking-rate 1 --map-size 512 --pyramid-levels 10,5,4 --rendering-rate 1 -k 481.2,-480,320,240
 
 
 #### GENERAL GENERATION ####
@@ -89,7 +84,7 @@ cleanall :
 	rm -rf build
 	rm -rf living_room_traj*_loop livingRoom*.gt.freiburg living_room_traj*_loop.raw
 	rm -f *.log
-	rm -rf doc
+	rm -rf doc/html
 
 
 .PHONY : clean bench test all validate doc install uninstall

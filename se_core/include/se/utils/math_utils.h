@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,7 +25,7 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #ifndef SE_MATH_HELPER_H
@@ -34,9 +34,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cmath>
 #include <Eigen/Dense>
 
-#define SOPHUS_DISABLE_ENSURES
-/* 
- * When compiling in debug mode Eigen compilation fails 
+/*
+ * When compiling in debug mode Eigen compilation fails
  * due to -Wunused-parameter. Disable it if compiling with GCC.
  */
 #ifdef __GNUC__
@@ -46,11 +45,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC diagnostic ignored "-Wint-in-bool-context"
 #endif
 #include <Eigen/Dense>
-#include <sophus/se3.hpp>
 #pragma GCC diagnostic pop
 #else
 #include <Eigen/Dense>
-#include <sophus/se3.hpp>
 #endif
 
 
@@ -77,7 +74,7 @@ namespace se {
       };
 
     template <typename Scalar>
-    static inline bool in(const Scalar v, const Scalar a, 
+    static inline bool in(const Scalar v, const Scalar a,
           const Scalar b) {
         return v >= a && v <= b;
       }
@@ -132,14 +129,14 @@ namespace se {
         return std::max(a, std::min(f, b));
       }
 
-    static inline void clamp(Eigen::Ref<Eigen::VectorXf> res, const Eigen::Ref<const Eigen::VectorXf> a, 
+    static inline void clamp(Eigen::Ref<Eigen::VectorXf> res, const Eigen::Ref<const Eigen::VectorXf> a,
         const Eigen::Ref<Eigen::VectorXf> b) {
       res = (res.array() < a.array()).select(a, res);
       res = (res.array() >= b.array()).select(b, res);
-    } 
+    }
 
     template <typename R, typename A, typename B>
-      static inline void clamp(Eigen::MatrixBase<R>& res, const Eigen::MatrixBase<A>& a, 
+      static inline void clamp(Eigen::MatrixBase<R>& res, const Eigen::MatrixBase<A>& a,
           const Eigen::MatrixBase<B>& b) {
         res = res.array().max(a.array());
         res = res.array().min(b.array());

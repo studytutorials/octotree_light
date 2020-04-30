@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 project(se-apps)
 
+set(CMAKE_CXX_STANDARD 17)
+
 
 
 # Fucntion to create the executables given the name of one of the compiled
@@ -29,41 +31,29 @@ function(add_version lib_name libraries)
       "-DDO_OPENNI ${main_common_compile_flags}")
   endif(OPENNI2_FOUND)
 
-  #  ------ BENCHMARK --------
-  add_executable(${lib_name}-benchmark
+  #  ------ MAIN --------
+  add_executable(${lib_name}-main
     src/main.cpp
     src/PowerMonitor.cpp
-    src/reader.cpp)
-  target_compile_definitions(${lib_name}-benchmark PUBLIC -DSE_BENCHMARK_APP)
-  target_link_libraries(${lib_name}-benchmark
-    ${lib_name}
-    ${main_common_libraries})
-  target_include_directories(${lib_name}-benchmark PUBLIC
-    include)
-
-  #  ------ MAIN --------
+    src/reader.cpp
+  )
+  target_include_directories(${lib_name}-main PUBLIC include)
+  target_link_libraries(${lib_name}-main
+    PUBLIC
+      ${lib_name}
+      ${main_common_libraries}
+  )
+  # Compile with GUI support
   if (GLUT_FOUND)
-    add_executable(${lib_name}-main
-      src/main.cpp
-      src/PowerMonitor.cpp
-      src/reader.cpp)
-    target_include_directories(${lib_name}-main PUBLIC
-      include)
-
-    if(APPLE)
-      target_link_libraries(${lib_name}-main
-        ${lib_name}
+    target_compile_definitions(${lib_name}-main PUBLIC -DSE_GLUT)
+    target_link_libraries(${lib_name}-main
+      PUBLIC
         ${GLUT_LIBRARIES}
         ${OPENGL_LIBRARIES}
-        ${main_common_libraries})
-    else(APPLE)
-      target_link_libraries(${lib_name}-main
-        ${lib_name}
-        ${GLUT_LIBRARIES}
-        ${OPENGL_LIBRARIES}
-        ${main_common_libraries}
-        GL)
-    endif(APPLE)
+    )
+    if(NOT APPLE)
+      target_link_libraries(${lib_name}-main PUBLIC GL)
+    endif(NOT APPLE)
   endif(GLUT_FOUND)
 
   #  ------ QT --------
