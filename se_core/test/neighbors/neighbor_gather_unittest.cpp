@@ -28,13 +28,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <array>
 
-#include "octree.hpp"
-#include "utils/math_utils.h"
-#include "neighbors/neighbor_gather.hpp"
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
+#include <se/neighbors/neighbor_gather.hpp>
+#include <se/octree.hpp>
+#include <se/utils/math_utils.h>
 
 // Create a voxel trait storing a single float value.
 struct TestVoxelT {
@@ -42,8 +42,9 @@ struct TestVoxelT {
   static inline VoxelData invalid(){ return 0.f; }
   static inline VoxelData initData(){ return 1.f; }
 
-  template <typename T>
-  using MemoryPoolType = se::PagedMemoryPool<T>;
+  using VoxelBlockType = se::VoxelBlockFull<TestVoxelT>;
+
+  using MemoryPoolType = se::PagedMemoryPool<TestVoxelT>;
   template <typename BufferT>
   using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };

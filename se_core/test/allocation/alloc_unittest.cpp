@@ -25,19 +25,23 @@
   OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+
 #include <random>
-#include "octree.hpp"
-#include "utils/math_utils.h"
-#include "utils/morton_utils.hpp"
-#include "gtest/gtest.h"
+
+#include <gtest/gtest.h>
+
+#include <se/octree.hpp>
+#include <se/utils/math_utils.h>
+#include <se/utils/morton_utils.hpp>
 
 struct TestVoxelT {
   typedef float VoxelData;
   static inline VoxelData invalid(){ return 0.f; }
   static inline VoxelData initData(){ return 0.f; }
 
-  template <typename T>
-  using MemoryPoolType = se::PagedMemoryPool<T>;
+  using VoxelBlockType = se::VoxelBlockFull<TestVoxelT>;
+
+  using MemoryPoolType = se::PagedMemoryPool<TestVoxelT>;
   template <typename BufferT>
   using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
@@ -47,8 +51,6 @@ TEST(AllocationTest, EmptySingleVoxel) {
   OctreeF octree;
   octree.init(256, 5);
   const Eigen::Vector3i voxel_coord = {25, 65, 127};
-  const se::key_t code = octree.hash(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
-  se::key_t allocation_list[1] = {code};
   const TestVoxelT::VoxelData data = octree.get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
   EXPECT_EQ(data, TestVoxelT::invalid());
 }
@@ -62,7 +64,7 @@ TEST(AllocationTest, SetSingleVoxel) {
   se::key_t allocation_list[1] = {code};
   octree.allocate(allocation_list, 1);
 
-  se::VoxelBlock<TestVoxelT>* block = octree.fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
+  TestVoxelT::VoxelBlockType* block = octree.fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
   TestVoxelT::VoxelData written_data = 2.f;
   block->setData(voxel_coord, written_data);
 
@@ -74,7 +76,6 @@ TEST(AllocationTest, FetchOctant) {
   typedef se::Octree<TestVoxelT> OctreeF;
   OctreeF octree;
   const int voxel_depth = 8;
-  const unsigned int block_size = 8;
   const unsigned int size = std::pow(2, voxel_depth);
   octree.init(size, 5);
   const Eigen::Vector3i voxel_coord = {25, 65, 127};
@@ -84,7 +85,7 @@ TEST(AllocationTest, FetchOctant) {
 
   const int depth = 3; /* 32 voxels per side */
   se::Node<TestVoxelT>* node = octree.fetch_node(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), depth);
-  se::key_t fetched_code = node->code_;
+  se::key_t fetched_code = node->code();
 
   const se::key_t gt_code = octree.hash(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), depth);
   ASSERT_EQ(fetched_code, gt_code);
@@ -123,7 +124,6 @@ TEST(AllocationTest, MortonPrefixMask) {
       ASSERT_EQ(masked_voxel_coord.x() % node_size, 0);
       ASSERT_EQ(masked_voxel_coord.y() % node_size, 0);
       ASSERT_EQ(masked_voxel_coord.z() % node_size, 0);
-      const Eigen::Vector3i voxel_coord = voxels_coord[i];
       // printf("voxel_coord: %d, %d, %d\n", voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
       // printf("masked depth %d: %d, %d, %d\n", depth, masked_voxel_coord.x(), masked_voxel_coord.y(), masked_voxel_coord.z() );
     }
@@ -133,7 +133,6 @@ TEST(AllocationTest, MortonPrefixMask) {
 
 TEST(AllocationTest, ParentInsert) {
   se::Octree<TestVoxelT> octree;
-  const unsigned int block_size = 8;
   const int voxel_depth = 8;
   const unsigned int map_size = std::pow(2, voxel_depth);
   octree.init(map_size, 5);
@@ -143,7 +142,7 @@ TEST(AllocationTest, ParentInsert) {
   std::uniform_int_distribution<int> dis(0, map_size);
   const Eigen::Vector3i voxel_coord = {dis(gen), dis(gen), dis(gen)};
   octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
-  se::VoxelBlock<TestVoxelT>* block = octree.fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
+  TestVoxelT::VoxelBlockType* block = octree.fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
   EXPECT_NE(block, nullptr);
   se::Node<TestVoxelT>* parent = block->parent();
   for(int depth = block_depth - 1; depth >= 0; depth--){
@@ -155,7 +154,6 @@ TEST(AllocationTest, ParentInsert) {
 
 TEST(AllocationTest, ParentAllocation) {
   se::Octree<TestVoxelT> octree;
-  const unsigned int block_size = 8;
   const int voxel_depth = 8;
   const unsigned int map_size = std::pow(2, voxel_depth);
   octree.init(map_size, 5);  std::random_device rd;
@@ -167,7 +165,7 @@ TEST(AllocationTest, ParentAllocation) {
   se::key_t allocation_list[1] = {code};
   octree.allocate(allocation_list, 1);
 
-  se::VoxelBlock<TestVoxelT>* block = octree.fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
+  TestVoxelT::VoxelBlockType* block = octree.fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
   EXPECT_NE(block, nullptr);
   se::Node<TestVoxelT>* parent = block->parent();
   for(int depth = block_depth - 1; depth >= 0; depth--){

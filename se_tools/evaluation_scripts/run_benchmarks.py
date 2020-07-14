@@ -57,7 +57,7 @@ if __name__ == "__main__":
                         mu = 0.1
                     algorithm.impl = version
                     algorithm.map_size = str(resol)
-                    algorithm.image_downsampling_factor = 2
+                    algorithm.sensor_downsampling_factor = 2
                     algorithm.integration_rate = 1
                     algorithm.mu = mu
                     algorithm.init_pose = sequence.init_pose

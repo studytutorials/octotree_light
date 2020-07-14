@@ -1,17 +1,18 @@
-cmake_minimum_required(VERSION 2.8)
-project(se_denseslam)
+cmake_minimum_required(VERSION 3.9...3.16)
 
-set(PROJECT_TEST_NAME preprocessing)
-add_executable(${PROJECT_TEST_NAME}
-  preprocessing_unittest.cpp
-  ../../src/preprocessing.cpp
-  )
-target_include_directories(${PROJECT_TEST_NAME} PUBLIC ${GTEST_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_TEST_NAME}
-  LodePNG::lodepng
-  SRL::Projection
-  ${GTEST_BOTH_LIBRARIES}
-  pthread
+set(unit_test_name preprocessing-unittest)
+add_executable(${unit_test_name}
+  "preprocessing_unittest.cpp"
+    "../../src/preprocessing.cpp"
 )
+target_include_directories(${unit_test_name} BEFORE
+  PRIVATE
+    "../../include"
+    "../../../se_voxel_impl/include"
+)
+target_compile_definitions(${unit_test_name}
+  PUBLIC
+    SE_SENSOR_IMPLEMENTATION=PinholeCamera
+)
+gtest_add_tests(${unit_test_name} "" AUTO)
 
-GTEST_ADD_TESTS(${PROJECT_TEST_NAME} "" AUTO)

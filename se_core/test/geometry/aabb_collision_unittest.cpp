@@ -28,9 +28,11 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 
 */
-#include "utils/math_utils.h"
-#include "geometry/aabb_collision.hpp"
-#include "gtest/gtest.h"
+
+#include <gtest/gtest.h>
+
+#include <se/geometry/aabb_collision.hpp>
+#include <se/utils/math_utils.h>
 
 TEST(AABBAABBTest, SquareOverlap) {
 

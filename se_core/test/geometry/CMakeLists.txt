@@ -1,18 +1,8 @@
-cmake_minimum_required(VERSION 2.8)
-project(octree_lib)
+cmake_minimum_required(VERSION 3.9...3.16)
 
+add_executable(aabb-collision-unittest "aabb_collision_unittest.cpp")
+gtest_add_tests(aabb-collision-unittest "" AUTO)
 
-set(PROJECT_TEST_NAME collision)
-set(UNIT_TEST_NAME aabb-${PROJECT_TEST_NAME}-unittest)
-add_executable(${UNIT_TEST_NAME} aabb_collision_unittest.cpp)
-target_include_directories(${UNIT_TEST_NAME} PUBLIC ${GTEST_INCLUDE_DIRS})
-target_link_libraries(${UNIT_TEST_NAME} ${GTEST_BOTH_LIBRARIES} pthread)
+add_executable(octree-collision-unittest "octree_collision_unittest.cpp")
+gtest_add_tests(octree-collision-unittest "" AUTO)
 
-GTEST_ADD_TESTS(${UNIT_TEST_NAME} "" AUTO)
-
-set(UNIT_TEST_NAME octree-${PROJECT_TEST_NAME}-unittest)
-add_executable(${UNIT_TEST_NAME} octree_collision_unittest.cpp)
-target_include_directories(${UNIT_TEST_NAME} PUBLIC ${GTEST_INCLUDE_DIRS})
-target_link_libraries(${UNIT_TEST_NAME} ${GTEST_BOTH_LIBRARIES} pthread)
-
-GTEST_ADD_TESTS(${UNIT_TEST_NAME} "" AUTO)

@@ -39,21 +39,75 @@
 #include <cstring>
 
 
-void renderRGBAKernel(uint8_t*                   output_RGBA_image_data,
-                      const Eigen::Vector2i&     output_RGBA_image_res,
-                      const se::Image<uint32_t>& input_RGBA_image) {
 
-  TICK();
-
-  memcpy(output_RGBA_image_data, input_RGBA_image.data(),
-         output_RGBA_image_res.x() * output_RGBA_image_res.y() * 4);
-
-  TOCK("renderRGBAKernel", output_RGBA_image_res.x() * output_RGBA_image_res.y());
+inline uint32_t gray_to_RGBA(double h) {
+  constexpr double v = 0.75;
+  double r = 0, g = 0, b = 0;
+  if (v > 0) {
+    constexpr double m = 0.25;
+    constexpr double sv = 0.6667;
+    h *= 6.0;
+    const int sextant = static_cast<int>(h);
+    const double fract = h - sextant;
+    const double vsf = v * sv * fract;
+    const double mid1 = m + vsf;
+    const double mid2 = v - vsf;
+    switch (sextant) {
+      case 0:
+        r = v;
+        g = mid1;
+        b = m;
+        break;
+      case 1:
+        r = mid2;
+        g = v;
+        b = m;
+        break;
+      case 2:
+        r = m;
+        g = v;
+        b = mid1;
+        break;
+      case 3:
+        r = m;
+        g = mid2;
+        b = v;
+        break;
+      case 4:
+        r = mid1;
+        g = m;
+        b = v;
+        break;
+      case 5:
+        r = v;
+        g = m;
+        b = mid2;
+        break;
+      default:
+        r = 0;
+        g = 0;
+        b = 0;
+        break;
+    }
+  }
+  return se::pack_rgba(r * 255, g * 255, b * 255, 255);
 }
 
 
 
-void renderDepthKernel(unsigned char*         depth_RGBA_image_data,
+void renderRGBAKernel(uint32_t*                  output_RGBA_image_data,
+                      const Eigen::Vector2i&     output_RGBA_image_res,
+                      const se::Image<uint32_t>& input_RGBA_image) {
+
+  TICK();
+  memcpy(output_RGBA_image_data, input_RGBA_image.data(),
+         output_RGBA_image_res.prod() * sizeof(uint32_t));
+  TOCK("renderRGBAKernel", output_RGBA_image_res.prod());
+}
+
+
+
+void renderDepthKernel(uint32_t*              depth_RGBA_image_data,
                        float*                 depth_image_data,
                        const Eigen::Vector2i& depth_RGBA_image_res,
                        const float            near_plane,
@@ -69,35 +123,23 @@ void renderDepthKernel(unsigned char*         depth_RGBA_image_data,
     for (int x = 0; x < depth_RGBA_image_res.x(); x++) {
 
       const unsigned int pixel_idx = row_offset + x;
-      const unsigned int rgba_idx = pixel_idx * 4;
 
       if (depth_image_data[pixel_idx] < near_plane) {
-        depth_RGBA_image_data[rgba_idx + 0] = 255;
-        depth_RGBA_image_data[rgba_idx + 1] = 255;
-        depth_RGBA_image_data[rgba_idx + 2] = 255;
-        depth_RGBA_image_data[rgba_idx + 3] = 255;
+        depth_RGBA_image_data[pixel_idx] = 0xFFFFFFFF;
       } else if (depth_image_data[pixel_idx] > far_plane) {
-        depth_RGBA_image_data[rgba_idx + 0] = 0;
-        depth_RGBA_image_data[rgba_idx + 1] = 0;
-        depth_RGBA_image_data[rgba_idx + 2] = 0;
-        depth_RGBA_image_data[rgba_idx + 3] = 255;
+        depth_RGBA_image_data[pixel_idx] = 0xFF000000;
       } else {
         const float depth_value = (depth_image_data[pixel_idx] - near_plane) * range_scale;
-        unsigned char rgba[4];
-        gs2rgb(depth_value, rgba);
-        depth_RGBA_image_data[rgba_idx + 0] = rgba[0];
-        depth_RGBA_image_data[rgba_idx + 1] = rgba[1];
-        depth_RGBA_image_data[rgba_idx + 2] = rgba[2];
-        depth_RGBA_image_data[rgba_idx + 3] = rgba[3];
+        depth_RGBA_image_data[pixel_idx] = gray_to_RGBA(depth_value);
       }
     }
   }
-  TOCK("renderDepthKernel", depth_RGBA_image_res.x() * depth_RGBA_image_res.y());
+  TOCK("renderDepthKernel", depth_RGBA_image_res.prod());
 }
 
 
 
-void renderTrackKernel(unsigned char*         tracking_RGBA_image_data,
+void renderTrackKernel(uint32_t*              tracking_RGBA_image_data,
                        const TrackData*       tracking_result_data,
                        const Eigen::Vector2i& tracking_RGBA_image_res) {
 
@@ -107,53 +149,38 @@ void renderTrackKernel(unsigned char*         tracking_RGBA_image_data,
   for (int y = 0; y < tracking_RGBA_image_res.y(); y++)
     for (int x = 0; x < tracking_RGBA_image_res.x(); x++) {
       const int pixel_idx = x + tracking_RGBA_image_res.x() * y;
-      const int rgba_idx = pixel_idx * 4;
       switch (tracking_result_data[pixel_idx].result) {
         case 1:
-          tracking_RGBA_image_data[rgba_idx + 0] = 128;
-          tracking_RGBA_image_data[rgba_idx + 1] = 128;
-          tracking_RGBA_image_data[rgba_idx + 2] = 128;
-          tracking_RGBA_image_data[rgba_idx + 3] = 255;
+          // Gray
+          tracking_RGBA_image_data[pixel_idx] = 0xFF808080;
           break;
         case -1:
-          tracking_RGBA_image_data[rgba_idx + 0] = 0;
-          tracking_RGBA_image_data[rgba_idx + 1] = 0;
-          tracking_RGBA_image_data[rgba_idx + 2] = 0;
-          tracking_RGBA_image_data[rgba_idx + 3] = 255;
+          // Black
+          tracking_RGBA_image_data[pixel_idx] = 0xFF000000;
           break;
         case -2:
-          tracking_RGBA_image_data[rgba_idx + 0] = 255;
-          tracking_RGBA_image_data[rgba_idx + 1] = 0;
-          tracking_RGBA_image_data[rgba_idx + 2] = 0;
-          tracking_RGBA_image_data[rgba_idx + 3] = 255;
+          // Red
+          tracking_RGBA_image_data[pixel_idx] = 0xFF0000FF;
           break;
         case -3:
-          tracking_RGBA_image_data[rgba_idx + 0] = 0;
-          tracking_RGBA_image_data[rgba_idx + 1] = 255;
-          tracking_RGBA_image_data[rgba_idx + 2] = 0;
-          tracking_RGBA_image_data[rgba_idx + 3] = 255;
+          // Green
+          tracking_RGBA_image_data[pixel_idx] = 0xFF00FF00;
           break;
         case -4:
-          tracking_RGBA_image_data[rgba_idx + 0] = 0;
-          tracking_RGBA_image_data[rgba_idx + 1] = 0;
-          tracking_RGBA_image_data[rgba_idx + 2] = 255;
-          tracking_RGBA_image_data[rgba_idx + 3] = 255;
+          // Blue
+          tracking_RGBA_image_data[pixel_idx] = 0xFFFF0000;
           break;
         case -5:
-          tracking_RGBA_image_data[rgba_idx + 0] = 255;
-          tracking_RGBA_image_data[rgba_idx + 1] = 255;
-          tracking_RGBA_image_data[rgba_idx + 2] = 0;
-          tracking_RGBA_image_data[rgba_idx + 3] = 255;
+          // Yellow
+          tracking_RGBA_image_data[pixel_idx] = 0xFF00FFFF;
           break;
         default:
-          tracking_RGBA_image_data[rgba_idx + 0] = 255;
-          tracking_RGBA_image_data[rgba_idx + 1] = 128;
-          tracking_RGBA_image_data[rgba_idx + 2] = 128;
-          tracking_RGBA_image_data[rgba_idx + 3] = 255;
+          // Orange
+          tracking_RGBA_image_data[pixel_idx] = 0xFF8080FF;
           break;
       }
     }
-  TOCK("renderTrackKernel", tracking_RGBA_image_res.x() * tracking_RGBA_image_res.y());
+  TOCK("renderTrackKernel", tracking_RGBA_image_res.prod());
 }
 
 

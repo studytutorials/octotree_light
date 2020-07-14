@@ -1,0 +1,42 @@
+general:
+  dataset_name:                 "example_dataset_1"
+  sequences:                    [
+                                 ["sequence_name_1",
+                                  "/PATH/TO/SEQUENCE_1/scene.raw",
+                                  "/PATH/TO/SEQUENCE_1/ground_truth.txt"],
+                                 ["sequence_name_2",
+                                  "/PATH/TO/SEQUENCE_2/scene.raw",
+                                  "/PATH/TO/SEQUENCE_2/ground_truth.txt"],
+                                 ["sequence_name_3",
+                                  "/PATH/TO/SEQUENCE_3/scene.raw",
+                                  "/PATH/TO/SEQUENCE_3/ground_truth.txt"],
+                                 ["sequence_name_4",
+                                  "/PATH/TO/SEQUENCE_4/scene.raw",
+                                  "/PATH/TO/SEQUENCE_4/ground_truth.txt"]
+                                ]
+map:
+  size:                         [1024]
+  dim:                          [10.24]
+
+sensor:
+  type:                         "pinholecamera"
+  intrinsics:                   [481.2, -480.0, 319.5, 239.5]
+  downsampling_factor:          4
+  init_T_WB:                    [0, 0, 0, 0, 0, 0, 1]           # tx, ty, tz, qx, qy, qz, qw
+  far_plane:                    [4.0]
+
+voxel_impls:                    # All listed voxel_impls below will be used and replace the base voxel implementations
+  multiresofusion:
+    surface_boundary:           0.0
+    occupancy_min_max:          [-100, 100]
+    max_weight:                 100
+    free_space_integr_scale:    0
+    const_surface_thickness:    false         # if true, surface thickness := max_surface_thickness
+    tau_min_max:                [0.06, 0.16]
+    k_tau:                      0.026
+    uncertainty_model:          linear        # { linear, quadratic }
+    sigma_min_max:              [0.005, 0.02] # minimum/maximum uncertainty := 3 x sigma_min
+    k_sigma:                    0.0016
+
+  ofusion:
+    occupancy_min_max:          [-100, 100]

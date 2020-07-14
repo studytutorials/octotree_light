@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Emanuele Vespa, Imperial College London 
+ * Copyright 2016 Emanuele Vespa, Imperial College London
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -24,7 +24,7 @@
  * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
  * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * */
 
 #ifndef UNIQUE_HPP
@@ -48,11 +48,14 @@ namespace algorithms {
 
   template <typename KeyT>
     inline int filter_ancestors(KeyT* keys, int num_keys, const int voxel_depth) {
+      if (num_keys < 2) {
+        return num_keys;
+      }
       int e = 0;
       for (int i = 0; i < num_keys; ++i){
         if(descendant(keys[i], keys[e], voxel_depth)){
           keys[e] = keys[i];
-        } else { 
+        } else {
           /* end does not advance but previous entry is overwritten */
           keys[++e] = keys[i];
         }
@@ -62,6 +65,9 @@ namespace algorithms {
 
   template <typename KeyT>
     inline int unique_multiscale(KeyT* keys, int num_keys) {
+      if (num_keys < 2) {
+        return num_keys;
+      }
       int e = 0;
       for (int i = 0; i < num_keys; ++i){
         if(se::keyops::code(keys[i]) != se::keyops::code(keys[e])){

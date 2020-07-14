@@ -33,10 +33,10 @@
 
 #include "se/octree.hpp"
 #include "se/image/image.hpp"
-#include "se/continuous/volume_template.hpp"
+#include "se/algorithms/meshing.hpp"
 #include "se/sensor_implementation.hpp"
 
-
+#include <yaml-cpp/yaml.h>
 
 /**
  * Minimal example of the structure of a potential voxel implementation. All
@@ -94,13 +94,16 @@ struct ExampleVoxelImpl {
      */
     static inline VoxelData initData() { return {1.f}; }
 
-    template <typename T>
-    using MemoryPoolType = se::PagedMemoryPool<T>;
+    using VoxelBlockType = se::VoxelBlockFull<ExampleVoxelImpl::VoxelType>;
+
+    using MemoryPoolType = se::PagedMemoryPool<ExampleVoxelImpl::VoxelType>;
     template <typename ElemT>
     using MemoryBufferType = se::PagedMemoryBuffer<ElemT>;
   };
 
-
+  using VoxelData      = ExampleVoxelImpl::VoxelType::VoxelData;
+  using OctreeType     = se::Octree<ExampleVoxelImpl::VoxelType>;
+  using VoxelBlockType = typename ExampleVoxelImpl::VoxelType::VoxelBlockType;
 
   /**
    * Set to true for TSDF maps, false for occupancy maps.
@@ -117,7 +120,15 @@ struct ExampleVoxelImpl {
   // Make sure to also define them in the respective .cpp file
   // se_voxel_impl/src/ExampleVoxelImpl.cpp.
 
+  static std::string type() { return "examplevoxelimpl"; }
 
+  /**
+   * Configure the ExampleVoxelImpl parameters
+   */
+  static void configure(const float voxel_dim);
+  static void configure(YAML::Node yaml_config, const float voxel_dim);
+
+  static std::string printConfig();
 
   /**
    * Compute the VoxelBlocks and Nodes that need to be allocated given the
@@ -125,13 +136,12 @@ struct ExampleVoxelImpl {
    *
    * \warning The function signature must not be changed.
    */
-  static size_t buildAllocationList(
-      se::Octree<ExampleVoxelImpl::VoxelType>& map,
-      const se::Image<float>&                  depth_image,
-      const Eigen::Matrix4f&                   T_MC,
-      const SensorImpl&                        sensor,
-      se::key_t*                               allocation_list,
-      size_t                                   reserved);
+  static size_t buildAllocationList(OctreeType&             map,
+                                    const se::Image<float>& depth_image,
+                                    const Eigen::Matrix4f&  T_MC,
+                                    const SensorImpl&       sensor,
+                                    se::key_t*              allocation_list,
+                                    size_t                  reserved);
 
 
 
@@ -140,12 +150,11 @@ struct ExampleVoxelImpl {
    *
    * \warning The function signature must not be changed.
    */
-  static void integrate(
-      se::Octree<ExampleVoxelImpl::VoxelType>& map,
-      const se::Image<float>&                  depth_image,
-      const Eigen::Matrix4f&                   T_CM,
-      const SensorImpl&                        sensor,
-      const unsigned                           frame);
+  static void integrate(OctreeType&             map,
+                        const se::Image<float>& depth_image,
+                        const Eigen::Matrix4f&  T_CM,
+                        const SensorImpl&       sensor,
+                        const unsigned          frame);
 
 
 
@@ -154,17 +163,19 @@ struct ExampleVoxelImpl {
    *
    * \warning The function signature must not be changed.
    */
-  static Eigen::Vector4f raycast(
-      const VolumeTemplate<ExampleVoxelImpl, se::Octree>& volume,
-      const Eigen::Vector3f&                              ray_origin_M,
-      const Eigen::Vector3f&                              ray_dir_M,
-      const float                                         near_plane,
-      const float                                         far_plane,
-      const float                                         mu,
-      const float                                         step,
-      const float                                         large_step);
+  static Eigen::Vector4f raycast(const OctreeType&      map,
+                                 const Eigen::Vector3f& ray_origin_M,
+                                 const Eigen::Vector3f& ray_dir_M,
+                                 const float            t_near,
+                                 const float            t_far);
 
-
+  /**
+   * Create a triangle mesh given the octree.
+   *
+   * \warning The function signature must not be changed.
+   */
+  static void dumpMesh(OctreeType&                map,
+                       std::vector<se::Triangle>& mesh);
 
   // Any other static functions required for the implementation go here.
 };

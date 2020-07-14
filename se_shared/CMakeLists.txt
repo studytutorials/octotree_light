@@ -1,91 +1,81 @@
-# This CMake configuration is based on
-# https://github.com/pabloariasal/modern-cmake-sample
+cmake_minimum_required(VERSION 3.5...3.16)
 
-cmake_minimum_required(VERSION 3.0.0 FATAL_ERROR)
-# Adding the C language is needed for CMake 3.0.0 compatibility
-project(se-shared LANGUAGES C CXX)
-
-# Make sure that custom modules are found
-list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
-
-# Dependencies
-find_package(Eigen3 REQUIRED)
-find_package(LodePNG REQUIRED)
 find_package(SRLProjection REQUIRED)
+# Looks like yaml-cpp doesn't properly generate its CMake files and
+# find_package does not work in the same build tree
+#find_package(yaml-cpp REQUIRED)
 
-##############################################
-# Create library target
-add_library(${PROJECT_NAME} STATIC
-  src/image_utils.cpp
-  src/sensor.cpp
-  src/str_utils.cpp
+# Create library ##############################################################
+set(LIB_NAME "se-shared")
+add_library(${LIB_NAME} STATIC
+  "src/image_utils.cpp"
+  "src/sensor.cpp"
+  "src/str_utils.cpp"
+  "src/point_cloud_utils.cpp"
 )
-
-# Add an alias so that the library can be used inside the build tree, e.g.
-# when testing
-add_library(SE::Shared ALIAS ${PROJECT_NAME})
-
-# Set target properties
-target_include_directories(${PROJECT_NAME} BEFORE
+target_include_directories(${LIB_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
-    ${EIGEN3_INCLUDE_DIR}
 )
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${LIB_NAME}
   PUBLIC
-    LodePNG::lodepng
+    SE::Core
     SRL::Projection
+	Lode::PNG
+    yaml-cpp
+)
+set_target_properties(${LIB_NAME} PROPERTIES
+  CXX_STANDARD 14
+  CXX_STANDARD_REQUIRED ON
+  CXX_EXTENSIONS OFF
+)
+# Use floats in srl_projection
+target_compile_definitions(${LIB_NAME}
+  PUBLIC
+	SRL_FLOAT_T=float
 )
 
-##############################################
-# Setup installation
-
-include(GNUInstallDirs)
-set(INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/SE)
-
-install(TARGETS ${PROJECT_NAME}
-    EXPORT ${PROJECT_NAME}-targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-
+# Add an alias so that the library can be used inside the build tree, e.g. when
+# testing
+add_library(SE::Shared ALIAS ${LIB_NAME})
 # This is required so that the exported target has the name Shared and not
 # se-shared
-set_target_properties(${PROJECT_NAME} PROPERTIES EXPORT_NAME Shared)
+set_target_properties(${LIB_NAME} PROPERTIES EXPORT_NAME Shared)
 
-install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
+
+# Test library ################################################################
+if(SE_BUILD_TESTS)
+  add_subdirectory(test)
+endif()
+
+
+
+# Install the library #########################################################
+set(SUBPACKAGE_NAME SEShared)
 # Export the targets to a script
-install(EXPORT ${PROJECT_NAME}-targets
+install(EXPORT ${LIB_NAME}-targets
   FILE
-    SESharedTargets.cmake
+    ${SUBPACKAGE_NAME}Targets.cmake
   NAMESPACE
     SE::
   DESTINATION
-    ${INSTALL_CONFIGDIR}
+    "${CMAKE_INSTALL_CMAKEDIR}"
+)
+# Install the headers
+install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+# Install the static library
+install(TARGETS ${LIB_NAME}
+  EXPORT ${LIB_NAME}-targets
+  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 )
 
-include(CMakePackageConfigHelpers)
-# Generate a Config.cmake file
-configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/SESharedConfig.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/SESharedConfig.cmake
-  INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
-)
 
-# Install the Config file
-install(FILES
-  ${CMAKE_CURRENT_BINARY_DIR}/SESharedConfig.cmake
-  DESTINATION ${INSTALL_CONFIGDIR}
-)
 
-##############################################
-# Export from the build tree
-export(EXPORT ${PROJECT_NAME}-targets
-  FILE ${CMAKE_CURRENT_BINARY_DIR}/SESharedTargets.cmake
-  NAMESPACE SE::
+# Export from the build tree ##################################################
+export(EXPORT ${LIB_NAME}-targets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/${SUBPACKAGE_NAME}Targets.cmake"
+    NAMESPACE SE::
 )
-
-# Register the package in the user's package registry
-export(PACKAGE SEShared)
 

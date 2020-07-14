@@ -3,8 +3,7 @@
 #include "se/algorithms/balancing.hpp"
 #include "se/functors/axis_aligned_functor.hpp"
 #include "se/filter.hpp"
-#include "se/io/vtk-io.h"
-#include "se/io/ply_io.hpp"
+#include "se/io/octree_io.hpp"
 #include "se/utils/math_utils.h"
 #include "se/node.hpp"
 #include "se/functors/data_handler.hpp"
@@ -14,6 +13,9 @@
 #include <vector>
 #include <stdio.h>
 #include "se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
+
+template<typename T>
+using VoxelBlockType = typename T::VoxelBlockType;
 
 // Truncation distance and maximum weight
 #define MAX_DIST 2.f
@@ -69,11 +71,11 @@ private:
 struct ray {
 public:
   ray(const camera_parameter& camera_parameter)
-      : direction_(Eigen::Vector3f(-1.f,-1.f,-1.f)),
+      : focal_length_pix_(camera_parameter.focal_length_pix()),
+        offset_(camera_parameter.imageResolution() / 2),
         origin_(camera_parameter.t_MC()),
         R_MC_(camera_parameter.R_MC()),
-        focal_length_pix_(camera_parameter.focal_length_pix()),
-        offset_(camera_parameter.imageResolution() / 2) {};
+        direction_(Eigen::Vector3f(-1.f,-1.f,-1.f)) {};
 
   void operator()(int pixel_x, int pixel_y) {
     direction_.x() = -offset_.x() + 0.5 + pixel_x;
@@ -282,10 +284,10 @@ inline float compute_scale(const Eigen::Vector3f& point_C,
   return scale;
 }
 
-template <typename T>
-void propagateDown(se::VoxelBlock<T>* block, const int scale) {
+template <typename VoxelBlockT>
+void propagateDown(VoxelBlockT* block, const int scale) {
   const Eigen::Vector3i block_coord = block->coordinates();
-  const int block_size = se::VoxelBlock<T>::size;
+  const int block_size = VoxelBlockT::size_li;
   for(int voxel_scale = scale; voxel_scale > 0; --voxel_scale) {
     const int stride = 1 << voxel_scale;
     for (int z = 0; z < block_size; z += stride)
@@ -320,10 +322,10 @@ void propagateDown(se::VoxelBlock<T>* block, const int scale) {
   }
 }
 
-template <typename T>
-void propagateUp(se::VoxelBlock<T>* block, const int scale) {
+template <typename VoxelBlockT>
+void propagateUp(VoxelBlockT* block, const int scale) {
   const Eigen::Vector3i block_coord = block->coordinates();
-  const int block_size = se::VoxelBlock<T>::size;
+  const int block_size = VoxelBlockT::size_li;
   for(int voxel_scale = scale; voxel_scale < se::math::log2_const(block_size); ++voxel_scale) {
     const int stride = 1 << (voxel_scale + 1);
     for (int z = 0; z < block_size; z += stride)
@@ -364,19 +366,18 @@ void propagateUp(se::VoxelBlock<T>* block, const int scale) {
   }
 }
 
-template <typename T>
+template <typename VoxelBlockT>
 void foreach(float                                  voxel_dim,
-             const std::vector<se::VoxelBlock<T>*>& active_list,
+             const std::vector<VoxelBlockT*>& active_list,
              const camera_parameter&                camera_parameter,
              float*                                 depth_image_data) {
   const int num_elem = active_list.size();
   for(int i = 0; i < num_elem; ++i) {
-    se::VoxelBlock<T>* block = active_list[i];
+    VoxelBlockT* block = active_list[i];
     const Eigen::Vector3i block_coord = block->coordinates();
-    const int block_size = se::VoxelBlock<T>::size;
+    const int block_size = VoxelBlockT::size_li;
 
     const Eigen::Matrix4f T_CM = (camera_parameter.T_MC()).inverse();
-    const Eigen::Matrix3f R_CM = T_CM.topLeftCorner<3,3>();
     const Eigen::Vector3f t_CM = se::math::to_translation(T_CM);
     const Eigen::Matrix4f K = camera_parameter.K();
     const Eigen::Vector2i depth_image_res = camera_parameter.imageResolution();
@@ -432,19 +433,17 @@ void foreach(float                                  voxel_dim,
 }
 
 template <typename T>
-std::vector<se::VoxelBlock<MultiresTSDF::VoxelType>*> buildActiveList(se::Octree<T>& map, const camera_parameter& camera_parameter, float voxel_dim, SensorImpl& sensor) {
-  const se::PagedMemoryBuffer<se::VoxelBlock<MultiresTSDF::VoxelType> >& block_buffer =
+std::vector<VoxelBlockType<MultiresTSDF::VoxelType>*> buildActiveList(se::Octree<T>& map, const camera_parameter& camera_parameter, float voxel_dim, SensorImpl& sensor) {
+  const se::PagedMemoryBuffer<VoxelBlockType<MultiresTSDF::VoxelType> >& block_buffer =
       map.pool().blockBuffer();
   for(unsigned int i = 0; i < block_buffer.size(); ++i) {
     block_buffer[i]->active(false);
   }
 
-  const Eigen::Matrix4f K = camera_parameter.K();
-  const Eigen::Matrix4f T_MC = camera_parameter.T_MC();
   const Eigen::Matrix4f T_CM = (camera_parameter.T_MC()).inverse();
-  std::vector<se::VoxelBlock<MultiresTSDF::VoxelType>*> active_list;
+  std::vector<VoxelBlockType<MultiresTSDF::VoxelType>*> active_list;
   auto in_frustum_predicate =
-      std::bind(se::algorithms::in_frustum<se::VoxelBlock<MultiresTSDF::VoxelType>>,
+      std::bind(se::algorithms::in_frustum<VoxelBlockType<MultiresTSDF::VoxelType>>,
                 std::placeholders::_1, voxel_dim, T_CM, sensor);
   se::algorithms::filter(active_list, block_buffer, in_frustum_predicate);
   return active_list;
@@ -458,7 +457,7 @@ protected:
     pixel_dim_(0.006),
     K_(525.f, 525.f, depth_image_res_.x() / 2, depth_image_res_.y() / 2),
     sensor_({depth_image_res_.x(), depth_image_res_.y(), false,
-             0.f, 10.f, 0.1f,
+             0.f, 10.f,
              K_(0), K_(1), K_(2), K_(3),
              Eigen::VectorXf(0), Eigen::VectorXf(0)})
 
@@ -471,7 +470,7 @@ protected:
     Eigen::Matrix4f T_MC = Eigen::Matrix4f::Identity();
     camera_parameter_ = camera_parameter(K_, depth_image_res_, T_MC);
 
-    const int block_size = se::VoxelBlock<MultiresTSDF::VoxelType>::size;
+    const int block_size = VoxelBlockType<MultiresTSDF::VoxelType>::size_li;
     for(int z = block_size / 2; z < size_; z += block_size) {
       for(int y = block_size / 2; y < size_; y += block_size) {
         for(int x = block_size / 2; x < size_; x += block_size) {
@@ -500,7 +499,7 @@ protected:
   int size_;
   float voxel_dim_;
   float dim_;
-  std::vector<se::VoxelBlock<MultiresTSDF::VoxelType>*> active_list_;
+  std::vector<VoxelBlockType<MultiresTSDF::VoxelType>*> active_list_;
   generate_depth_image generate_depth_image_;
 
 private:
@@ -535,10 +534,10 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereTranslation) {
 
     f << "./out/scale_"  + std::to_string(SCALE) + "-sphere-linear_back_move-" + std::to_string(frame) + ".vtk";
 
-    save3DSlice(octree_,
-                Eigen::Vector3i(0, 0, octree_.size() / 2),
-                Eigen::Vector3i(octree_.size(), octree_.size(), octree_.size() / 2 + 1),
-                [](const auto& data) { return data.x; }, octree_.maxBlockScale(), f.str().c_str());
+    save_3d_slice_vtk(octree_, f.str().c_str(),
+                      Eigen::Vector3i(0, 0, octree_.size() / 2),
+                      Eigen::Vector3i(octree_.size(), octree_.size(), octree_.size() / 2 + 1),
+                      [](const auto& data) { return data.x; }, octree_.maxBlockScale());
   }
 
   for (std::vector<obstacle*>::iterator sphere = spheres.begin(); sphere != spheres.end(); ++sphere) {
@@ -586,10 +585,10 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereRotation) {
 
     f << "./out/scale_"  + std::to_string(SCALE) + "-sphere-rotational_move-" + std::to_string(frame) + ".vtk";
 
-    save3DSlice(octree_,
-                Eigen::Vector3i(0, 0, octree_.size() / 2),
-                Eigen::Vector3i(octree_.size(), octree_.size(), octree_.size() / 2 + 1),
-                [](const auto& data) { return data.x; }, octree_.maxBlockScale(), f.str().c_str());
+    save_3d_slice_vtk(octree_, f.str().c_str(),
+                      Eigen::Vector3i(0, 0, octree_.size() / 2),
+                      Eigen::Vector3i(octree_.size(), octree_.size(), octree_.size() / 2 + 1),
+                      [](const auto& data) { return data.x; }, octree_.maxBlockScale());
   }
 
   for (std::vector<obstacle*>::iterator sphere = spheres.begin(); sphere != spheres.end(); ++sphere) {
@@ -630,10 +629,10 @@ TEST_F(MultiscaleTSDFMovingCameraTest, BoxTranslation) {
 
     f << "./out/scale_"  + std::to_string(SCALE) + "-box-linear_back_move-" + std::to_string(frame) + ".vtk";
 
-    save3DSlice(octree_,
-                Eigen::Vector3i(0, 0, octree_.size() / 2),
-                Eigen::Vector3i(octree_.size(), octree_.size(), octree_.size() / 2 + 1),
-                [](const auto& data) { return data.x; }, octree_.maxBlockScale(), f.str().c_str());
+    save_3d_slice_vtk(octree_, f.str().c_str(),
+                      Eigen::Vector3i(0, 0, octree_.size() / 2),
+                      Eigen::Vector3i(octree_.size(), octree_.size(), octree_.size() / 2 + 1),
+                      [](const auto& data) { return data.x; }, octree_.maxBlockScale());
   }
 
   for (std::vector<obstacle*>::iterator box = boxes.begin(); box != boxes.end(); ++box) {
@@ -673,10 +672,10 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereBoxTranslation) {
 
     f << "./out/scale_"  + std::to_string(SCALE) + "-sphere-and-box-linear_back_move-" + std::to_string(frame) + ".vtk";
 
-    save3DSlice(octree_,
-                Eigen::Vector3i(0, 0, octree_.size() / 2),
-                Eigen::Vector3i(octree_.size(), octree_.size(), octree_.size() / 2 + 1),
-                [](const auto& data) { return data.x; }, octree_.maxBlockScale(), f.str().c_str());
+    save_3d_slice_vtk(octree_, f.str().c_str(),
+                      Eigen::Vector3i(0, 0, octree_.size() / 2),
+                      Eigen::Vector3i(octree_.size(), octree_.size(), octree_.size() / 2 + 1),
+                      [](const auto& data) { return data.x; }, octree_.maxBlockScale());
   }
 
   for (std::vector<obstacle*>::iterator obstacle = obstacles.begin(); obstacle != obstacles.end(); ++obstacle) {

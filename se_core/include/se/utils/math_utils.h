@@ -51,6 +51,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 
+
+// Defining M_PI is a compiler extension, we should not rely on it.
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+
+
 namespace se {
   namespace math {
     template <typename T>
@@ -60,24 +68,30 @@ namespace se {
 
     template <typename T>
     static inline T floorf(const T& v) {
-        return v.array().floor();
-      }
+      return v.array().floor();
+    }
 
     template <typename T>
     static inline T fabs(const T& v) {
-        return v.cwiseAbs();
-      }
+      return v.cwiseAbs();
+    }
 
     template <typename Scalar>
-    static inline Scalar sq(Scalar a) {
-        return a*a;
-      };
+    static constexpr inline Scalar sq(Scalar a) {
+      return a * a;
+    }
 
     template <typename Scalar>
-    static inline bool in(const Scalar v, const Scalar a,
-          const Scalar b) {
-        return v >= a && v <= b;
-      }
+    static constexpr inline Scalar cu(Scalar a) {
+      return a * a * a;
+    }
+
+    template <typename Scalar>
+    static inline bool in(const Scalar v,
+                          const Scalar a,
+                          const Scalar b) {
+      return v >= a && v <= b;
+    }
 
     constexpr int log2_const(int n){
       return (n < 2 ? 0 : 1 + log2_const(n/2));
@@ -129,15 +143,17 @@ namespace se {
         return std::max(a, std::min(f, b));
       }
 
-    static inline void clamp(Eigen::Ref<Eigen::VectorXf> res, const Eigen::Ref<const Eigen::VectorXf> a,
-        const Eigen::Ref<Eigen::VectorXf> b) {
+    static inline void clamp(Eigen::Ref<Eigen::VectorXf>             res,
+                             const Eigen::Ref<const Eigen::VectorXf> a,
+                             const Eigen::Ref<Eigen::VectorXf>       b) {
       res = (res.array() < a.array()).select(a, res);
       res = (res.array() >= b.array()).select(b, res);
     }
 
     template <typename R, typename A, typename B>
-      static inline void clamp(Eigen::MatrixBase<R>& res, const Eigen::MatrixBase<A>& a,
-          const Eigen::MatrixBase<B>& b) {
+      static inline void clamp(Eigen::MatrixBase<R>&       res,
+                               const Eigen::MatrixBase<A>& a,
+                               const Eigen::MatrixBase<B>& b) {
         res = res.array().max(a.array());
         res = res.array().min(b.array());
       }

@@ -1,10 +1,8 @@
-cmake_minimum_required(VERSION 3.10)
-project(octree_lib)
+cmake_minimum_required(VERSION 3.9...3.16)
 
+add_executable(unique-unittest "unique_unittest.cpp")
+gtest_add_tests(unique-unittest "" AUTO)
 
-set(PROJECT_TEST_NAME algorithms_unittest)
-add_executable(${PROJECT_TEST_NAME} unique_unittest.cpp)
-target_include_directories(${PROJECT_TEST_NAME} PUBLIC ${GTEST_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_TEST_NAME} ${GTEST_BOTH_LIBRARIES} pthread)
+add_executable(meshing-unittest "meshing_unittest.cpp")
+gtest_add_tests(meshing-unittest "" AUTO)
 
-GTEST_ADD_TESTS(${PROJECT_TEST_NAME} "" AUTO)

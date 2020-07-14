@@ -26,13 +26,14 @@
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "octree.hpp"
-#include "utils/math_utils.h"
-#include "utils/morton_utils.hpp"
-#include "algorithms/unique.hpp"
-#include "gtest/gtest.h"
 #include <algorithm>
-#include <bitset>
+
+#include <gtest/gtest.h>
+
+#include <se/algorithms/unique.hpp>
+#include <se/octree.hpp>
+#include <se/utils/math_utils.h>
+#include <se/utils/morton_utils.hpp>
 
 typedef unsigned int MortonType;
 
@@ -41,8 +42,9 @@ struct TestVoxelT {
   static inline VoxelData invalid(){ return 0.f; }
   static inline VoxelData initData(){ return 1.f; }
 
-  template <typename T>
-  using MemoryPoolType = se::PagedMemoryPool<T>;
+  using VoxelBlockType = se::VoxelBlockFull<TestVoxelT>;
+
+  using MemoryPoolType = se::PagedMemoryPool<TestVoxelT>;
   template <typename BufferT>
   using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
@@ -100,8 +102,6 @@ TEST_F(UniqueTest, FilterDuplicates) {
 TEST_F(UniqueMultiscaleTest, FilterAncestors) {
   const int last = se::algorithms::filter_ancestors(keys.data(), keys.size(), voxel_depth_);
   for(int i = 1; i < last; ++i) {
-    // std::cout << std::bitset<64>(keys[i]) << std::endl;
-    // std::cout << std::bitset<64>(keys[i - 1]) << std::endl << std::endl;
     ASSERT_TRUE(keys[i] != keys[i-1]);
   }
   ASSERT_EQ(last, 3);
@@ -110,11 +110,10 @@ TEST_F(UniqueMultiscaleTest, FilterAncestors) {
 TEST_F(UniqueMultiscaleTest, FilterDuplicatesTillLevel) {
   /*
    * 0x1FFu extracts the last 9 bits of a morton number,
-   * corresponding to the size of a voxel block: 3*log2(se::VoxelBlock<T>::size)
+   * corresponding to the size of a voxel block: 3*log2(TestVoxelT::VoxelBlockType::size_li)
    */
   const int last = se::algorithms::unique_multiscale(keys.data(), keys.size());
   for(int i = 1; i < last; ++i) {
-    // std::cout << std::bitset<64>(keys[i]) << std::endl;
     ASSERT_TRUE(keys[i] != keys[i-1]);
   }
   ASSERT_EQ(last, 3);

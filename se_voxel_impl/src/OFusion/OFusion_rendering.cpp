@@ -31,51 +31,92 @@
 
 #include "se/voxel_implementations/OFusion/OFusion.hpp"
 
+#include "se/common.hpp"
 #include "se/utils/math_utils.h"
+#include "se/voxel_block_ray_iterator.hpp"
 #include <type_traits>
 
 
 
-Eigen::Vector4f OFusion::raycast(
-    const VolumeTemplate<OFusion, se::Octree>& volume,
-    const Eigen::Vector3f&                     ray_origin_M,
-    const Eigen::Vector3f&                     ray_dir_M,
-    const float                                near_plane,
-    const float                                far_plane,
-    const float                                ,
-    const float                                step,
-    const float                                ) {
+Eigen::Vector4f OFusion::raycast(const OctreeType&      map,
+                                 const Eigen::Vector3f& ray_origin_M,
+                                 const Eigen::Vector3f& ray_dir_M,
+                                 const float            t_near,
+                                 const float            t_far) {
+  se::VoxelBlockRayIterator<OFusion::VoxelType> ray(map, ray_origin_M, ray_dir_M,
+                                                    t_near, t_far);
+  ray.next();
+  const float t_min = ray.tmin(); /* Get distance to the first intersected block */
+  if (t_min <= 0.f) {
+    return Eigen::Vector4f::Zero();
+  }
+  const float t_max = ray.tmax();
+  float t = t_min;
 
-  auto select_node_occupancy = [](const auto&){ return OFusion::VoxelType::initData().x; };
+  auto select_node_occupancy = [](const auto&){ return VoxelType::initData().x; };
   auto select_voxel_occupancy = [](const auto& data){ return data.x; };
-  if (near_plane < far_plane) {
-    float t = near_plane;
-    float step_size = step;
-    float f_t = volume.interp(ray_origin_M + ray_dir_M * t, select_node_occupancy, select_voxel_occupancy).first;
-    float f_tt = 0;
-    int scale = 0;
+  const float step_size = map.voxelDim() / 2;
 
-    // if we are not already in it
-    if (f_t <= OFusion::surface_boundary) {
-      for (; t < far_plane; t += step_size) {
-        const Eigen::Vector3f ray_pos_M = ray_origin_M + ray_dir_M * t;
-        OFusion::VoxelType::VoxelData voxel_data = volume.get(ray_pos_M);
-        if (voxel_data.x > -100.f && voxel_data.y > 0.f) {
-          f_tt = volume.interp(ray_origin_M + ray_dir_M * t, select_node_occupancy, select_voxel_occupancy).first;
+  Eigen::Vector3f ray_pos_M = Eigen::Vector3f::Zero();
+
+  float value_t  = 0;
+  float value_tt = 0;
+  Eigen::Vector3f point_M_t = Eigen::Vector3f::Zero();
+  Eigen::Vector3f point_M_tt = Eigen::Vector3f::Zero();
+
+  if (!find_valid_point(map, select_node_occupancy, select_voxel_occupancy,
+                        ray_origin_M, ray_dir_M, step_size, t_far, t, value_t, point_M_t)) {
+    return Eigen::Vector4f::Zero();
+  }
+  t += step_size;
+
+  // if we are not already in it
+  if (value_t <= OFusion::surface_boundary) {
+    for (; t < t_max; t += step_size) {
+      ray_pos_M = ray_origin_M + ray_dir_M * t;
+      VoxelData data = map.getFineAtPoint(ray_pos_M);
+      if (data.y == 0) {
+        t += step_size;
+        if (!find_valid_point(map, select_node_occupancy, select_voxel_occupancy,
+                              ray_origin_M, ray_dir_M, step_size, t_far, t, value_t, point_M_t)) {
+          return Eigen::Vector4f::Zero();
         }
-        if (f_tt > OFusion::surface_boundary)
+        if (value_t > OFusion::surface_boundary) {
           break;
-        f_t = f_tt;
+        }
+        continue;
       }
-      if (f_tt > OFusion::surface_boundary) {
-        // got it, calculate accurate intersection
-        t = t - step_size * (f_tt - OFusion::surface_boundary) / (f_tt - f_t);
-        Eigen::Vector4f res = (ray_origin_M + ray_dir_M * t).homogeneous();
-        res.w() = scale;
-        return res;
+      value_tt = data.x;
+      point_M_tt = ray_pos_M;
+      if (value_tt > -100.f) {
+        bool is_valid = false;
+        auto interp_res = map.interpAtPoint(ray_pos_M, select_node_occupancy, select_voxel_occupancy, 0, is_valid);
+        value_tt = interp_res.first;
+        if (!is_valid) {
+          t += step_size;
+          if (!find_valid_point(map, select_node_occupancy, select_voxel_occupancy,
+                                ray_origin_M, ray_dir_M, step_size, t_far, t, value_t, point_M_t)) {
+            return Eigen::Vector4f::Zero();
+          }
+          if (value_t > OFusion::surface_boundary) {
+            break;
+          }
+          continue;
+        }
       }
+      if (value_tt > OFusion::surface_boundary) {
+        break;
+      }
+      value_t = value_tt;
+      point_M_t = point_M_tt;
+    }
+    if (value_tt > OFusion::surface_boundary && value_t < OFusion::surface_boundary) {
+      // We overshot. Need to move backwards for zero crossing.
+      t = t - (point_M_tt - point_M_t).norm() * (value_tt - OFusion::surface_boundary) / (value_tt - value_t);
+      Eigen::Vector4f surface_point_M = (ray_origin_M + ray_dir_M * t).homogeneous();
+      surface_point_M.w() = 0;
+      return surface_point_M;
     }
   }
   return Eigen::Vector4f::Zero();
 }
-

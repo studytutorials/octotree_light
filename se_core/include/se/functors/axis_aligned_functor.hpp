@@ -33,104 +33,107 @@
 #include <vector>
 
 #include "../utils/math_utils.h"
+#include "../utils/morton_utils.hpp"
 #include "../node.hpp"
 #include "../functors/data_handler.hpp"
 #include "../geometry/aabb_collision.hpp"
 
 namespace se {
-  namespace functor {
+template<typename T>
+using VoxelBlockType = typename T::VoxelBlockType;
 
-    template <typename FieldType, template <typename FieldT> class OctreeT,
-              typename UpdateF>
+namespace functor {
 
-      class axis_aligned {
-        public:
-        axis_aligned(OctreeT<FieldType>& octree, UpdateF f) : octree_(octree), function_(f),
-        min_coord_(Eigen::Vector3i::Constant(0)),
-        max_coord_(Eigen::Vector3i::Constant(octree.size())){ }
+  template <typename FieldType, template <typename FieldT> class OctreeT,
+            typename UpdateF>
 
-        axis_aligned(OctreeT<FieldType>&   octree,
-                     UpdateF               f,
-                     const Eigen::Vector3i min_coord,
-                     const Eigen::Vector3i max_coord) :
-        octree_(octree),
-        function_(f),
-        min_coord_(min_coord),
-        max_coord_(max_coord){ }
+    class axis_aligned {
+      public:
+      axis_aligned(OctreeT<FieldType>& octree, UpdateF f) : octree_(octree), function_(f),
+      min_coord_(Eigen::Vector3i::Constant(0)),
+      max_coord_(Eigen::Vector3i::Constant(octree.size())){ }
 
-        void update_block(se::VoxelBlock<FieldType>* block) {
-          Eigen::Vector3i block_coord = block->coordinates();
-          unsigned int y, z, x;
-          Eigen::Vector3i block_size = Eigen::Vector3i::Constant(se::VoxelBlock<FieldType>::size);
-          Eigen::Vector3i start_coord = block_coord.cwiseMax(min_coord_);
-          Eigen::Vector3i last_coord = (block_coord + block_size).cwiseMin(max_coord_);
+      axis_aligned(OctreeT<FieldType>&   octree,
+                   UpdateF               f,
+                   const Eigen::Vector3i min_coord,
+                   const Eigen::Vector3i max_coord) :
+      octree_(octree),
+      function_(f),
+      min_coord_(min_coord),
+      max_coord_(max_coord){ }
 
-          for(z = start_coord.z(); z < last_coord.z(); ++z) {
-            for (y = start_coord.y(); y < last_coord.y(); ++y) {
-              for (x = start_coord.x(); x < last_coord.x(); ++x) {
-                Eigen::Vector3i voxel_coord = Eigen::Vector3i(x, y, z);
-                VoxelBlockHandler<FieldType> handler = {block, voxel_coord};
-                function_(handler, voxel_coord);
-              }
+      void update_block(VoxelBlockType<FieldType>* block) {
+        Eigen::Vector3i block_coord = block->coordinates();
+        Eigen::Vector3i block_size = Eigen::Vector3i::Constant(VoxelBlockType<FieldType>::size_li);
+        Eigen::Vector3i start_coord = block_coord.cwiseMax(min_coord_);
+        Eigen::Vector3i last_coord = (block_coord + block_size).cwiseMin(max_coord_);
+
+        for (int z = start_coord.z(); z < last_coord.z(); ++z) {
+          for (int y = start_coord.y(); y < last_coord.y(); ++y) {
+            for (int x = start_coord.x(); x < last_coord.x(); ++x) {
+              Eigen::Vector3i voxel_coord = Eigen::Vector3i(x, y, z);
+              VoxelBlockHandler<FieldType> handler = {block, voxel_coord};
+              function_(handler, voxel_coord);
             }
           }
         }
+      }
 
-        void update_node(se::Node<FieldType>* node) {
-          Eigen::Vector3i node_coord = Eigen::Vector3i(unpack_morton(node->code_));
+      void update_node(se::Node<FieldType>* node) {
+        Eigen::Vector3i node_coord = Eigen::Vector3i(unpack_morton(node->code()));
 #pragma omp simd
-          for(int child_idx = 0; child_idx < 8; ++child_idx) {
-            const Eigen::Vector3i rel_step =  Eigen::Vector3i((child_idx & 1) > 0, (child_idx & 2) > 0, (child_idx & 4) > 0);
-            const Eigen::Vector3i child_coord = node_coord + (rel_step * (node->size_ / 2));
-            if(!(se::math::in(child_coord.x(), min_coord_.x(), max_coord_.x()) &&
-                 se::math::in(child_coord.y(), min_coord_.y(), max_coord_.y()) &&
-                 se::math::in(child_coord.z(), min_coord_.z(), max_coord_.z()))) continue;
-            NodeHandler<FieldType> handler = {node, child_idx};
-            function_(handler, child_coord);
-          }
+        for(int child_idx = 0; child_idx < 8; ++child_idx) {
+          const Eigen::Vector3i rel_step =  Eigen::Vector3i((child_idx & 1) > 0, (child_idx & 2) > 0, (child_idx & 4) > 0);
+          const Eigen::Vector3i child_coord = node_coord + (rel_step * (node->size() / 2));
+          if(!(se::math::in(child_coord.x(), min_coord_.x(), max_coord_.x()) &&
+               se::math::in(child_coord.y(), min_coord_.y(), max_coord_.y()) &&
+               se::math::in(child_coord.z(), min_coord_.z(), max_coord_.z()))) continue;
+          NodeHandler<FieldType> handler = {node, child_idx};
+          function_(handler, child_coord);
+        }
+      }
+
+      void apply() {
+
+        auto& block_buffer = octree_.pool().blockBuffer();
+#pragma omp parallel for
+        for (unsigned int i = 0; i < block_buffer.size(); ++i) {
+          update_block(block_buffer[i]);
         }
 
-        void apply() {
-
-          auto& block_buffer = octree_.pool().blockBuffer();
+        auto& node_buffer = octree_.pool().nodeBuffer();
 #pragma omp parallel for
-          for (unsigned int i = 0; i < block_buffer.size(); ++i) {
-            update_block(block_buffer[i]);
-          }
-
-          auto& node_buffer = octree_.pool().nodeBuffer();
-#pragma omp parallel for
-          for (unsigned int i = 0; i < node_buffer.size(); ++i) {
-            update_node(node_buffer[i]);
-          }
+        for (unsigned int i = 0; i < node_buffer.size(); ++i) {
+          update_node(node_buffer[i]);
         }
+      }
 
-      private:
-        OctreeT<FieldType>& octree_;
-        UpdateF function_;
-        Eigen::Vector3i min_coord_;
-        Eigen::Vector3i max_coord_;
-      };
+    private:
+      OctreeT<FieldType>& octree_;
+      UpdateF function_;
+      Eigen::Vector3i min_coord_;
+      Eigen::Vector3i max_coord_;
+    };
 
-    /*!
-     * \brief Applies a function object to each voxel/octant in the octree.
-     * \param octree Octree on which the function is going to be applied.
-     * \param funct Update function to be applied.
-     */
-    template <typename FieldType, template <typename FieldT> class OctreeT,
-              typename UpdateF>
-    void axis_aligned_map(OctreeT<FieldType>& octree, UpdateF funct) {
-    axis_aligned<FieldType, OctreeT, UpdateF> aa_functor(octree, funct);
-    aa_functor.apply();
-    }
-
-    template <typename FieldType, template <typename FieldT> class OctreeT,
-              typename UpdateF>
-    void axis_aligned_map(OctreeT<FieldType>& octree, UpdateF funct,
-        const Eigen::Vector3i& min_coord, const Eigen::Vector3i& max_coord) {
-    axis_aligned<FieldType, OctreeT, UpdateF> aa_functor(octree, funct, min_coord,  max_coord);
-    aa_functor.apply();
-    }
+  /*!
+   * \brief Applies a function object to each voxel/octant in the octree.
+   * \param octree Octree on which the function is going to be applied.
+   * \param funct Update function to be applied.
+   */
+  template <typename FieldType, template <typename FieldT> class OctreeT,
+            typename UpdateF>
+  void axis_aligned_map(OctreeT<FieldType>& octree, UpdateF funct) {
+  axis_aligned<FieldType, OctreeT, UpdateF> aa_functor(octree, funct);
+  aa_functor.apply();
   }
+
+  template <typename FieldType, template <typename FieldT> class OctreeT,
+            typename UpdateF>
+  void axis_aligned_map(OctreeT<FieldType>& octree, UpdateF funct,
+      const Eigen::Vector3i& min_coord, const Eigen::Vector3i& max_coord) {
+  axis_aligned<FieldType, OctreeT, UpdateF> aa_functor(octree, funct, min_coord,  max_coord);
+  aa_functor.apply();
+  }
+}
 }
 #endif

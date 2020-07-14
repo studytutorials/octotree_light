@@ -34,6 +34,8 @@
 
 
 namespace se {
+  template<typename T>
+  using VoxelBlockType = typename T::VoxelBlockType;
 
   /*! \brief Provide a generic way to get and set the data of both intermediate
    * (Node) and leaf (VoxelBlock) Octree nodes.
@@ -53,7 +55,7 @@ namespace se {
   */
   template<typename FieldType>
     class VoxelBlockHandler :
-      DataHandlerBase<VoxelBlockHandler<FieldType>, se::VoxelBlock<FieldType> > {
+      DataHandlerBase<VoxelBlockHandler<FieldType>, VoxelBlockType<FieldType> > {
 
         public:
           /*!
@@ -61,19 +63,19 @@ namespace se {
            * \param[in] v Coordinates of the voxel to get/set the data of. The
            * elements of v must be in the in the interval [0, BLOCK_SIZE-1].
            */
-          VoxelBlockHandler(se::VoxelBlock<FieldType>* block, Eigen::Vector3i voxel_coord) :
+          VoxelBlockHandler(VoxelBlockType<FieldType>* block, Eigen::Vector3i voxel_coord) :
             block_(block), voxel_coord_(voxel_coord) {}
 
-          typename se::VoxelBlock<FieldType>::VoxelData get() {
+          typename VoxelBlockType<FieldType>::VoxelData get() {
             return block_->data(voxel_coord_);
           }
 
-          void set(const typename se::VoxelBlock<FieldType>::VoxelData& voxel_data) {
+          void set(const typename VoxelBlockType<FieldType>::VoxelData& voxel_data) {
             block_->setData(voxel_coord_, voxel_data);
           }
 
         private:
-          se::VoxelBlock<FieldType>* block_;
+          VoxelBlockType<FieldType>* block_;
           Eigen::Vector3i voxel_coord_;
       };
 
@@ -91,11 +93,11 @@ namespace se {
         NodeHandler(se::Node<FieldType>* node, int child_idx) : node_(node), child_idx_(child_idx) {}
 
         typename se::Node<FieldType>::VoxelData get() {
-          return node_->data_[child_idx_];
+          return node_->childData(child_idx_);
         }
 
         void set(const typename se::Node<FieldType>::VoxelData& node_data) {
-          node_->data_[child_idx_] = node_data;
+          node_->childData(child_idx_, node_data);
         }
 
       private:

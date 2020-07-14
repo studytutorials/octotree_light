@@ -790,7 +790,7 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = "./README.md" "./se_core/include" "./se_shared/include/se" "./se_denseslam/include" "./se_voxel_impl/include"
+INPUT                  = "./README.md" "./se_core/include" "./se_shared/include/se" "./se_denseslam/include" "./se_voxel_impl/include" "./se_apps/include/reader.hpp" "./se_apps/include/reader_base.hpp" "./se_apps/include/reader_iclnuim.hpp" "./se_apps/include/reader_openni.hpp" "./se_apps/include/reader_raw.hpp"
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses

@@ -46,45 +46,45 @@ PerfStats stats;
 
 TEST(DownsampleImageKernel, UniformImageHalf) {
   // 4x4 white image.
-  const uint8_t input_RGB[4*4*3] = {
-    255,255,255,   255,255,255,   255,255,255,   255,255,255,
-    255,255,255,   255,255,255,   255,255,255,   255,255,255,
-    255,255,255,   255,255,255,   255,255,255,   255,255,255,
-    255,255,255,   255,255,255,   255,255,255,   255,255,255,
+  const uint8_t input_RGBA[4*4*4] = {
+    255,255,255,255,   255,255,255,255,   255,255,255,255,   255,255,255,255,
+    255,255,255,255,   255,255,255,255,   255,255,255,255,   255,255,255,255,
+    255,255,255,255,   255,255,255,255,   255,255,255,255,   255,255,255,255,
+    255,255,255,255,   255,255,255,255,   255,255,255,255,   255,255,255,255,
   };
 
-  const uint8_t desired_output_RGB[2*2*4] = {
+  const uint8_t desired_output_RGBA[2*2*4] = {
     255,255,255,255,   255,255,255,255,
     255,255,255,255,   255,255,255,255,
   };
 
-  se::Image<uint32_t> output_RGB (2, 2);
+  se::Image<uint32_t> output_RGBA (2, 2);
 
-  downsampleImageKernel(input_RGB, Eigen::Vector2i(4, 4), output_RGB);
+  downsampleImageKernel(reinterpret_cast<const uint32_t*>(input_RGBA), Eigen::Vector2i(4, 4), output_RGBA);
 
-  ASSERT_EQ(memcmp(desired_output_RGB, output_RGB.data(), 2*2*4), 0);
+  ASSERT_EQ(memcmp(desired_output_RGBA, output_RGBA.data(), 2*2*4), 0);
 }
 
 
 
 TEST(DownsampleImageKernel, UniformImageQuarter) {
   // 4x4 white image.
-  const uint8_t input_RGB[4*4*3] = {
-    255,255,255,   255,255,255,   255,255,255,   255,255,255,
-    255,255,255,   255,255,255,   255,255,255,   255,255,255,
-    255,255,255,   255,255,255,   255,255,255,   255,255,255,
-    255,255,255,   255,255,255,   255,255,255,   255,255,255,
+  const uint8_t input_RGBA[4*4*4] = {
+    255,255,255,255,   255,255,255,255,   255,255,255,255,   255,255,255,255,
+    255,255,255,255,   255,255,255,255,   255,255,255,255,   255,255,255,255,
+    255,255,255,255,   255,255,255,255,   255,255,255,255,   255,255,255,255,
+    255,255,255,255,   255,255,255,255,   255,255,255,255,   255,255,255,255,
   };
 
-  const uint8_t desired_output_RGB[1*1*4] = {
+  const uint8_t desired_output_RGBA[1*1*4] = {
     255,255,255,255,
   };
 
-  se::Image<uint32_t> output_RGB (1, 1);
+  se::Image<uint32_t> output_RGBA (1, 1);
 
-  downsampleImageKernel(input_RGB, Eigen::Vector2i(4, 4), output_RGB);
+  downsampleImageKernel(reinterpret_cast<const uint32_t*>(input_RGBA), Eigen::Vector2i(4, 4), output_RGBA);
 
-  ASSERT_EQ(memcmp(desired_output_RGB, output_RGB.data(), 1*1*4), 0);
+  ASSERT_EQ(memcmp(desired_output_RGBA, output_RGBA.data(), 1*1*4), 0);
 }
 
 
@@ -95,23 +95,23 @@ TEST(DownsampleImageKernel, VariedImageHalf) {
   // Red  Red  Green Green
   // Blue Blue Black Black
   // Blue Blue Black Black
-  const uint8_t input_RGB[4*4*3] = {
-    255,  0,  0,   255,  0,  0,     0,255,  0,     0,255,  0,
-    255,  0,  0,   255,  0,  0,     0,255,  0,     0,255,  0,
-      0,  0,255,     0,  0,255,     0,  0,  0,     0,  0,  0,
-      0,  0,255,     0,  0,255,     0,  0,  0,     0,  0,  0,
+  const uint8_t input_RGBA[4*4*4] = {
+    255,  0,  0,255,   255,  0,  0,255,     0,255,  0,255,     0,255,  0,255,
+    255,  0,  0,255,   255,  0,  0,255,     0,255,  0,255,     0,255,  0,255,
+      0,  0,255,255,     0,  0,255,255,     0,  0,  0,255,     0,  0,  0,255,
+      0,  0,255,255,     0,  0,255,255,     0,  0,  0,255,     0,  0,  0,255,
   };
 
-  const uint8_t desired_output_RGB[2*2*4] = {
+  const uint8_t desired_output_RGBA[2*2*4] = {
     255,  0,  0,255,     0,255,  0,255,
       0,  0,255,255,     0,  0,  0,255,
   };
 
-  se::Image<uint32_t> output_RGB (2, 2);
+  se::Image<uint32_t> output_RGBA (2, 2);
 
-  downsampleImageKernel(input_RGB, Eigen::Vector2i(4, 4), output_RGB);
+  downsampleImageKernel(reinterpret_cast<const uint32_t*>(input_RGBA), Eigen::Vector2i(4, 4), output_RGBA);
 
-  ASSERT_EQ(memcmp(desired_output_RGB, output_RGB.data(), 2*2*4), 0);
+  ASSERT_EQ(memcmp(desired_output_RGBA, output_RGBA.data(), 2*2*4), 0);
 }
 
 
@@ -122,21 +122,21 @@ TEST(DownsampleImageKernel, VariedImageQuarter) {
   // Red  Red  Green Green
   // Blue Blue Black Black
   // Blue Blue Black Black
-  const uint8_t input_RGB[4*4*3] = {
-    255,  0,  0,   255,  0,  0,     0,255,  0,     0,255,  0,
-    255,  0,  0,   255,  0,  0,     0,255,  0,     0,255,  0,
-      0,  0,255,     0,  0,255,     0,  0,  0,     0,  0,  0,
-      0,  0,255,     0,  0,255,     0,  0,  0,     0,  0,  0,
+  const uint8_t input_RGBA[4*4*4] = {
+    255,  0,  0,255,   255,  0,  0,255,     0,255,  0,255,     0,255,  0,255,
+    255,  0,  0,255,   255,  0,  0,255,     0,255,  0,255,     0,255,  0,255,
+      0,  0,255,255,     0,  0,255,255,     0,  0,  0,255,     0,  0,  0,255,
+      0,  0,255,255,     0,  0,255,255,     0,  0,  0,255,     0,  0,  0,255,
   };
 
-  const uint8_t desired_output_RGB[1*1*4] = {
+  const uint8_t desired_output_RGBA[1*1*4] = {
      63, 63, 63,255,
   };
 
-  se::Image<uint32_t> output_RGB (1, 1);
+  se::Image<uint32_t> output_RGBA (1, 1);
 
-  downsampleImageKernel(input_RGB, Eigen::Vector2i(4, 4), output_RGB);
+  downsampleImageKernel(reinterpret_cast<const uint32_t*>(input_RGBA), Eigen::Vector2i(4, 4), output_RGBA);
 
-  ASSERT_EQ(memcmp(desired_output_RGB, output_RGB.data(), 1*1*4), 0);
+  ASSERT_EQ(memcmp(desired_output_RGBA, output_RGBA.data(), 1*1*4), 0);
 }
 

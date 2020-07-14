@@ -1,16 +1,11 @@
-cmake_minimum_required(VERSION 3.10)
-project(octree_lib)
+cmake_minimum_required(VERSION 3.9...3.16)
 
+add_executable(octree-unittest "octree_unittest.cpp")
+gtest_add_tests(octree-unittest "" AUTO)
 
-set(PROJECT_TEST_NAME octree)
-set(UNIT_TEST_NAME ${PROJECT_TEST_NAME}-unittest)
-add_executable(${UNIT_TEST_NAME} octree_unittest.cpp)
-target_include_directories(${UNIT_TEST_NAME} PUBLIC ${GTEST_INCLUDE_DIRS})
-target_link_libraries(${UNIT_TEST_NAME} ${GTEST_BOTH_LIBRARIES} pthread)
-GTEST_ADD_TESTS(${UNIT_TEST_NAME} "" AUTO)
+add_executable(voxelblock-ray-iterator-unittest "voxel_block_ray_iterator_unittest.cpp")
+gtest_add_tests(voxelblock-ray-iterator-unittest "" AUTO)
 
-set(UNIT_TEST_NAME voxel-block-ray-iterator-unittest)
-add_executable(${UNIT_TEST_NAME} voxel_block_ray_iterator_unittest.cpp)
-target_include_directories(${UNIT_TEST_NAME} PUBLIC ${GTEST_INCLUDE_DIRS})
-target_link_libraries(${UNIT_TEST_NAME} ${GTEST_BOTH_LIBRARIES} pthread)
-GTEST_ADD_TESTS(${UNIT_TEST_NAME} "" AUTO)
+add_executable(voxelblock-unittest "voxel_block_unittest.cpp")
+gtest_add_tests(voxelblock-unittest "" AUTO)
+

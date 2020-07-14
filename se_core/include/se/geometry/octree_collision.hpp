@@ -33,6 +33,9 @@
 #include "aabb_collision.hpp"
 
 namespace se {
+template<typename T>
+using VoxelBlockType = typename T::VoxelBlockType;
+
 namespace geometry {
 enum class collision_status {
   occupied,
@@ -71,13 +74,13 @@ inline collision_status update_status(const collision_status previous_status,
  * \param block voxel block of type FieldType
  * \param test function that takes a voxel and returns a collision_status value
  */
-template <typename FieldType, typename TestVoxelF>
-collision_status collides_with(const se::VoxelBlock<FieldType>* block,
+template <typename FieldType, template <typename FieldT> class VoxelBlockT, typename TestVoxelF>
+collision_status collides_with(const VoxelBlockT<FieldType>* block,
     const Eigen::Vector3i bbox_coord, const Eigen::Vector3i size, TestVoxelF test) {
   collision_status status = collision_status::empty;
   const Eigen::Vector3i block_coord = block->coordinates();
   int x, y, z, block_size;
-  block_size = (int) se::VoxelBlock<FieldType>::size;
+  block_size = (int) VoxelBlockT<FieldType>::size_li;
   int x_last = block_coord.x() + block_size;
   int y_last = block_coord.y() + block_size;
   int z_last = block_coord.z() + block_size;
@@ -85,7 +88,7 @@ collision_status collides_with(const se::VoxelBlock<FieldType>* block,
     for (y = block_coord.y(); y < y_last; ++y){
       for (x = block_coord.x(); x < x_last; ++x){
 
-        typename se::VoxelBlock<FieldType>::VoxelData data;
+        typename VoxelBlockT<FieldType>::VoxelData data;
         const Eigen::Vector3i voxel_coord{x, y, z};
         if(!geometry::aabb_aabb_collision(bbox_coord, size,
           voxel_coord, Eigen::Vector3i::Constant(1))) continue;
@@ -128,6 +131,7 @@ collision_status collides_with(const Octree<FieldType>& octree,
   current.node_ptr = node;
   current.size = octree.size();
   current.coordinates = {0, 0, 0};
+  current.parent_data = FieldType::initData();
   stack[stack_idx++] = current;
   collision_status status = collision_status::empty;
 
@@ -135,11 +139,11 @@ collision_status collides_with(const Octree<FieldType>& octree,
     node = current.node_ptr;
 
     if(node->isBlock()){
-      status = collides_with(static_cast<se::VoxelBlock<FieldType>*>(node),
+      status = collides_with(static_cast<VoxelBlockType<FieldType>*>(node),
           bbox_coord, bbox_size, test);
     }
 
-    if(node->children_mask_ == 0) {
+    if(node->children_mask() == 0) {
        current = stack[--stack_idx];
        continue;
     }
@@ -159,10 +163,10 @@ collision_status collides_with(const Octree<FieldType>& octree,
 
       if(overlaps && child != nullptr) {
         child_descr.node_ptr = child;
-        child_descr.parent_data = node->data_[0];
+        child_descr.parent_data = node->childData(0);
         stack[stack_idx++] = child_descr;
       } else if(overlaps && child == nullptr) {
-        status = update_status(status, test(node->data_[0]));
+        status = update_status(status, test(node->childData(0)));
       }
     }
     current = stack[--stack_idx];

@@ -35,8 +35,9 @@
 *.app
 
 # Directories
-build
+build*
 doc/html
+se_tools/benchmark_scripts/results*
 se_tools/evaluation_scripts/results
 
 # Benchmark results
@@ -44,4 +45,7 @@ test.bin
 
 # vim temporary files
 *.swp
+
+# Test results
+se_core/test/out/
 

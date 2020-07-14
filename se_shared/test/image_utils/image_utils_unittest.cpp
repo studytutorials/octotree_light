@@ -157,8 +157,8 @@ TEST_F(DepthSaveLoad, SaveThenLoadPNG) {
   EXPECT_EQ(load_ok, 0);
 
   // Compare the loaded image with the saved one.
-  EXPECT_EQ(loaded_depth_image_res.x(), depth_image_width_);
-  EXPECT_EQ(loaded_depth_image_res.y(), depth_image_height_);
+  EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.x()), depth_image_width_);
+  EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.y()), depth_image_height_);
   EXPECT_EQ(memcmp(loaded_depth_image_data, depth_image_data_, depth_size_bytes_), 0);
 
   free(loaded_depth_image_data);
@@ -178,8 +178,8 @@ TEST_F(DepthSaveLoad, SaveThenLoadPGM) {
   EXPECT_EQ(load_ok, 0);
 
   // Compare the loaded image with the saved one.
-  EXPECT_EQ(loaded_depth_image_res.x(), depth_image_width_);
-  EXPECT_EQ(loaded_depth_image_res.y(), depth_image_height_);
+  EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.x()), depth_image_width_);
+  EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.y()), depth_image_height_);
   EXPECT_EQ(memcmp(loaded_depth_image_data, depth_image_data_, depth_size_bytes_), 0);
 
   free(loaded_depth_image_data);

@@ -48,56 +48,56 @@
 #include "se/config.h"
 #include "se/octree.hpp"
 #include "se/image/image.hpp"
-#include "se/continuous/volume_template.hpp"
 #include "se/sensor_implementation.hpp"
-#include "voxel_implementations.hpp"
+#include "se/voxel_implementations.hpp"
 #include "preprocessing.hpp"
 #include "tracking.hpp"
 
 
 
-template <typename T>
-using Volume = VolumeTemplate<T, se::Octree>;
-
 class DenseSLAMSystem {
+  using VoxelBlockType = typename VoxelImpl::VoxelType::VoxelBlockType;
 
   private:
+    // Input images
     Eigen::Vector2i image_res_;
-    Eigen::Matrix4f T_MW_;        // World to camera transformation; Convert in/output to map/world frame
-    Eigen::Matrix4f T_MC_;        // Camera pose in map frame
-    Eigen::Matrix4f* render_T_MC_; // Rendering camera pose in map frame
-    Eigen::Matrix4f init_T_MC_;   // Initial camera pose in map frame
+    se::Image<float> depth_image_;
+    se::Image<uint32_t> rgba_image_;
+
+    // Pipeline config
     Eigen::Vector3f map_dim_;
     Eigen::Vector3i map_size_;
-    std::vector<int> iterations_;
-    bool need_render_ = false;
     Configuration config_;
-
-    // input once
     std::vector<float> gaussian_;
 
-    // inter-frame
+    // Camera pose
+    Eigen::Matrix4f init_T_MC_; // Initial camera pose in map frame
+    Eigen::Matrix4f T_MC_;      // Camera pose in map frame
+
+    // Tracking
+    Eigen::Matrix4f previous_T_MC_; // Camera pose of the previous image in map frame
+    std::vector<int> iterations_;
+    std::vector<se::Image<float> > scaled_depth_image_;
+    std::vector<se::Image<Eigen::Vector3f> > input_point_cloud_C_;
+    std::vector<se::Image<Eigen::Vector3f> > input_normals_C_;
+    std::vector<float> reduction_output_;
+    std::vector<TrackData> tracking_result_;
+
+    // Raycasting
+    Eigen::Matrix4f raycast_T_MC_; // Raycasting camera pose in map frame
     se::Image<Eigen::Vector3f> surface_point_cloud_M_;
     se::Image<Eigen::Vector3f> surface_normals_M_;
 
+    // Rendering
+    Eigen::Matrix4f* render_T_MC_; // Rendering camera pose in map frame
+    bool need_render_ = false;
+
+    // Map
+    Eigen::Matrix4f T_MW_; // Constant world to map frame transformation
     std::vector<se::key_t> allocation_list_;
     std::shared_ptr<se::Octree<VoxelImpl::VoxelType> > map_;
-    Volume<VoxelImpl> volume_;
-
-    // intra-frame
-    std::vector<float> reduction_output_;
-    std::vector<se::Image<float>  > scaled_depth_image_;
-    std::vector<se::Image<Eigen::Vector3f> > input_point_cloud_C_;
-    std::vector<se::Image<Eigen::Vector3f> > input_normals_C_;
-    se::Image<float> depth_image_;
-    se::Image<uint32_t> rgba_image_;
-    std::vector<TrackData>  tracking_result_;
-    Eigen::Matrix4f previous_T_MC_;
-    Eigen::Matrix4f raycast_T_MC_;
 
   public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
     /**
      * Constructor using the initial camera position.
      *
@@ -112,11 +112,11 @@ class DenseSLAMSystem {
      * \param[in] config_ The pipeline options.
      */
     DenseSLAMSystem(const Eigen::Vector2i& image_res,
-                    const Eigen::Vector3i& map_size_,
-                    const Eigen::Vector3f& map_dim_,
+                    const Eigen::Vector3i& map_size,
+                    const Eigen::Vector3f& map_dim,
                     const Eigen::Vector3f& t_MW,
                     std::vector<int> &     pyramid,
-                    const Configuration&   config_);
+                    const Configuration&   config);
     /**
      * Constructor using the initial camera position.
      *
@@ -130,42 +130,42 @@ class DenseSLAMSystem {
      * \param[in] config_ The pipeline options.
      */
     DenseSLAMSystem(const Eigen::Vector2i& image_res,
-                    const Eigen::Vector3i& map_size_,
-                    const Eigen::Vector3f& map_dim_,
+                    const Eigen::Vector3i& map_size,
+                    const Eigen::Vector3f& map_dim,
                     const Eigen::Matrix4f& T_MW,
                     std::vector<int> &     pyramid,
-                    const Configuration&   config_);
+                    const Configuration&   config);
 
     /**
      * Preprocess a single depth frame and add it to the pipeline.
      * This is the first stage of the pipeline.
      *
      * \param[in] input_depth Pointer to the depth frame data. Each pixel is
-     * represented by a single uint16_t.
+     * represented by a single float containing the depth value in meters.
      * \param[in] input_res Size of the depth frame in pixels (width and
      * height).
      * \param[in] filter_depth Whether to filter the depth frame using a
      * bilateral filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessDepth(const uint16_t*        input_depth_image_data,
+    bool preprocessDepth(const float*           input_depth_image_data,
                          const Eigen::Vector2i& input_depth_image_res,
                          const bool             filter_depth_image);
 
     /**
-     * Preprocess an RGB frame and add it to the pipeline.
+     * Preprocess an RGBA frame and add it to the pipeline.
      * This is the first stage of the pipeline.
      *
-     * \param[in] input_RGB Pointer to the RGB frame data, 3 channels, 8 bits
-     * per channel.
-     * \param[in] input_res Size of the depth and RGB frames in pixels (width
-     * and height).
+     * \param[in] input_RGBA Pointer to the RGBA frame data, 4 channels, 8
+     * bits per channel.
+     * \param[in] input_res Size of the depth and RGBA frames in pixels
+     * (width and height).
      * \param[in] filter_depth Whether to filter the depth frame using a
      * bilateral filter to reduce the measurement noise.
      * \return true (does not fail).
      */
-    bool preprocessColor(const uint8_t*         input_RGB_image_data,
-                         const Eigen::Vector2i& input_RGB_image_res);
+    bool preprocessColor(const uint32_t*        input_RGBA_image_data,
+                         const Eigen::Vector2i& input_RGBA_image_res);
 
     /**
      * Update the camera pose. Create a 3D reconstruction from the current
@@ -214,32 +214,29 @@ class DenseSLAMSystem {
     bool raycast(const SensorImpl& sensor);
 
     /*
-     * TODO Implement this.
-     */
-    void dump_volume(const std::string filename);
-
-    /*
      * TODO Document this.
      */
-    void dump_mesh(const std::string filename);
+    void dumpMesh(const std::string filename, const bool print_path = false);
 
-    /**
-     * Render the current 3D reconstruction. This function performs raycasting
-     * if needed, otherwise it uses the point cloud and normal maps created in
-     * DenseSLAMSystem::raycasting.
+    /** \brief Render the current 3D reconstruction.
+     * This function performs raycasting if needed, otherwise it uses the point
+     * cloud and normal maps created in DenseSLAMSystem::raycasting.
      *
-     * \param[out] output_image_data A pointer to an array containing the rendered frame.
-     * The array must be allocated before calling this function. The storage
-     * layout is rgbargbargba.
-     * \param[in] output_image_res The dimensions of the output array (width and
-     * height in pixels).
+     * \param[out] output_image_data A pointer to an array where the image will
+     *                               be rendered. The array must be allocated
+     *                               before calling this function, one uint32_t
+     *                               per pixel.
+     * \param[in] output_image_res   The dimensions of the output array (width
+     *                               and height in pixels).
      */
-    void renderVolume(unsigned char*         output_image_data,
+    void renderVolume(uint32_t*              output_image_data,
                       const Eigen::Vector2i& output_image_res,
                       const SensorImpl&      sensor);
 
     /**
-     * Render the output of the tracking algorithm. The meaning of the colors is as follows:
+     * Render the output of the tracking algorithm. The meaning of the colors
+     * is as follows:
+     *
      * | Color  | Meaning |
      * | ------ | ------- |
      * | grey   | Successful tracking. |
@@ -250,45 +247,45 @@ class DenseSLAMSystem {
      * | yellow | Wrong normal. |
      * | orange | Tracking not performed. |
      *
-     * \param[out] output_image_data A pointer to an array containing the rendered frame.
-     * The array must be allocated before calling this function. The x, y and
-     * z members of each element of the array contain the R, G and B values of
-     * the image respectively. The w member of each element of the array is
-     * always 0 and is used for padding.
-     * \param[in] output_res The dimensions of the output array (width and
-     * height in pixels).
+     * \param[out] output_image_data A pointer to an array where the image will
+     *                               be rendered. The array must be allocated
+     *                               before calling this function, one uint32_t
+     *                               per pixel.
+     * \param[in] output_image_res   The dimensions of the output array (width
+     *                               and height in pixels).
      */
-    void renderTrack(unsigned char*         output_image_data,
+    void renderTrack(uint32_t*              output_image_data,
                      const Eigen::Vector2i& output_image_res);
 
     /**
      * Render the current depth frame. The frame is rendered before
-     * preprocessing while taking into account the values of ::nearPlane and
-     * ::farPlane. Regions closer to the camera than ::nearPlane appear white
-     * and regions further than ::farPlane appear black.
+     * preprocessing while taking into account the values of
+     * Configuration::near_plane and Configuration::far_plane. Regions closer
+     * to the camera than Configuration::near_plane appear white and regions
+     * further than Configuration::far_plane appear black.
      *
-     * \param[out] output_image_data A pointer to an array containing the rendered frame.
-     * The array must be allocated before calling this function. The x, y and
-     * z members of each element of the array contain the R, G and B values of
-     * the image respectively. The w member of each element of the array is
-     * always 0 and is used for padding.
-     * \param[in] output_image_res The dimensions of the output array (width and
-     * height in pixels).
+     * \param[out] output_image_data A pointer to an array where the image will
+     *                               be rendered. The array must be allocated
+     *                               before calling this function, one uint32_t
+     *                               per pixel.
+     * \param[in] output_image_res   The dimensions of the output array (width
+     *                               and height in pixels).
      */
-    void renderDepth(unsigned char*         output_image_data,
+    void renderDepth(uint32_t*              output_image_data,
                      const Eigen::Vector2i& output_image_res,
                      const SensorImpl&      sensor);
 
     /**
      * Render the RGB frame currently in the pipeline.
      *
-     * \param[out] output_RGBA_image_data Pointer to an array containing the rendered
-     * frame, 4 channels, 8 bits per channel. The array must be allocated
-     * before calling this function.
-     * \param[in] output_RGBA_image_res The dimensions of the output image (width and
-     * height in pixels).
+     * \param[out] output_RGBA_image_data A pointer to an array where the image
+     *                                    will be rendered. The array must be
+     *                                    allocated before calling this
+     *                                    function, one uint32_t per pixel.
+     * \param[in] output_RGBA_image_res   The dimensions of the output image
+     *                                    (width and height in pixels).
      */
-    void renderRGBA(uint8_t*               output_RGBA_image_data,
+    void renderRGBA(uint32_t*              output_RGBA_image_data,
                     const Eigen::Vector2i& output_RGBA_image_res);
 
     //
@@ -355,7 +352,7 @@ class DenseSLAMSystem {
      * \return A vector containing the x, y and z coordinates of t_WC.
      */
     Eigen::Vector3f t_WC() {
-      Eigen::Matrix4f T_WC = se::math::to_inverse_transformation(T_MW_) * init_T_MC_;
+      Eigen::Matrix4f T_WC = se::math::to_inverse_transformation(T_MW_) * T_MC_;
       Eigen::Vector3f t_WC = se::math::to_translation(T_WC);
       return t_WC;
     }
@@ -513,6 +510,8 @@ class DenseSLAMSystem {
     Eigen::Vector2i getImageResolution() {
       return (image_res_);
     }
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 #endif

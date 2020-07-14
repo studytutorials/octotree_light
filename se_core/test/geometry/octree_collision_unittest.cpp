@@ -28,15 +28,17 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "utils/math_utils.h"
-#include "geometry/octree_collision.hpp"
-#include "geometry/aabb_collision.hpp"
-#include "utils/morton_utils.hpp"
-#include "octree.hpp"
-#include "octant_ops.hpp"
-#include "node_iterator.hpp"
-#include "functors/axis_aligned_functor.hpp"
-#include "gtest/gtest.h"
+
+#include <gtest/gtest.h>
+
+#include <se/functors/axis_aligned_functor.hpp>
+#include <se/geometry/aabb_collision.hpp>
+#include <se/geometry/octree_collision.hpp>
+#include <se/node_iterator.hpp>
+#include <se/octant_ops.hpp>
+#include <se/octree.hpp>
+#include <se/utils/math_utils.h>
+#include <se/utils/morton_utils.hpp>
 
 using namespace se::geometry;
 
@@ -45,8 +47,9 @@ struct TestVoxelT{
   static inline VoxelData invalid(){ return 0.f; }
   static inline VoxelData initData(){ return 1.f; }
 
-  template <typename T>
-  using MemoryPoolType = se::PagedMemoryPool<T>;
+  using VoxelBlockType = se::VoxelBlockFull<TestVoxelT>;
+
+  using MemoryPoolType = se::PagedMemoryPool<TestVoxelT>;
   template <typename BufferT>
   using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
@@ -55,7 +58,7 @@ collision_status test_voxel(const TestVoxelT::VoxelData& data) {
   if(data == TestVoxelT::initData()) return collision_status::unseen;
   if(data == 10.f) return collision_status::empty;
   return collision_status::occupied;
-};
+}
 
 class OctreeCollisionTest : public ::testing::Test {
   protected:
@@ -84,9 +87,9 @@ TEST_F(OctreeCollisionTest, TotallyUnseen) {
   se::node_iterator<TestVoxelT> it(octree_);
   se::Node<TestVoxelT>* node = it.next();
   for(int i = 256; node != nullptr ; node = it.next(), i /= 2){
-    const Eigen::Vector3i node_coord = se::keyops::decode(node->code_);
-    const int node_size = node->size_;
-    const se::Octree<TestVoxelT>::VoxelData data = (node->data_[0]);
+    const Eigen::Vector3i node_coord = se::keyops::decode(node->code());
+    const int node_size = node->size();
+    const TestVoxelT::VoxelData data = (node->childData(0));
     printf("se::Node's coordinates: (%d, %d, %d), size %d, value %.2f\n",
         node_coord.x(), node_coord.y(), node_coord.z(), node_size, data);
     EXPECT_EQ(node_size, i);
@@ -120,7 +123,7 @@ TEST_F(OctreeCollisionTest, Collision){
   const Eigen::Vector3i bbox_coord = {54, 10, 249};
   const Eigen::Vector3i bbox_size = {5, 5, 3};
 
-  auto update = [](auto& handler, const Eigen::Vector3i& coord) {
+  auto update = [](auto& handler, const Eigen::Vector3i&) {
       handler.set(2.f);
   };
   se::functor::axis_aligned_map(octree_, update);
@@ -136,10 +139,10 @@ TEST_F(OctreeCollisionTest, CollisionFreeLeaf){
   const Eigen::Vector3i bbox_size = {2, 2, 2};
 
   /* Update blocks_coord as occupied node */
-  se::VoxelBlock<TestVoxelT>* block = octree_.fetch(56, 12, 254);
+  TestVoxelT::VoxelBlockType* block = octree_.fetch(56, 12, 254);
   const Eigen::Vector3i block_coord = block->coordinates();
   int x, y, z, block_size;
-  block_size = (int) se::VoxelBlock<TestVoxelT>::size;
+  block_size = (int) TestVoxelT::VoxelBlockType::size_li;
   int x_last = block_coord.x() + block_size;
   int y_last = block_coord.y() + block_size;
   int z_last = block_coord.z() + block_size;

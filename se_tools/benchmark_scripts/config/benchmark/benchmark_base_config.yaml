@@ -1,0 +1,62 @@
+general:
+  enable_ground_truth:        true
+  enable_render:              true
+  enable_meshing:             false
+
+  # Rates
+  integration_rate:           2
+  tracking_rate:              1
+  rendering_rate:             4
+  meshing_rate:               0
+  fps:                        0.0
+
+  # Other
+  pyramid:                    [10, 8, 4]
+  icp_threshold:              1e-5
+  render_volume_fullsize:     false
+  drop_frames:                false
+  max_frame:                  100
+
+map:
+  size:                       1024
+  dim:                        10.24
+  t_MW_factor:                [0.5, 0.5, 0.5]
+
+sensor:
+  type:                       sensor
+  downsampling_factor:        2
+  bilateral_filter:           false
+  T_BC:                       [1, 0, 0, 0,
+                               0, 1, 0, 0,
+                               0, 0, 1, 0,
+                               0, 0, 0, 1]
+  init_T_WB:                  [0, 0, 0, 0, 0, 0, 1]           # tx, ty, tz, qx, qy, qz, qw
+  near_plane:                 0.4       # near plane in meters
+  far_plane:                  6.0       # far plane in meters
+
+voxel_impls:
+  tsdf:
+    mu_factor:                8
+    max_weight:               100
+
+#  multirestsdf:
+#    mu_factor:                8
+#    max_weight:               100
+#
+#  ofusion:
+#    surface_boundary:         0.0
+#    occupancy_min_max:        [-100, 100]
+#    tau:                      4
+#    sigma_min_max_factor:     [2, 4]
+#    k_sigma:                  0.01
+#
+#  multiresofusion:
+#    surface_boundary:         0.0
+#    occupancy_min_max:        [-100, 100]
+#    free_space_integr_scale:  0
+#    const_surface_thickness:  false           # if true, surface thickness := max_surface_thickness
+#    tau_min_max:              [0.06, 0.16]
+#    k_tau:                    0.026
+#    uncertainty_model:        quadratic       # { linear, quadratic }
+#    sigma_min_max:            [0.005, 0.02]   # minimum/maximum uncertainty := 3 x sigma_min
+#    k_sigma:                  0.0016

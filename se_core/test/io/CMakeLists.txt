@@ -1,36 +1,17 @@
-# SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou, Imperial College London
-# SPDX-License-Identifier: CC0-1.0
+cmake_minimum_required(VERSION 3.9...3.16)
 
-cmake_minimum_required(VERSION 3.9.0 FATAL_ERROR)
-project(octree-io-unittest LANGUAGES C CXX)
+add_executable(octree-io-unittest "io_unittest.cpp")
+gtest_add_tests(octree-io-unittest "" AUTO)
 
-find_package(Eigen3 REQUIRED)
+set(unit_test_name octomap-io-unittest)
+add_executable(${unit_test_name} "octomap_io_unittest.cpp")
 find_package(octomap)
-
-add_executable(${PROJECT_NAME}
-  io_unittest.cpp
-  octomap_io_unittest.cpp
-)
-
-target_include_directories(${PROJECT_NAME}
-  PUBLIC
-    ../../include
-    ${EIGEN3_INCLUDE_DIR}
-    ${GTEST_INCLUDE_DIRS}
-)
-
-target_link_libraries(${PROJECT_NAME}
-  ${GTEST_BOTH_LIBRARIES}
-  ${CMAKE_THREAD_LIBS_INIT}
-)
-
 if(DEFINED OCTOMAP_INCLUDE_DIRS)
-  target_include_directories(${PROJECT_NAME} PUBLIC ${OCTOMAP_INCLUDE_DIRS})
-  target_link_libraries(${PROJECT_NAME} ${OCTOMAP_LIBRARIES})
-  target_compile_definitions(${PROJECT_NAME} PUBLIC SE_OCTOMAP=1)
+  target_include_directories(${unit_test_name} PUBLIC ${OCTOMAP_INCLUDE_DIRS})
+  target_link_libraries(${unit_test_name} ${OCTOMAP_LIBRARIES})
+  target_compile_definitions(${unit_test_name} PUBLIC SE_OCTOMAP=1)
 else()
-  target_compile_definitions(${PROJECT_NAME} PUBLIC SE_OCTOMAP=0)
+  target_compile_definitions(${unit_test_name} PUBLIC SE_OCTOMAP=0)
 endif()
-
-gtest_add_tests(${PROJECT_NAME} "" AUTO)
+gtest_add_tests(${unit_test_name} "" AUTO)
 

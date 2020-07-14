@@ -45,7 +45,7 @@ static inline std::pair<Precision, bool>
       int voxel_depth = octree.voxelDepth();
       auto base = se::internal::fetch(stack, octree.root(), voxel_depth,
           voxel_coord_f.cast<int>());
-      std::cout << "base octant: \n" << se::keyops::decode(base->code_) << std::endl;
+      std::cout << "base octant: \n" << se::keyops::decode(base->code()) << std::endl;
 
       for(int i = 1; i < 7; ++i) {
         samples[i] = se::internal::fetch_neighbour_sample<Precision>(stack, base,

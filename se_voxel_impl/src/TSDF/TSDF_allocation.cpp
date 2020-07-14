@@ -49,21 +49,19 @@
  * be allocated
  * \param reserved allocated size of allocation_list
  */
-size_t TSDF::buildAllocationList(
-    se::Octree<TSDF::VoxelType>& map,
-    const se::Image<float>&      depth_image,
-    const Eigen::Matrix4f&       T_MC,
-    const SensorImpl&            sensor,
-    se::key_t*                   allocation_list,
-    size_t                       reserved) {
+size_t TSDF::buildAllocationList(OctreeType&             map,
+                                 const se::Image<float>& depth_image,
+                                 const Eigen::Matrix4f&  T_MC,
+                                 const SensorImpl&       sensor,
+                                 se::key_t*              allocation_list,
+                                 size_t                  reserved) {
+
   const Eigen::Vector2i depth_image_res(depth_image.width(), depth_image.height());
   const float voxel_dim = map.dim() / map.size();
   const float inverse_voxel_dim = 1.f / voxel_dim;
   const int map_size = map.size();
   const unsigned block_depth = map.blockDepth();
-  const float band = 2.f * sensor.mu;
-
-
+  const float band = 2.f * TSDF::mu;
 
 #ifdef _OPENMP
   std::atomic<unsigned int> voxel_count (0);
@@ -77,10 +75,10 @@ size_t TSDF::buildAllocationList(
   for (int y = 0; y < depth_image_res.y(); ++y) {
     for (int x = 0; x < depth_image_res.x(); ++x) {
       const Eigen::Vector2i pixel(x, y);
-      if (depth_image(pixel.x(), pixel.y()) == 0.f)
+      const float depth_value_orig = depth_image(pixel.x(), pixel.y());
+      if (depth_value_orig < sensor.near_plane)
         continue;
-
-      const float depth_value = depth_image(pixel.x(), pixel.y());
+      const float depth_value = (depth_value_orig <= sensor.far_plane) ? depth_value_orig : sensor.far_plane;
 
       Eigen::Vector3f ray_dir_C;
       const Eigen::Vector2f pixel_f = pixel.cast<float>();
@@ -102,7 +100,7 @@ size_t TSDF::buildAllocationList(
             && (voxel_coord.x() >= 0)
             && (voxel_coord.y() >= 0)
             && (voxel_coord.z() >= 0)) {
-          se::VoxelBlock<TSDF::VoxelType>* block = map.fetch(
+          VoxelBlockType* block = map.fetch(
               voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
           if (block == nullptr) {
             const se::key_t voxel_key = map.hash(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(),

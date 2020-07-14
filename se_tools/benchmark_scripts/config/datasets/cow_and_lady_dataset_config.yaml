@@ -1,0 +1,52 @@
+general:
+  # File path
+  dataset_name:               "cow_and_lady"
+  sequences:                  ["",
+                               "/PATH/TO/cow_and_lady/scene.raw",
+                               "/PATH/TO/cow_and_lady/association.txt"]
+
+  # Rates
+  integration_rate:           2
+  tracking_rate:              1
+  rendering_rate:             4
+  fps:                        0.0
+
+  # Other
+  pyramid:                    [10, 8, 4]
+  icp_threshold:              1e-5
+  render_volume_fullsize:     false
+  drop_frames:                false
+  max_frame:                  50      # -1 := full dataset
+
+map:
+  size:                       1024
+  dim:                        10.24
+  t_MW_factor:                [0.5, 0.5, 0.5]
+
+sensor:
+  type:                       "pinholecamera"
+  intrinsics:                 [525,525,319.5,239.5]
+  downsampling_factor:        2
+  bilateral_filter:           false
+  T_BC:                       [1, 0, 0, 0,
+                               0, 1, 0, 0,
+                               0, 0, 1, 0,
+                               0, 0, 0, 1]
+  near_plane:                 0.4       # near plane in meters
+  far_plane:                  6.0       # far plane in meters
+
+voxel_impls:
+  multiresofusion:
+    surface_boundary:         0.0
+    occupancy_min_max:        [-100, 100]
+    free_space_integr_scale:  0
+    const_surface_thickness:  false           # if true, surface thickness := max_surface_thickness
+    tau_min_max:              [0.06, 0.16]
+    k_tau:                    0.026
+    uncertainty_model:        quadratic       # { linear, quadratic }
+    sigma_min_max:            [0.005, 0.02]   # minimum/maximum uncertainty := 3 x sigma_min
+    k_sigma:                  0.0016
+
+  ofusion:
+    surface_boundary:         0.0
+    occupancy_min_max:        [-100, 100]

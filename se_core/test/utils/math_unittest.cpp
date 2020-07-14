@@ -29,9 +29,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <se/utils/math_utils.h>
 #include <Eigen/Core>
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
+#include <se/utils/math_utils.h>
 
 TEST(EigenUtils, ClampFixVec3) {
   Eigen::Vector3i base{0, 20, -1};

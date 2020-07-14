@@ -1,36 +1,32 @@
 /*
- * SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou, Imperial College London
+ * SPDX-FileCopyrightText: 2020 Smart Robotics Lab, Imperial College London
+ * SPDX-FileCopyrightText: 2020 Sotiris Papatheodorou
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-// Detect std::filesystem support.
+// Detect std::filesystem support, include the appropriate header and alias the
+// namespace.
 
-// Proper std::filesystem support.
+#ifndef __FILESYSTEM_HPP
+#define __FILESYSTEM_HPP
+
 #if        (defined(__GNUC__)        && __GNUC__        >= 8) \
         || (defined(__clang_major__) && __clang_major__ >= 7) \
         || (defined(_MSC_VER)        && _MSC_VER        >= 1914)
-#define __HAS_FILESYSTEM
-// Experimental std::filesystem support.
+// Proper std::filesystem support.
+#include <filesystem>
+namespace stdfs = std::filesystem;
+
 #elif      (defined(__GNUC__)        && __GNUC__        >= 6) \
         || (defined(__clang_major__) && __clang_major__ >= 6)
-#define __HAS_EXP_FILESYSTEM
-// No std::filesystem support.
+// Experimental std::filesystem support.
+#include <experimental/filesystem>
+namespace stdfs = std::experimental::filesystem;
+
 #else
+// No std::filesystem support.
 #error A compiler with support for std::filesystem is required
 #endif
 
-// Include the appropriate header.
-#if defined(__HAS_FILESYSTEM)
-#include <filesystem>
-#elif defined(__HAS_EXP_FILESYSTEM)
-#include <experimental/filesystem>
-#endif
-
-// Alias namespace.
-#if defined(__HAS_FILESYSTEM)
-namespace stdfs = std::filesystem;
-#elif defined(__HAS_EXP_FILESYSTEM)
-namespace stdfs = std::experimental::filesystem;
-#endif
-
+#endif // __FILESYSTEM_HPP
 

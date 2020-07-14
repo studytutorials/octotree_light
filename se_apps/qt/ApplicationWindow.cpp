@@ -1278,7 +1278,7 @@ fLayout->addRow(label, nameLineEdit);
 void ApplicationWindow::setConditionalStart(int value) {
 _conditionalStart = value;
 }
-;
+
 void ApplicationWindow::showDebugWindow() {
 
 DebugWindow *form = new DebugWindow(this);

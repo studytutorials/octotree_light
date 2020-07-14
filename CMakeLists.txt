@@ -1,32 +1,40 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5...3.16)
 
-project(supereight)
-set(SUPEREIGHT_MAJOR_VERSION 0)
-set(SUPEREIGHT_MINOR_VERSION 1)
-set(SUPEREIGHT_PATCH_VERSION 0)
-set(SUPEREIGHT_VERSION
-  ${SUPEREIGHT_MAJOR_VERSION}.${SUPEREIGHT_MINOR_VERSION}.${SUPEREIGHT_PATCH_VERSION})
+project(supereight VERSION 0.1.0 LANGUAGES C CXX)
 
-# Add local path for finding packages.
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
+# The voxel implementations to compile. The list elements must correspond
+# to folder names inside se_voxel_impl/include/se/voxel_implementations. When
+# adding a new voxel implementation, appending it to this list is enough to
+# compile supereight with it.
+set(SE_VOXEL_IMPLS OFusion MultiresTSDF TSDF CACHE STRING "The voxel implementations to compile")
 
-# Compilation options.
-set(CMAKE_CXX_STANDARD 14)
-add_compile_options(
-  -Wall
-  -Wextra
-  -Wno-unknown-pragmas
-  -Wno-unused-function)
+# The camera implementations to compile. The valid values are the names of the
+# *Sensor classes defined in se_shared/include/se/sensor.hpp.
+set(SE_SENSOR_IMPLS PinholeCamera OusterLidar CACHE STRING "The camera implementations to compile")
+
+option(SE_BUILD_TESTS "Build the supereight unit tests" ON)
+option(SE_BUILD_GLUT_GUI "Build the OpenGL-based GUI" ON)
+option(SE_BUILD_QT_GUI "Build the Qt-based GUI" ON)
+option(SE_USE_OMP "Compile with OpenMP" ON)
+
 # Compile without measuring individual function times
 add_definitions(-DSE_ENABLE_TICKTOCK=0)
 
-# Enable/disable OpenMP and warn if disabled
-option(WITH_OPENMP "Compile with OpenMP" ON)
-if(NOT WITH_OPENMP)
-  message(WARNING "Building WITHOUT OpenMP. Performance may be terrible.")
-endif()
+# Compiler options
+add_compile_options(
+  -Wall
+  -Wextra
+  -Wpedantic
+  -Wno-unknown-pragmas
+  -Wno-unused-function
+)
 
-# Set the build type and warn if other than Release
+
+
+# Make sure that custom modules are found
+list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/cmake)
+
+# Set the build type to Release if not already set
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to 'Release' as none was specified.")
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
@@ -34,19 +42,47 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
     "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif()
-if (NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release")
+# Warn if the release type is not Release
+if(NOT "${CMAKE_BUILD_TYPE}" STREQUAL "Release")
   message(WARNING "CMAKE_BUILD_TYPE set to ${CMAKE_BUILD_TYPE}. Performance may be terrible.")
 else()
-  message(STATUS "Building with build type '${CMAKE_BUILD_TYPE}'")
+  message(STATUS "CMAKE_BUILD_TYPE set to ${CMAKE_BUILD_TYPE}.")
 endif()
 
-# Initialize the variables containing the built libraries and field types.
-set(SUPEREIGHT_SHARED_LIBS "")
-set(SUPEREIGHT_CORE_LIBS "")
-set(SUPEREIGHT_DENSESLAM_LIBS "")
-set(SUPEREIGHT_FIELD_TYPES "")
+# Find OpenMP, warn if disabled
+if(SE_USE_OMP)
+  find_package(OpenMP)
+  if(OPENMP_FOUND)
+    add_compile_options(${OpenMP_CXX_FLAGS})
+    link_libraries(${OpenMP_CXX_LIBRARIES})
+    message(STATUS "Compiling with OpenMP support")
+  else()
+    message(WARNING "OpenMP not found. Performance may be terrible.")
+  endif()
+else(NOT SE_USE_OMP)
+  message(WARNING "Building without OpenMP. Performance may be terrible.")
+endif()
 
-# Build each supereight module.
+# Installation includes
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+# The directory where the .cmake files will be installed
+if(WIN32 AND NOT CYGWIN)
+  set(CMAKE_INSTALL_CMAKEDIR "${PROJECT_NAME}/cmake")
+elseif(APPLE)
+  set(CMAKE_INSTALL_CMAKEDIR "${PROJECT_NAME}.framework/Resources/CMake")
+else()
+  set(CMAKE_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+endif()
+
+
+
+# Enable tests
+if(SE_BUILD_TESTS)
+  enable_testing()
+endif()
+
+# Build each supereight module
 add_subdirectory(third_party)
 add_subdirectory(se_core)
 add_subdirectory(se_shared)
@@ -57,52 +93,44 @@ add_subdirectory(se_tools)
 
 
 
-# Generate the required .cmake files for making supereight discoverable by
-# CMake after installation.
-include(CMakePackageConfigHelpers)
+# Install #####################################################################
+# Create a Config.cmake file
+configure_package_config_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+  INSTALL_DESTINATION "${CMAKE_INSTALL_CMAKEDIR}"
+)
 
-# The directory where .cmake files are installed.
-if(WIN32 AND NOT CYGWIN)
-  set(INSTALL_CMAKE_DIR cmake)
-elseif(APPLE)
-  set(INSTALL_CMAKE_DIR ${PROJECT_NAME}.framework/Resources/CMake)
-else()
-  set(INSTALL_CMAKE_DIR share/${PROJECT_NAME}/cmake)
-endif()
-
-# Generate the Version.cmake file.
-write_basic_package_version_file(
-  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-  VERSION ${SUPEREIGHT_VERSION}
-  COMPATIBILITY AnyNewerVersion)
-
-# Generate the Config.cmake file.
-configure_package_config_file(
-  "${PROJECT_SOURCE_DIR}/cmake/Config.cmake.in"
-  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-  INSTALL_DESTINATION ${INSTALL_CMAKE_DIR})
-
-# Install the generated *.cmake files.
-install(
-  EXPORT supereightTargets
-  DESTINATION ${INSTALL_CMAKE_DIR})
-install(
-  FILES
-    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-  DESTINATION ${INSTALL_CMAKE_DIR})
+# Create a ConfigVersion.cmake file
+write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
+)
 
 
+
+# Install the Config and ConfigVersion files
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+  DESTINATION "${CMAKE_INSTALL_CMAKEDIR}"
+)
 
 # Create an uninstall target
 if(NOT TARGET uninstall)
   configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-    IMMEDIATE @ONLY)
-
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake"
+    IMMEDIATE @ONLY
+  )
   add_custom_target(uninstall
     COMMAND
-    ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
+    ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake"
+  )
 endif()
+
+
+
+# Export from the build tree #######################################################################
+# Register package in user's package registry
+export(PACKAGE ${PROJECT_NAME})
 

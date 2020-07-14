@@ -243,16 +243,17 @@ void reduceKernel(float*                 output_data,
 void trackKernel(TrackData*                        output_data,
                  const se::Image<Eigen::Vector3f>& input_point_cloud_C,
                  const se::Image<Eigen::Vector3f>& input_normals_C,
-                 const se::Image<Eigen::Vector3f>& surface_point_cloud_M,
-                 const se::Image<Eigen::Vector3f>& surface_normals_M,
+                 const se::Image<Eigen::Vector3f>& surface_point_cloud_M_ref,
+                 const se::Image<Eigen::Vector3f>& surface_normals_M_ref,
                  const Eigen::Matrix4f&            T_MC,
+                 const Eigen::Matrix4f&            T_MC_ref,
                  const SensorImpl&                 sensor,
                  const float                       dist_threshold,
                  const float                       normal_threshold) {
 
   TICK();
   const Eigen::Vector2i input_res( input_point_cloud_C.width(),  input_point_cloud_C.height());
-  const Eigen::Vector2i ref_res(surface_point_cloud_M.width(), surface_point_cloud_M.height());
+  const Eigen::Vector2i ref_res(surface_point_cloud_M_ref.width(), surface_point_cloud_M_ref.height());
 
 #pragma omp parallel for
   for (int y = 0; y < input_res.y(); y++) {
@@ -266,25 +267,30 @@ void trackKernel(TrackData*                        output_data,
         continue;
       }
 
-      const Eigen::Vector3f point_C = input_point_cloud_C[pixel.x() + pixel.y() * input_res.x()];
-      const Eigen::Vector3f point_M = (T_MC * point_C.homogeneous()).head<3>();
+      // point_M := The input point in map frame
+      const Eigen::Vector3f point_M = (T_MC *
+          input_point_cloud_C[pixel.x() + pixel.y() * input_res.x()].homogeneous()).head<3>();
+      // point_C_ref := The input point expressed in the camera frame the
+      // surface_point_cloud_M_ref and surface_point_cloud_M_ref was raycasted from.
+      const Eigen::Vector3f point_C_ref = (T_MC_ref.inverse() * point_M.homogeneous()).head<3>();
 
+      // ref_pixel_f := The pixel in the surface_point_cloud_M_ref and surface_point_cloud_M_ref image.
       Eigen::Vector2f ref_pixel_f;
-      if (sensor.model.project(point_C, &ref_pixel_f) != srl::projection::ProjectionStatus::Successful) {
+      if (sensor.model.project(point_C_ref, &ref_pixel_f) != srl::projection::ProjectionStatus::Successful) {
         row.result = -2;
         continue;
       }
 
       const Eigen::Vector2i ref_pixel = se::round_pixel(ref_pixel_f);
       const Eigen::Vector3f ref_normal_M
-          = surface_normals_M[ref_pixel.x() + ref_pixel.y() * ref_res.x()];
+          = surface_normals_M_ref[ref_pixel.x() + ref_pixel.y() * ref_res.x()];
 
       if (ref_normal_M.x() == INVALID) {
         row.result = -3;
         continue;
       }
 
-      const Eigen::Vector3f diff = surface_point_cloud_M[ref_pixel.x() + ref_pixel.y() * ref_res.x()]
+      const Eigen::Vector3f diff = surface_point_cloud_M_ref[ref_pixel.x() + ref_pixel.y() * ref_res.x()]
           - point_M;
       const Eigen::Vector3f input_normal_M = T_MC.topLeftCorner<3, 3>()
           * input_normals_C[pixel.x() + pixel.y() * input_res.x()];

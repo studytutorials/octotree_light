@@ -28,20 +28,24 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "octree.hpp"
-#include "octant_ops.hpp"
-#include "node_iterator.hpp"
-#include "utils/math_utils.h"
-#include "gtest/gtest.h"
+
 #include <random>
+
+#include <gtest/gtest.h>
+
+#include <se/node_iterator.hpp>
+#include <se/octant_ops.hpp>
+#include <se/octree.hpp>
+#include <se/utils/math_utils.h>
 
 struct TestVoxelT {
   typedef float VoxelData;
   static inline VoxelData invalid(){ return 0.f; }
   static inline VoxelData initData(){ return 1.f; }
 
-  template <typename T>
-  using MemoryPoolType = se::PagedMemoryPool<T>;
+  using VoxelBlockType = se::VoxelBlockFull<TestVoxelT>;
+
+  using MemoryPoolType = se::PagedMemoryPool<TestVoxelT>;
   template <typename BufferT>
   using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
@@ -86,7 +90,7 @@ TEST_F(MultiscaleTest, ScaledAlloc) {
   octree_.allocate(allocation_list, 2);
   se::Node<TestVoxelT>* node = octree_.fetch_node(87, 32, 420, 5);
   ASSERT_TRUE(node != NULL);
-  node->data_[0] = 10.f;
+  node->childData(0, 10.f);
   EXPECT_EQ(octree_.get(87, 32, 420), 10.f);
 }
 
@@ -99,9 +103,7 @@ TEST_F(MultiscaleTest, Iterator) {
   se::node_iterator<TestVoxelT> it(octree_);
   se::Node<TestVoxelT>* node = it.next();
   for(int i = 512; node != nullptr; node = it.next(), i /= 2){
-    const Eigen::Vector3i node_coord = se::keyops::decode(node->code_);
-    const int node_size = node->size_;
-    const se::Octree<TestVoxelT>::VoxelData data = node->data_[0];
+    const int node_size = node->size();
     EXPECT_EQ(node_size, i);
   }
 }
@@ -122,7 +124,7 @@ TEST_F(MultiscaleTest, ChildrenMaskTest) {
     se::Node<TestVoxelT>* node = nodes_buffer[i];
     for(int child_idx = 0; child_idx < 8; ++child_idx) {
       if(node->child(child_idx)) {
-        ASSERT_TRUE(node->children_mask_ & (1 << child_idx));
+        ASSERT_TRUE(node->children_mask() & (1 << child_idx));
       }
     }
   }
@@ -150,8 +152,8 @@ TEST_F(MultiscaleTest, OctantAlloc) {
 
 TEST_F(MultiscaleTest, SingleInsert) {
   Eigen::Vector3i voxel_coord(32, 208, 44);
-  const int block_size = se::VoxelBlock<TestVoxelT>::size;
-  se::VoxelBlock<TestVoxelT>* block = octree_.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
+  const int block_size = TestVoxelT::VoxelBlockType::size_li;
+  TestVoxelT::VoxelBlockType* block = octree_.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
   Eigen::Vector3i block_coord = block->coordinates();
   Eigen::Vector3i block_coord_rounded = block_size * (voxel_coord / block_size);
   ASSERT_TRUE(block_coord == block_coord_rounded);
@@ -169,15 +171,15 @@ TEST_F(MultiscaleTest, MultipleInsert) {
   for(int i = 1, node_size = octree.size() / 2; i <= block_depth; ++i, node_size = node_size / 2) {
     for(int j = 0; j < 20; ++j) {
       Eigen::Vector3i voxel_coord(dis(gen), dis(gen), dis(gen));
-      se::Node<TestVoxelT>* inserted_node = octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), i);
+      octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), i);
       se::Node<TestVoxelT>* fetched_node = octree.fetch_node(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), i);
-      Eigen::Vector3i node_coord = se::keyops::decode(fetched_node->code_);
+      Eigen::Vector3i node_coord = se::keyops::decode(fetched_node->code());
       Eigen::Vector3i node_coord_rounded = node_size * (voxel_coord / node_size);
 
       // Check expected coordinates
       ASSERT_TRUE(node_coord == node_coord_rounded);
       // Should not have any children up to this depth
-      ASSERT_TRUE(fetched_node->children_mask_ == 0);
+      ASSERT_TRUE(fetched_node->children_mask() == 0);
       ++num_tested;
     }
   }
@@ -188,8 +190,9 @@ struct TestVoxel2T {
   static inline VoxelData invalid(){ return Eigen::Vector3i::Zero(); }
   static inline VoxelData initData(){ return Eigen::Vector3i::Zero(); }
 
-  template <typename T>
-  using MemoryPoolType = se::PagedMemoryPool<T>;
+  using VoxelBlockType = se::VoxelBlockFull<TestVoxel2T>;
+
+  using MemoryPoolType = se::PagedMemoryPool<TestVoxel2T>;
   template <typename BufferT>
   using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
@@ -197,7 +200,7 @@ struct TestVoxel2T {
 TEST(MultiscaleBlock, ReadWrite) {
   se::Octree<TestVoxel2T> octree;
   octree.init(1024, 10);
-  const int block_size = se::VoxelBlock<TestVoxel2T>::size;
+  const int block_size = TestVoxel2T::VoxelBlockType::size_li;
   std::random_device rd;  //Will be used to obtain a seed for the random number engine
   std::mt19937 gen(1); //Standard mersenne_twister_engine seeded with rd()
   std::uniform_int_distribution<> dis(0, 1023);
@@ -223,7 +226,7 @@ TEST(MultiscaleBlock, ReadWrite) {
     }
   }
 
-  for(int i = 0; i < voxels_coord.size(); ++i) {
+  for(size_t i = 0; i < voxels_coord.size(); ++i) {
     const Eigen::Vector3i& voxel_coord = voxels_coord[i];
     auto* block = octree.fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
     const Eigen::Vector3i& block_coord = block->coordinates();

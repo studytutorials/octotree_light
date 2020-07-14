@@ -14,23 +14,13 @@
 
 ////////////////////////// COMPILATION PARAMETERS //////////////////////
 
-const float e_delta = 0.1f;
-const int radius = 2;
-const float dist_threshold = 0.1f;
-const float normal_threshold = 0.8f;
-const float track_threshold = 0.15f;
+constexpr float e_delta = 0.1f;
+constexpr int gaussian_radius = 2;
+constexpr float dist_threshold = 0.1f;
+constexpr float normal_threshold = 0.8f;
+constexpr float track_threshold = 0.15f;
 
-/**
- * TODO
- */
-const float nearPlane = 0.4f;
-
-/**
- * TODO
- */
-const float farPlane = 4.0f;
-
-const float delta = 4.0f;
+constexpr float delta = 4.0f;
 
 const Eigen::Vector3f light{1, 1, -1.0};
 const Eigen::Vector3f ambient{ 0.1, 0.1, 0.1};

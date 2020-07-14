@@ -30,10 +30,60 @@
  * */
 
 #include "se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
+#include "se/str_utils.hpp"
 
 
 
 // Initialize static data members.
 constexpr bool MultiresTSDF::invert_normals;
-constexpr int  MultiresTSDF::max_weight;
+float MultiresTSDF::mu_factor;
+float MultiresTSDF::mu;
+int   MultiresTSDF::max_weight;
 
+void MultiresTSDF::configure(const float voxel_dim) {
+  mu         = 8 * voxel_dim;
+  max_weight = 100;
+}
+
+void MultiresTSDF::configure(YAML::Node yaml_config, const float voxel_dim) {
+  configure(voxel_dim);
+  if (yaml_config.IsNull()) {
+    return;
+  }
+
+  if (yaml_config["mu_factor"]) {
+    mu_factor = yaml_config["mu_factor"].as<float>();
+    mu = mu_factor * voxel_dim;
+  }
+  if (yaml_config["max_weight"]) {
+    max_weight = yaml_config["max_weight"].as<float>();
+  }
+  if (yaml_config["max_weight"]) {
+    max_weight = yaml_config["max_weight"].as<float>();
+  }
+}
+
+std::string MultiresTSDF::printConfig() {
+
+  std::stringstream out;
+  out << str_utils::header_to_pretty_str("VOXEL IMPL") << "\n";
+  out << str_utils::bool_to_pretty_str(MultiresTSDF::invert_normals, "Invert normals") << "\n";
+  out << str_utils::value_to_pretty_str(MultiresTSDF::mu_factor,     "mu factor") << "\n";
+  out << str_utils::value_to_pretty_str(MultiresTSDF::mu,            "mu") << "\n";
+  out << str_utils::value_to_pretty_str(MultiresTSDF::max_weight,    "Max weight") << "\n";
+  out << "\n";
+  return out.str();
+}
+
+void MultiresTSDF::dumpMesh(OctreeType&                map,
+                            std::vector<se::Triangle>& mesh) {
+  auto inside = [](const VoxelData& data) {
+    return data.x < 0.f;
+  };
+
+  auto select_value = [](const VoxelData& data) {
+    return data.x;
+  };
+
+  se::algorithms::dual_marching_cube(map, select_value, inside, mesh);
+}

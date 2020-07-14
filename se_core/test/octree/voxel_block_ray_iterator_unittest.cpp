@@ -28,10 +28,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "octree.hpp"
-#include "voxel_block_ray_iterator.hpp"
-#include "gtest/gtest.h"
 #include <vector>
+
+#include <gtest/gtest.h>
+
+#include <se/octree.hpp>
+#include <se/voxel_block_ray_iterator.hpp>
 
 
 
@@ -41,8 +43,9 @@ struct TestVoxelT {
   static inline VoxelData invalid(){ return -1.f; }
   static inline VoxelData initData(){ return 0.f; }
 
-  template <typename T>
-  using MemoryPoolType = se::PagedMemoryPool<T>;
+  using VoxelBlockType = se::VoxelBlockFull<TestVoxelT>;
+
+  using MemoryPoolType = se::PagedMemoryPool<TestVoxelT>;
   template <typename BufferT>
   using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
@@ -88,11 +91,11 @@ class VoxelBlockRayIteratorTest : public ::testing::Test {
 TEST_F(VoxelBlockRayIteratorTest, FetchAlongRay) {
   se::VoxelBlockRayIterator<TestVoxelT> it (octree_, ray_origin_M_, ray_dir_M_,
       0.4, 4.0f);
-  int i = 0;
-  se::VoxelBlock<TestVoxelT>* current;
-  while (current = it.next()) {
+  size_t i = 0;
+  TestVoxelT::VoxelBlockType* current;
+  while ((current = it.next())) {
     ASSERT_LT(i, allocation_list_.size());
-    ASSERT_EQ(current->code_, allocation_list_[i]);
+    ASSERT_EQ(current->code(), allocation_list_[i]);
     i++;
   }
   ASSERT_EQ(i, allocation_list_.size());

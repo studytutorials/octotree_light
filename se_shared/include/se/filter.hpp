@@ -41,7 +41,7 @@ namespace algorithms {
                                   const Eigen::Matrix4f& T_CM,
                                   const SensorImpl&      sensor) {
 
-      const int block_size = VoxelBlockType::size;
+      const int block_size = VoxelBlockType::size_li;
       const static Eigen::Matrix<int, 4, 8> corner_rel_steps =
         (Eigen::Matrix<int, 4, 8>() << 0, block_size, 0   , block_size, 0   , block_size, 0   , block_size,
                                        0, 0   , block_size, block_size, 0   , 0   , block_size, block_size,

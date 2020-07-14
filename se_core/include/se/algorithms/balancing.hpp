@@ -49,9 +49,9 @@ void balance(se::Octree<T>& octree) {
   se::node_iterator<T> it(octree);
   int depth = se::math::log2_const(octree.size());
   while(se::Node<T>* n = it.next()) {
-    int depth = se::keyops::depth(n->code_);
+    int depth = se::keyops::depth(n->code());
     if(depth == 0) continue; // skip root
-    se::one_neighbourhood(N, se::parent(n->code_, depth), 
+    se::one_neighbourhood(N, se::parent(n->code(), depth),
         depth); 
     for(int i = 0; i < 6; ++i) {
       Eigen::Ref<Eigen::Matrix<int, 4, 1>> coords(N.col(i));

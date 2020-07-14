@@ -39,27 +39,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Eigen/Dense>
 
 #include "se/utils/math_utils.h"
+#include "se/str_utils.hpp"
 
 
 
 struct Configuration {
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
   //
-  // KFusion configuration parameters
+  // Pipeline configuration parameters
   // Command line arguments are parsed in default_parameters.h
   //
+
+  std::string sensor_type;
+  std::string voxel_impl_type;
+  std::string sequence_name;
 
   /**
    * The ratio of the input frame size over the frame size used internally.
    * Values greater than 1 result in the input frames being downsampled
    * before processing. Valid values are 1, 2, 4 and 8.
+   *
    * <br>\em Default: 1
    */
-  int image_downsampling_factor;
+  int sensor_downsampling_factor;
 
   /**
    * Perform tracking on a frame every tracking_rate frames.
+   *
    * <br>\em Default: 1
    */
   int tracking_rate;
@@ -67,24 +72,44 @@ struct Configuration {
   /**
    * Integrate a 3D reconstruction every integration_rate frames. Should not
    * be less than tracking_rate.
+   *
    * <br>\em Default: 2
    */
   int integration_rate;
 
   /**
-   * Render the 3D reconstruction every rendering_rate frames.
+   * Render the 3D reconstruction every rendering_rate frames
+   * \note configuration::enable_render == true (default) required.
+   *
+   * Special cases:
+   * If rendering_rate == 0 the volume is only rendered for configuration::max_frame.
+   * If rendering_rate < 0  the volume is only rendered for frame abs(rendering_rate).
+   *
    * <br>\em Default: 4
    */
   int rendering_rate;
 
   /**
+   * Mesh the 3D reconstruction every meshing_rate frames.
+   *
+   * Special cases:
+   * If meshing_rate == 0 the volume is only meshed for configuration::max_frame.
+   * If meshing_rate < 0  the volume is only meshed for frame abs(meshing_rate).
+   *
+   * <br>\em Default: 100
+   */
+  int meshing_rate;
+
+  /**
    * The x, y and z size of the reconstructed map in voxels.
+   *
    * <br>\em Default: (256, 256, 256)
    */
   Eigen::Vector3i map_size;
 
   /**
    * The x, y and z dimensions of the reconstructed map in meters.
+   *
    * <br>\em Default: (2, 2, 2)
    */
   Eigen::Vector3f map_dim;
@@ -94,6 +119,7 @@ struct Configuration {
    * expressed as fractions [0, 1] of the volume's extent. The default value of
    * (0.5, 0.5, 0) results in the first pose being placed halfway along the x
    * and y axes and at the beginning of the z axis.
+   *
    * <br>\em Default: (0.5, 0.5, 0)
    */
   Eigen::Vector3f t_MW_factor;
@@ -110,6 +136,7 @@ struct Configuration {
    * results in 10 ICP iterations for the initial depth frame, 5 iterations for
    * the initial depth frame downsampled once and 4 iterations for the initial
    * frame downsampled twice.
+   *
    * <br>\em Default: (10, 5, 4)
    */
   std::vector<int> pyramid;
@@ -118,17 +145,27 @@ struct Configuration {
    * TODO
    * <br>\em Default: ""
    */
-  std::string dump_volume_file;
+  std::string output_mesh_file;
 
   /*
    * TODO
    * <br>\em Default: ""
    */
-  std::string input_file;
+  std::string sequence_path;
 
-  /*
-   * TODO
-   * <br>\em Default: ""
+
+  /**
+   * Whether to run the pipeline in benchmark mode. Hiding the GUI results in faster operation.
+   *
+   * <br>\em Default: false
+   */
+  bool enable_benchmark;
+
+  /**
+   * The log file the timing results will be written to.
+   *
+   * <br>\em Default: std::cout if Configuration::enable_benchmark is blank (--enable-benchmark) or not Configuration::enable_render (--enable-render)
+   * <br>\em Default: autogen log filename if the Configuration::enable_benchmark argument is a directory (--enable-benchmark=/PATH/TO/DIR)
    */
   std::string log_file;
 
@@ -141,76 +178,132 @@ struct Configuration {
    * qy qz qw`, that is the pose is encoded in the last 7 columns of the line.
    * The other columns of the file are ignored. Lines beginning with # are
    * comments.
+   *
    * <br>\em Default: ""
    *
-   * \note It is assumed that the ground truth poses are the camera frame C
-   * expressed in the world frame W. The camera frame is assumed to be z
+   * \note It is assumed that the ground truth poses are the sensor frame C
+   * expressed in the world frame W. The sensor frame is assumed to be z
    * forward, x right with respect to the image. If the ground truth poses do
    * not adhere to this assumption then the ground truth transformation
    * Configuration::T_BC should be set appropriately.
    */
-  std::string groundtruth_file;
+  std::string ground_truth_file;
+
+  /**
+   * Whether to use the available ground truth camera pose.
+   *
+   * <br>\em Default: true
+   */
+  bool enable_ground_truth;
+
 
   /**
    * A 4x4 transformation matrix post-multiplied with all poses read from the
    * ground truth file. It is used if the ground truth poses are in some frame
-   * B other than the camera frame C.
+   * B other than the sensor frame C.
+   *
    * <br>\em Default: Eigen::Matrix4f::Identity()
    */
   Eigen::Matrix4f T_BC;
 
   /**
-   * The intrinsic camera parameters. camera.x, camera.y, camera.z and
-   * camera.w are the x-axis focal length, y-axis focal length, horizontal
-   * resolution (pixels) and vertical resolution (pixels) respectively.
+   * The initial pose of the body in world frame expressed in a 4x4 transformation matrix.
+   *
+   * \note If T_BC is the Idenity matrix init_T_WB equals init_T_WC
+   *
+   * <br>\em Default: Eigen::Matrix4f::Identity()
    */
-  Eigen::Vector4f camera;
+  Eigen::Matrix4f init_T_WB;
 
   /**
-   * Indicates if the camera uses a left hand coordinate system
+   * The intrinsic sensor parameters. sensor_intrinsics.x, sensor_intrinsics.y, sensor_intrinsics.z and
+   * sensor_intrinsics.w are the x-axis focal length, y-axis focal length, horizontal
+   * resolution (pixels) and vertical resolution (pixels) respectively.
+   */
+  Eigen::Vector4f sensor_intrinsics;
+
+  /**
+   * Indicates if the sensor uses a left hand coordinate system
    */
   bool left_hand_frame;
 
   /**
-   * Whether the default intrinsic camera parameters have been overriden.
+   * Whether the default intrinsic sensor parameters have been overriden.
    */
-  bool camera_overrided;
+  bool sensor_intrinsics_overrided;
 
   /**
-   * The TSDF truncation bound. Values of the TSDF are assumed to be in the
-   * interval ±mu. See Section 3.3 of \cite NewcombeISMAR2011 for more
-   * details.
-   *  <br>\em Default: 0.1
+   * Nearest z-distance to the sensor along the sensor frame z-axis, that voxels are updated.
    */
-  float mu;
+  float near_plane;
+
+  /**
+   * Furthest z-distance to the sensor along the sensor frame z-axis, that voxels are updated.
+   */
+  float far_plane;
 
   /**
    * Read frames at the specified rate, waiting if the computation rate is
    * higher than se::Configuration::fps.
    *
-   * @note Must be non-negative.
+   * \note Must be non-negative.
    *
    * <br>\em Default: 0
    */
   float fps;
 
-  /*
-   * TODO
+  /**
+   * Skip processing frames that could not be processed in time. Only has an
+   * effect if se::Configuration::fps is greater than 0.
    * <br>\em Default: false
    */
-  bool blocking_read;
+  bool drop_frames;
+
+  /**
+   * Last frame to be integrated.
+   * \note: se::Configuration::max_frame starts from 0.
+   *
+   * Special cases
+   * If max_frame == -1 (default) the entire dataset will be integrated and the value will be overwritten by
+   * number of frames in dataset - 1 (exception number of frames is unknwon e.g. OpenNI/live feed).
+   *
+   * If max_frame > number of frames in dataset - 1 the value will be overwritten by reader.numFrames()
+   * (exception number of frames is unknwon e.g. OpenNI/live feed).
+   *
+   * If (max_frame == -1 (default) or max_frame > number of frames in dataset - 1) and the number of frames is unknown
+   * (e.g. OpenNI/live feed) the frames are integrated until the pipeline is terminated and max_frame is kept at -1.
+   *
+   * max_frame in [0, number of frames in dataset - 1] or [0, inf] if number of frames in dataset is unknown.
+   *
+   * <br>\em Default: -1 (full dataset)
+   */
+  int max_frame;
 
   /**
    * The ICP convergence threshold.
+   *
    * <br>\em Default: 1e-5
    */
   float icp_threshold;
 
   /**
-   * Whether to hide the GUI. Hiding the GUI results in faster operation.
+   * Whether to mesh the octree.
+   *
    * <br>\em Default: false
    */
-  bool no_gui;
+  bool enable_meshing;
+
+  /**
+   * Whether to hide the GUI. Hiding the GUI results in faster operation.
+   * <br>\em Default: true
+   */
+  bool enable_render;
+
+  /*
+   * TODO
+   * <br>\em Default: ""
+   */
+  std::string output_render_file;
 
   /*
    * TODO
@@ -222,51 +315,86 @@ struct Configuration {
    * Whether to filter the depth input frames using a bilateral filter.
    * Filtering using a bilateral filter helps to reduce the measurement
    * noise.
+   *
    * <br>\em Default: false
    */
   bool bilateral_filter;
+
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
-
-
 static std::ostream& operator<<(std::ostream& out, const Configuration& config) {
-  out << "Input file:                      " << config.input_file << "\n";
-  out << "Map dim:                         " << config.map_dim.x() << "x"
-                                             << config.map_dim.y() << "x"
-                                             << config.map_dim.z() << " meters\n";
-  out << "Map size:                        " << config.map_size.x() << "x"
-                                             << config.map_size.y() << "x"
-                                             << config.map_size.z() << " voxels\n";
-  out << "World to map translation factor: " << config.t_MW_factor.x() << " "
-                                             << config.t_MW_factor.y() << " "
-                                             << config.t_MW_factor.z() << "\n";
-  out << "Image downsampling-factor:       " << config.image_downsampling_factor << "\n";
-  out << "Camera parameters:               " << config.camera.x() << " "
-                                             << config.camera.y() << " "
-                                             << config.camera.z() << " "
-                                             << config.camera.w() << "\n";
-  out << "Left hand frame:                 " << config.left_hand_frame << "\n";
-  out << "Mu:                              " << config.mu << "\n";
-  out << "Filter depth:                    " << (config.bilateral_filter
-                                        ? "true" : "false") << "\n";
-  out << "Tracking rate:                   " << config.tracking_rate << "\n";
-  out << "Integration rate:                " << config.integration_rate << "\n";
-  out << "Rendering rate:                  " << config.rendering_rate << "\n";
-  out << "ICP pyramid levels:              ";
-  for (const auto& level : config.pyramid) {
-    out << " " << level;
+
+  out << str_utils::header_to_pretty_str("GENERAL") << "\n";
+  out << str_utils::str_to_pretty_str(config.voxel_impl_type,         "Voxel impl type") << "\n";
+  out << str_utils::str_to_pretty_str(config.sensor_type,             "Sensor type") << "\n";
+  out << "\n";
+
+  out << str_utils::str_to_pretty_str(config.sequence_name,           "Sequence name") << "\n";
+  out << str_utils::str_to_pretty_str(config.sequence_path,           "Sequence path") << "\n";
+  out << str_utils::str_to_pretty_str(config.ground_truth_file,       "Ground truth file") << "\n";
+  out << str_utils::str_to_pretty_str((config.log_file == "" ? "std::cout" : config.log_file),
+                                                                      "Log file") << "\n";
+  out << str_utils::bool_to_pretty_str(config.enable_benchmark,       "Enable benchmark") << "\n";
+  out << str_utils::bool_to_pretty_str(config.enable_ground_truth,    "Enable ground truth") << "\n";
+  out << str_utils::bool_to_pretty_str(config.enable_render,          "Enable render"      ) << "\n";
+  if (config.output_render_file != "") {
+    out << str_utils::str_to_pretty_str(config.output_render_file,    "Output render file") << "\n";
+  }
+  out << str_utils::bool_to_pretty_str(config.enable_meshing,         "Enable meshing"     ) << "\n";
+  if (config.output_mesh_file != "") {
+    out << str_utils::str_to_pretty_str(config.output_mesh_file,      "Output mesh file") << "\n";
   }
   out << "\n";
-  out << "ICP threshold:                   " << config.icp_threshold << "\n";
-  out << "Ground truth file:               " << config.groundtruth_file << "\n";
-  out << "Ground truth T_BC:\n"              << config.T_BC << "\n";
-  out << "Output mesh file:                " << config.dump_volume_file << "\n";
-  out << "Log file:                        " << config.log_file << "\n";
-  out << "Hide GUI:                        " << (config.no_gui
-                                        ? "true" : "false") << "\n";
-  out << "Blocking read:                   " << (config.blocking_read
-                                        ? "true" : "false") << "\n";
-  out << "FPS:                             " << config.fps << "\n";
+
+  out << str_utils::value_to_pretty_str(config.integration_rate,      "Integration rate") << "\n";
+  out << str_utils::value_to_pretty_str(config.rendering_rate,        "Rendering rate") << "\n";
+  out << str_utils::value_to_pretty_str(config.meshing_rate,          "Meshing rate") << "\n";
+  out << str_utils::value_to_pretty_str(config.fps,                   "FPS") << "\n";
+  out << str_utils::bool_to_pretty_str(config.drop_frames,            "Drop frames") << "\n";
+  out << str_utils::value_to_pretty_str(config.max_frame,             "Max frame") << "\n";
+  out << "\n";
+
+  out << str_utils::vector_to_pretty_str(Eigen::VectorXi::Map(config.pyramid.data(), config.pyramid.size()),
+                                                                      "ICP pyramid levels") << "\n";
+  out << str_utils::value_to_pretty_str(config.icp_threshold,         "ICP threshold") << "\n";
+  out << str_utils::bool_to_pretty_str(config.render_volume_fullsize, "Render volume full-size") << "\n";
+  out << "\n";
+
+  out << str_utils::header_to_pretty_str("MAP") << "\n";
+  out << str_utils::volume_to_pretty_str(config.map_size,             "Map size", "voxel") << "\n";
+  out << str_utils::volume_to_pretty_str(config.map_dim,              "Map dim",  "meter") << "\n";
+  out << str_utils::value_to_pretty_str(config.map_dim.x() / config.map_size.x(),
+                                                                      "Map res", "meter/voxel") << "\n";
+
+  out << str_utils::vector_to_pretty_str(config.t_MW_factor,          "t_MW_factor") << "\n";
+  out << "\n";
+
+  out << str_utils::header_to_pretty_str("SENSOR") << "\n";
+  out << str_utils::vector_to_pretty_str(config.sensor_intrinsics,    "Sensor intrinsics", {"fx", "fy", "cx", "cy"}) << "\n";
+  out << str_utils::bool_to_pretty_str(config.left_hand_frame,        "Left-handed-coordinate system") << "\n";
+  out << str_utils::value_to_pretty_str(config.sensor_downsampling_factor,
+                                                                      "Sensor downsampling factor") << "\n";
+  out << str_utils::bool_to_pretty_str(config.bilateral_filter,       "Filter depth (bilateral filter)") << "\n";
+  out << str_utils::value_to_pretty_str(config.near_plane,            "Near plane", "meters") << "\n";
+  out << str_utils::value_to_pretty_str(config.far_plane,             "Far plane", "meters") << "\n";
+  out << "\n";
+  out << str_utils::matrix_to_pretty_str(config.T_BC,                 "T_BC") << "\n";
+  out << "\n";
+  out << str_utils::matrix_to_pretty_str(config.init_T_WB,            "init_T_WB") << "\n";
+  out << "\n";
+
+  const Eigen::Vector3f t_MW = config.map_dim.x() * config.t_MW_factor;
+  const Eigen::Matrix4f T_MW = se::math::to_transformation(t_MW);
+  const Eigen::Matrix4f init_T_MB = T_MW * config.init_T_WB;
+  const Eigen::Vector3f init_t_MB = se::math::to_translation(init_T_MB);
+  out << str_utils::vector_to_pretty_str(init_t_MB,                   "init t_MB") << "\n";
+  out << "\n";
+
+  const Eigen::Vector3f init_t_MB_factor = init_t_MB / config.map_dim.x();
+  out << str_utils::vector_to_pretty_str(init_t_MB_factor,            "init t_MB_factor") << "\n";
+  out << "\n";
+
   return out;
 }
 

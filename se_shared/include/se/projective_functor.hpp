@@ -39,13 +39,15 @@
 #include "se/sensor_implementation.hpp"
 
 namespace se {
+
+
 namespace functor {
   template <typename FieldType, template <typename FieldT> class OctreeT,
             typename UpdateF>
   class projective_functor {
+    using VoxelBlockType = typename FieldType::VoxelBlockType;
 
     public:
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       projective_functor(OctreeT<FieldType>&    octree,
                          UpdateF&               funct,
                          const Eigen::Matrix4f& T_CM,
@@ -66,14 +68,14 @@ namespace functor {
       void build_active_list() {
         using namespace std::placeholders;
         /* Retrieve the active list */
-        const typename FieldType::template MemoryBufferType<se::VoxelBlock<FieldType>>& block_buffer = octree_.pool().blockBuffer();
+        const typename FieldType::template MemoryBufferType<VoxelBlockType>& block_buffer = octree_.pool().blockBuffer();
 
         /* Predicates definition */
         const float voxel_dim = octree_.dim() / octree_.size();
         auto in_frustum_predicate =
-          std::bind(algorithms::in_frustum<se::VoxelBlock<FieldType>>,
+          std::bind(algorithms::in_frustum<VoxelBlockType>,
               std::placeholders::_1, voxel_dim, T_CM_, sensor_);
-        auto is_active_predicate = [](const se::VoxelBlock<FieldType>* block) {
+        auto is_active_predicate = [](const VoxelBlockType* block) {
           return block->active();
         };
 
@@ -82,15 +84,14 @@ namespace functor {
             in_frustum_predicate);
       }
 
-      void update_block(se::VoxelBlock<FieldType>* block,
-                        const float                voxel_dim) {
+      void update_block(VoxelBlockType* block,
+                        const float     voxel_dim) {
         /* Is this the VoxelBlock centre? */
+        funct_.reset();
         const Eigen::Vector3i block_coord = block->coordinates();
-        bool is_visible = false;
         block->current_scale(0);
-
         /* Iterate over each voxel in the VoxelBlock. */
-        const unsigned int block_size = se::VoxelBlock<FieldType>::size;
+        const unsigned int block_size = VoxelBlockType::size_li;
         const unsigned int x_last = block_coord.x() + block_size;
         const unsigned int y_last = block_coord.y() + block_size;
         const unsigned int z_last = block_coord.z() + block_size;
@@ -103,34 +104,27 @@ namespace functor {
               const Eigen::Vector3f point_C = (T_CM_ * (voxel_dim * (voxel_coord.cast<float>() +
                   sample_offset_frac_)).homogeneous()).head(3);
 
-              Eigen::Vector2f pixel_f;
-              if (sensor_.model.project(point_C, &pixel_f) != srl::projection::ProjectionStatus::Successful) {
-                continue;
-              }
-
-              is_visible = true;
-
               /* Update the voxel. */
               VoxelBlockHandler<FieldType> handler = {block, voxel_coord};
-              funct_(handler, voxel_coord, point_C, pixel_f);
+              funct_(handler, voxel_coord, point_C);
             }
           }
         }
-        block->active(is_visible);
+        funct_(block);
       }
 
       void update_node(se::Node<FieldType>* node,
                        const float          voxel_dim) {
-        const Eigen::Vector3i node_coord = Eigen::Vector3i(unpack_morton(node->code_));
+        const Eigen::Vector3i node_coord = Eigen::Vector3i(unpack_morton(node->code()));
 
 
         /* Iterate over the Node children. */
 #pragma omp simd
         for(int child_idx = 0; child_idx < 8; ++child_idx) {
-          const Eigen::Vector3i rel_step = node->size_ / 2 *
+          const Eigen::Vector3i rel_step = node->size() / 2 *
               Eigen::Vector3i((child_idx & 1) > 0, (child_idx & 2) > 0, (child_idx & 4) > 0); // TODO: Offset needs to be discussed
           const Eigen::Vector3i child_coord = node_coord + rel_step;
-          const Eigen::Vector3f child_point_C = (T_CM_ * (voxel_dim * (child_coord.cast<float>() + node->size_ *
+          const Eigen::Vector3f child_point_C = (T_CM_ * (voxel_dim * (child_coord.cast<float>() + node->size() *
               sample_offset_frac_)).homogeneous()).head(3);
           Eigen::Vector2f pixel_f;
           if (sensor_.model.project(child_point_C, &pixel_f) != srl::projection::ProjectionStatus::Successful) {
@@ -139,7 +133,7 @@ namespace functor {
 
           /* Update the child Node. */
           NodeHandler<FieldType> handler = {node, child_idx};
-          funct_(handler, child_coord, child_point_C, pixel_f);
+          funct_(handler, child_coord, child_point_C);
         }
       }
 
@@ -163,6 +157,8 @@ namespace functor {
          }
       }
 
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
     private:
       OctreeT<FieldType>& octree_;
       UpdateF& funct_;
@@ -170,7 +166,7 @@ namespace functor {
       const SensorImpl sensor_;
       const Eigen::Vector3f sample_offset_frac_;
       const Eigen::Vector2i image_res_;
-      std::vector<se::VoxelBlock<FieldType>*> active_list_;
+      std::vector<VoxelBlockType*> active_list_;
   };
 
   /*! \brief Create a projective_functor and call projective_functor::apply.

@@ -35,6 +35,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Eigen/Dense"
 
 namespace se {
+template<typename T>
+using VoxelBlockType = typename T::VoxelBlockType;
 
 /*! \brief Iterate through all the nodes (first Node and then VoxelBlock nodes)
  * of the Octree.
@@ -75,7 +77,7 @@ class node_iterator {
       case LEAF_NODES: {
         const auto& block_buffer = octree_.pool().blockBuffer();
         if(last < block_buffer.size()) {
-          VoxelBlock<T>* n = block_buffer[last++];
+          VoxelBlockType<T>* n = block_buffer[last++];
           return n;
           /* the above int init required due to odr-use of static member */
         } else {

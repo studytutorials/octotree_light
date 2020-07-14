@@ -1,0 +1,40 @@
+get_filename_component(SUPEREIGHT_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include(CMakeFindDependencyMacro)
+
+find_dependency(Eigen3)
+find_dependency(SRLProjection)
+find_dependency(Sophus)
+find_dependency(octomap)
+find_dependency(yaml-cpp)
+
+set(SE_VOXEL_IMPLS @SE_VOXEL_IMPLS@)
+set(SE_SENSOR_IMPLS @SE_SENSOR_IMPLS@)
+
+# SE:Core
+if(NOT TARGET SE::Core)
+  include("${SUPEREIGHT_CMAKE_DIR}/SECoreTargets.cmake")
+endif()
+set(SE_LIBRARIES SE::Core)
+
+# SE:Shared
+if(NOT TARGET SE::Shared)
+  include("${SUPEREIGHT_CMAKE_DIR}/SESharedTargets.cmake")
+endif()
+set(SE_LIBRARIES ${SE_LIBRARIES} SE::Shared)
+
+foreach(VOXEL_IMPL ${SE_VOXEL_IMPLS})
+  foreach(SENSOR_IMPL ${SE_SENSOR_IMPLS})
+    # SE::VoxelImpl*
+    if(NOT TARGET SE::VoxelImpl${VOXEL_IMPL}${SENSOR_IMPL})
+      include("${SUPEREIGHT_CMAKE_DIR}/SEVoxelImpl${VOXEL_IMPL}${SENSOR_IMPL}Targets.cmake")
+    endif()
+    set(SE_LIBRARIES ${SE_LIBRARIES} SE::VoxelImpl${VOXEL_IMPL}${SENSOR_IMPL})
+
+    # SE::DenseSLAM*
+    if(NOT TARGET SE::DenseSLAM${VOXEL_IMPL}${SENSOR_IMPL})
+      include("${SUPEREIGHT_CMAKE_DIR}/SEDenseSLAM${VOXEL_IMPL}${SENSOR_IMPL}Targets.cmake")
+    endif()
+    set(SE_LIBRARIES ${SE_LIBRARIES} SE::DenseSLAM${VOXEL_IMPL}${SENSOR_IMPL})
+  endforeach()
+endforeach()
+

@@ -3,8 +3,7 @@
 #include "se/algorithms/balancing.hpp"
 #include "se/functors/axis_aligned_functor.hpp"
 #include "se/functors/for_each.hpp"
-#include "se/io/vtk-io.h"
-#include "se/io/ply_io.hpp"
+#include "se/io/octree_io.hpp"
 #include "se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp"
 #include "../../src/MultiresTSDF/MultiresTSDF.cpp"
 #include "../../src/MultiresTSDF/MultiresTSDF_allocation.cpp"
@@ -13,6 +12,9 @@
 #include <random>
 #include <functional>
 #include <gtest/gtest.h>
+
+template<typename T>
+using VoxelBlockType = typename T::VoxelBlockType;
 
 float sphereDist(const Eigen::Vector3f& point,
                  const Eigen::Vector3f& centre,
@@ -30,13 +32,13 @@ float sphereDistNoisy(const Eigen::Vector3f& point,
   return (dist - radius) + noise(gen);
 }
 
-template <typename T>
-void updateBlock(se::VoxelBlock<T>*     block,
+template <typename VoxelBlockT>
+void updateBlock(VoxelBlockT*           block,
                  const Eigen::Vector3f& centre,
                  const float            radius,
                  const int              scale) {
   const Eigen::Vector3i block_coord = block->coordinates();
-  const int block_size = se::VoxelBlock<T>::size;
+  const int block_size = VoxelBlockT::size_li;
   const int stride = 1 << scale;
   for(int z = 0; z < block_size; z += stride) {
     for (int y = 0; y < block_size; y += stride) {
@@ -90,22 +92,23 @@ class MultiresESDFMovingSphereTest : public ::testing::Test {
 TEST_F(MultiresESDFMovingSphereTest, Integration) {
   Eigen::Vector3f centre = Eigen::Vector3f::Constant(centre_);
   int scale = 0;
-  float radius = this->radius_;
-  auto update_op = [&centre, &scale, radius](se::VoxelBlock<MultiresTSDF::VoxelType>* block) {
+  float radius = radius_;
+  auto update_op = [&centre, &scale, radius](VoxelBlockType<MultiresTSDF::VoxelType>* block) {
     updateBlock(block, centre, radius, scale);
   };
 
   for(int i = 0; i < 5; ++i) {
     se::functor::internal::parallel_for_each(octree_.pool().blockBuffer(), update_op);
-    auto op = [](se::VoxelBlock<MultiresTSDF::VoxelType>* block) { se::multires::propagateUp(block, 0); };
+    auto op = [](VoxelBlockType<MultiresTSDF::VoxelType>* block) { MultiresTSDFUpdate::propagateUp(block, 0); };
     se::functor::internal::parallel_for_each(octree_.pool().blockBuffer(), op);
 
     {
       std::stringstream f;
       f << "./out/sphere-interp-" << i << ".vtk";
-      save3DSlice(octree_, Eigen::Vector3i(0, octree_.size() / 2, 0),
-          Eigen::Vector3i(octree_.size(), octree_.size() / 2 + 1, octree_.size()),
-          [](const auto& data) { return data.x; }, octree_.maxBlockScale(), f.str().c_str());
+      save_3d_slice_vtk(octree_, f.str().c_str(),
+                        Eigen::Vector3i(0, octree_.size() / 2, 0),
+                        Eigen::Vector3i(octree_.size(), octree_.size() / 2 + 1, octree_.size()),
+                        [](const auto& data) { return data.x; }, octree_.maxBlockScale());
     }
   }
 
@@ -115,16 +118,17 @@ TEST_F(MultiresESDFMovingSphereTest, Integration) {
   for(int i = 5; i < 10; ++i) {
     se::functor::internal::parallel_for_each(octree_.pool().blockBuffer(), update_op);
     auto& octree_ref = octree_;
-    auto op = [&octree_ref, scale](se::VoxelBlock<MultiresTSDF::VoxelType>* block) { se::multires::propagateDown(octree_ref, block, scale, 0); };
+    auto op = [&octree_ref, scale](VoxelBlockType<MultiresTSDF::VoxelType>* block) { MultiresTSDFUpdate::propagateDown(octree_ref, block, scale, 0); };
     se::functor::internal::parallel_for_each(octree_.pool().blockBuffer(), op);
 
     {
       std::stringstream f;
       f << "./out/sphere-interp-" << i << ".vtk";
-      save3DSlice(octree_, Eigen::Vector3i(0, octree_.size() / 2, 0),
-          Eigen::Vector3i(octree_.size(), octree_.size() / 2 + 1, octree_.size()),
-          [](const auto& data) { return data.x; }, octree_.maxBlockScale(), f.str().c_str());
+      save_3d_slice_vtk(octree_, f.str().c_str(),
+                        Eigen::Vector3i(0, octree_.size() / 2, 0),
+                        Eigen::Vector3i(octree_.size(), octree_.size() / 2 + 1, octree_.size()),
+                        [](const auto& data) { return data.x; }, octree_.maxBlockScale());
     }
   }
-  se::print_octree("./out/test-sphere.ply", octree_);
+  se::save_octree_structure_ply(octree_, "./out/test-sphere.ply");
 }

@@ -40,38 +40,51 @@
 
 
 
-struct tsdf_update {
+struct TSDFUpdate {
   const se::Image<float>& depth_image;
-  float mu;
+  const SensorImpl&       sensor;
+  bool                    is_visible;
 
+  TSDFUpdate(const se::Image<float>& depth_image,
+             const SensorImpl&       sensor) :
+      depth_image(depth_image),
+      sensor(sensor) {};
 
+  void reset() {
+    is_visible = false;
+  }
 
-  tsdf_update(const se::Image<float>& depth_image,
-              float                   mu)
-    : depth_image(depth_image), mu(mu) {};
-
-
+  template <typename FieldType,
+            template <typename FieldT> class VoxelBlockT>
+  void operator()(VoxelBlockT<FieldType>* block) {
+    block->active(is_visible);
+  }
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
                   const Eigen::Vector3i&,
-                  const Eigen::Vector3f& point_C,
-                  const Eigen::Vector2f& pixel_f) {
-
-    const Eigen::Vector2i pixel = se::round_pixel(pixel_f);
-    const float depth_value = depth_image(pixel.x(), pixel.y());
-    // Return on invalid depth measurement
-    if (depth_value <= 0.f)
+                  const Eigen::Vector3f& point_C) {
+    // Don't update the point if the sample point is behind the far plane
+    if (point_C.norm() > sensor.farDist(point_C)) {
       return;
+    }
+
+    // Don't update the point if the depth value is closer than the near plane
+    float depth_value(0);
+    if (!sensor.projectToPixelValue(point_C, depth_image, depth_value,
+        [&](float depth_value){ return depth_value >= sensor.near_plane; })) {
+      return;
+    }
+
+    is_visible = true;
 
     // Update the TSDF
-    const float point_dist = (depth_value - point_C.z())
-      * std::sqrt(1 + se::math::sq(point_C.x() / point_C.z())
-      + se::math::sq(point_C.y() / point_C.z()));
-    if (point_dist > -mu) {
-      const float tsdf = fminf(1.f, point_dist / mu);
+    const float m = sensor.measurementFromPoint(point_C);
+    const float sdf_value = (depth_value - m) / m * point_C.norm();
+    if (sdf_value > -TSDF::mu) {
+      const float tsdf_value = fminf(1.f, sdf_value / TSDF::mu);
       auto data = handler.get();
-      data.x = (data.y * data.x + tsdf) / (data.y + 1.f);
+      data.x = (data.y * data.x + tsdf_value) / (data.y + 1.f);
       data.x = se::math::clamp(data.x, -1.f, 1.f);
       data.y = fminf(data.y + 1, TSDF::max_weight);
       handler.set(data);
@@ -81,15 +94,15 @@ struct tsdf_update {
 
 
 
-void TSDF::integrate(se::Octree<TSDF::VoxelType>& map,
-                     const se::Image<float>&      depth_image,
-                     const Eigen::Matrix4f&       T_CM,
-                     const SensorImpl&            sensor,
+void TSDF::integrate(OctreeType&             map,
+                     const se::Image<float>& depth_image,
+                     const Eigen::Matrix4f&  T_CM,
+                     const SensorImpl&       sensor,
                      const unsigned) {
 
   const Eigen::Vector2i depth_image_res(depth_image.width(), depth_image.height());
 
-  struct tsdf_update funct(depth_image, sensor.mu);
+  struct TSDFUpdate funct(depth_image, sensor);
 
   se::functor::projective_octree(map, map.sample_offset_frac_, T_CM, sensor, depth_image_res, funct);
 }

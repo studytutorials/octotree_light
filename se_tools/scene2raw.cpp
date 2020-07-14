@@ -7,23 +7,22 @@
 
  */
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <iterator>
-#include<stdint.h>
-#include<vector>
-#include <sstream>
-#include <string>
 #include <cstring>
-#include <cmath>
-
-#include "lodepng.h"
-
-#include <sstream>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <sstream>
+#include <sstream>
+#include <stdint.h>
+#include <string>
+#include <string>
+#include <vector>
+
+#include <lodepng.h>
 
 typedef unsigned short int ushort;
 

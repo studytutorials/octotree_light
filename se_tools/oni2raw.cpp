@@ -9,8 +9,10 @@
 
 #include <iostream>
 #include <stdexcept>
-#include <vector_types.h>
+
 #include <OpenNI.h>
+
+#include "vector_types.h"
 
 const int2 imageSize = { 640, 480 };
 

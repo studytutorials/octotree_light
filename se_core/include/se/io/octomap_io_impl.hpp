@@ -15,7 +15,8 @@
 #include <Eigen/Dense>
 #include <octomap/octomap.h>
 
-
+template<typename T>
+using VoxelBlockType = typename T::VoxelBlockType;
 
 template<typename VoxelT, typename FunctionT>
 octomap::OcTree* se::to_octomap(const se::Octree<VoxelT>& octree,
@@ -56,10 +57,10 @@ octomap::OcTree* se::to_octomap(const se::Octree<VoxelT>& octree,
       node = current;
 
       if (node->isBlock()) {
-        const se::VoxelBlock<VoxelT>* block
-            = static_cast<se::VoxelBlock<VoxelT>*>(node);
+        const VoxelBlockType<VoxelT>* block
+            = static_cast<VoxelBlockType <VoxelT>*>(node);
         const Eigen::Vector3i block_coord = block->coordinates();
-        const int block_size = static_cast<int>(se::VoxelBlock<VoxelT>::size);
+        const int block_size = static_cast<int>(VoxelBlockType<VoxelT>::size_li);
         const int x_last = block_coord.x() + block_size;
         const int y_last = block_coord.y() + block_size;
         const int z_last = block_coord.z() + block_size;
@@ -80,7 +81,7 @@ octomap::OcTree* se::to_octomap(const se::Octree<VoxelT>& octree,
         }
       }
 
-      if (node->children_mask_ == 0) {
+      if (node->children_mask() == 0) {
         current = node_stack[--stack_idx];
         continue;
       }

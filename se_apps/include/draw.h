@@ -24,11 +24,6 @@
 
 template<typename T> struct gl;
 
-template<> struct gl<uchar3> {
-	static const int format = GL_RGB;
-	static const int type = GL_UNSIGNED_BYTE;
-};
-
 template<> struct gl<float> {
 	static const int format = GL_LUMINANCE;
 	static const int type = GL_FLOAT;

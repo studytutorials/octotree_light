@@ -28,11 +28,14 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 
 */
+
 #include <random>
-#include "utils/math_utils.h"
-#include "utils/morton_utils.hpp"
-#include "octree_defines.h"
-#include "gtest/gtest.h"
+
+#include <gtest/gtest.h>
+
+#include <se/octree_defines.h>
+#include <se/utils/math_utils.h>
+#include <se/utils/morton_utils.hpp>
 
 TEST(MortonCoding, RandomInts) {
 

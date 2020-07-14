@@ -1,0 +1,44 @@
+general:
+  dataset_name:                 "icl_nuim"
+  sequences:                    [
+                                 ["livingroom-trj0",
+                                  "/PATH/TO/icl_nuim/living_room_traj0_frei_png/scene.raw",
+                                  "/PATH/TO/icl_nuim/living_room_traj0_frei_png/association.txt"],
+                                 ["livingroom-trj1",
+                                  "/PATH/TO/icl_nuim/living_room_traj1_frei_png/scene.raw",
+                                  "/PATH/TO/icl_nuim/living_room_traj1_frei_png/association.txt"],
+                                 ["livingroom-trj2",
+                                  "/PATH/TO/icl_nuim/living_room_traj2_frei_png/scene.raw",
+                                  "/PATH/TO/icl_nuim/living_room_traj2_frei_png/association.txt"],
+                                 ["livingroom-trj3",
+                                  "/PATH/TO/icl_nuim/living_room_traj3_frei_png/scene.raw",
+                                  "/PATH/TO/icl_nuim/living_room_traj3_frei_png/association.txt"]
+                                ]
+  max_frame:                    1000
+
+map:
+  size:                         [512, 1024]
+  dim:                          [10.24]
+
+sensor:
+  type:                         "pinholecamera"
+  intrinsics:                   [481.2, -480.0, 319.5, 239.5]
+  downsampling_factor:          2
+  init_T_WB:                    [0, 0, -2.25, 0, 0, 0, 1]           # tx, ty, tz, qx, qy, qz, qw
+  far_plane:                    [4.0]
+
+voxel_impls:
+  multiresofusion:
+    surface_boundary:           0.0
+    occupancy_min_max:          [-100, 100]
+    max_weight:                 100
+    free_space_integr_scale:    0
+    const_surface_thickness:    false         # if true, surface thickness := max_surface_thickness
+    tau_min_max:                [0.06, 0.16]
+    k_tau:                      0.026
+    uncertainty_model:          linear        # { linear, quadratic }
+    sigma_min_max:              [0.005, 0.02] # minimum/maximum uncertainty := 3 x sigma_min
+    k_sigma:                    0.0016
+
+  ofusion:
+    occupancy_min_max:          [-100, 100]

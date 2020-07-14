@@ -38,9 +38,9 @@
 
 
 /* Compute step size based on distance travelled along the ray */
-static inline float ofusionComputeStepSize(const float dist_travelled,
-                                              const float band,
-                                              const float voxel_dim) {
+inline float ofusion_compute_step_size(const float dist_travelled,
+                                       const float band,
+                                       const float voxel_dim) {
 
   float new_step_size;
   float half_band = band * 0.5f;
@@ -57,22 +57,21 @@ static inline float ofusionComputeStepSize(const float dist_travelled,
 
 
 /* Compute octree level given a step size */
-static inline int ofusionStepToDepth(const float step,
-                                        const int   voxel_depth,
-                                        const float voxel_dim) {
+inline int ofusion_step_to_depth(const float step,
+                                 const int   voxel_depth,
+                                 const float voxel_dim) {
 
   return static_cast<int>(floorf(std::log2f(voxel_dim / step)) + voxel_depth);
 }
 
 
 
-size_t OFusion::buildAllocationList(
-    se::Octree<OFusion::VoxelType>& map,
-    const se::Image<float>&         depth_image,
-    const Eigen::Matrix4f&          T_MC,
-    const SensorImpl&               sensor,
-    se::key_t*                      allocation_list,
-    size_t                          reserved) {
+size_t OFusion::buildAllocationList(OctreeType&             map,
+                                    const se::Image<float>& depth_image,
+                                    const Eigen::Matrix4f&  T_MC,
+                                    const SensorImpl&       sensor,
+                                    se::key_t*              allocation_list,
+                                    size_t                  reserved) {
 
   const Eigen::Vector2i depth_image_res (depth_image.width(), depth_image.height());
   const float voxel_dim = map.dim() / map.size();
@@ -92,12 +91,14 @@ size_t OFusion::buildAllocationList(
   for (int y = 0; y < depth_image_res.y(); ++y) {
     for (int x = 0; x < depth_image_res.x(); ++x) {
       const Eigen::Vector2i pixel(x, y);
-      if (depth_image(pixel.x(), pixel.y()) == 0) {
+      const float depth_value_orig = depth_image(pixel.x(), pixel.y());
+      if (depth_value_orig < sensor.near_plane) {
         continue;
       }
+      const float depth_value = (depth_value_orig <= sensor.far_plane) ? depth_value_orig : sensor.far_plane;
+
       int depth = voxel_depth;
       float step_size = voxel_dim;
-      const float depth_value = depth_image(pixel.x(), pixel.y());
 
       Eigen::Vector3f ray_dir_C;
       const Eigen::Vector2f pixel_f = pixel.cast<float>();
@@ -105,7 +106,7 @@ size_t OFusion::buildAllocationList(
       const Eigen::Vector3f surface_vertex_M = (T_MC * (depth_value * ray_dir_C).homogeneous()).head<3>();
 
       const Eigen::Vector3f reverse_ray_dir_M = (t_MC - surface_vertex_M).normalized();
-      const float sigma = se::math::clamp(sensor.mu * se::math::sq(depth_value), 2 * voxel_dim, 0.05f);
+      const float sigma = se::math::clamp(OFusion::k_sigma * se::math::sq(depth_value), OFusion::sigma_min, OFusion::sigma_max);
       const float band = 2 * sigma;
       const Eigen::Vector3f ray_origin_M = surface_vertex_M - (band * 0.5f) * reverse_ray_dir_M;
       const float dist = (t_MC - ray_origin_M).norm();
@@ -133,12 +134,12 @@ size_t OFusion::buildAllocationList(
               allocation_list[idx] = voxel_key;
             }
           } else if (depth >= block_depth) {
-            static_cast<se::VoxelBlock<OFusion::VoxelType>*>(node_ptr)->active(true);
+            static_cast<VoxelBlockType*>(node_ptr)->active(true);
           }
         }
 
-        step_size = ofusionComputeStepSize(travelled, band, voxel_dim);
-        depth = ofusionStepToDepth(step_size, voxel_depth, voxel_dim);
+        step_size = ofusion_compute_step_size(travelled, band, voxel_dim);
+        depth = ofusion_step_to_depth(step_size, voxel_depth, voxel_dim);
 
         step = reverse_ray_dir_M * step_size;
         ray_pos_M += step;

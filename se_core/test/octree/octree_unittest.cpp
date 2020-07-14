@@ -28,21 +28,23 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "utils/math_utils.h"
-#include "gtest/gtest.h"
-#include "octant_ops.hpp"
-#include <octree.hpp>
-#include <bitset>
-#include <io/ply_io.hpp>
-#include <algorithms/balancing.hpp>
+
+#include <gtest/gtest.h>
+
+#include <se/algorithms/balancing.hpp>
+#include <se/io/octree_io.hpp>
+#include <se/octant_ops.hpp>
+#include <se/octree.hpp>
+#include <se/utils/math_utils.h>
 
 struct TestVoxelT {
   typedef float VoxelData;
   static inline VoxelData invalid(){ return 0.f; }
   static inline VoxelData initData(){ return 1.f; }
 
-  template <typename T>
-  using MemoryPoolType = se::PagedMemoryPool<T>;
+  using VoxelBlockType = se::VoxelBlockFull<TestVoxelT>;
+
+  using MemoryPoolType = se::PagedMemoryPool<TestVoxelT>;
   template <typename BufferT>
   using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
@@ -85,7 +87,7 @@ TEST(Octree, OctantParent) {
     se::keyops::encode(octant_coord.x(), octant_coord.y(), octant_coord.z(), 5, voxel_depth);
   se::key_t parent_key = se::parent(octant_key, voxel_depth);
   ASSERT_EQ(se::keyops::code(octant_key), se::keyops::code(parent_key));
-  ASSERT_EQ(4, parent_key & SCALE_MASK);
+  ASSERT_EQ(4u, parent_key & SCALE_MASK);
 
   octant_key = parent_key;
   parent_key = se::parent(octant_key, voxel_depth);
@@ -171,7 +173,6 @@ TEST(Octree, FarCorner) {
 TEST(Octree, InnerOctantExteriorNeighbours) {
   const int voxel_depth = 5;
   const int depth = 2;
-  const int size = 1 << (voxel_depth - depth);
   const se::key_t octant_key = se::keyops::encode(16, 16, 16, depth, voxel_depth);
   se::key_t neighbour_keys[7];
   se::exterior_neighbours(neighbour_keys, octant_key, depth, voxel_depth);
@@ -186,13 +187,8 @@ TEST(Octree, InnerOctantExteriorNeighbours) {
      se::keyops::encode(16, 15, 15, depth, voxel_depth),
      se::keyops::encode(15, 15, 15, depth, voxel_depth)};
   for(int i = 0; i < 7; ++i) {
-    // std::bitset<64> c(N[i]);
-    // std::bitset<64> a(p);
-    // std::cout << a << std::endl;
-    // std::cout << c << std::endl << std::endl;
     ASSERT_EQ(neighbours_gt_keys[i], neighbour_keys[i]);
     ASSERT_FALSE(se::parent(neighbour_keys[i], voxel_depth) == parent_key);
-    // std::cout << (unpack_morton(N[i] & ~SCALE_MASK)) << std::endl;
   }
 }
 
@@ -257,7 +253,6 @@ TEST(Octree, OctantOneNeighbours) {
 
 TEST(Octree, BalanceTree) {
   const int voxel_depth = 8;
-  const int depth = 5;
 
   se::Octree<TestVoxelT> octree;
   octree.init(1 << voxel_depth, 5);
@@ -265,7 +260,7 @@ TEST(Octree, BalanceTree) {
   octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
   voxel_coord += Eigen::Vector3i(50, 12, 100);
   octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
-  se::print_octree("./oct.ply", octree);
+  se::save_octree_structure_ply(octree, "./oct.ply");
   se::balance(octree);
-  se::print_octree("./oct-balanced.ply", octree);
+  se::save_octree_structure_ply(octree, "./oct-balanced.ply");
 }

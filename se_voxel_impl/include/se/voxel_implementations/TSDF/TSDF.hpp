@@ -31,10 +31,10 @@
 
 #include "se/octree.hpp"
 #include "se/image/image.hpp"
-#include "se/continuous/volume_template.hpp"
+#include "se/algorithms/meshing.hpp"
 #include "se/sensor_implementation.hpp"
 
-
+#include <yaml-cpp/yaml.h>
 
 /**
  * Kinect Fusion Truncated Signed Distance Function voxel implementation.
@@ -56,13 +56,16 @@ struct TSDF {
     static inline VoxelData invalid()     { return {1.f, -1.f}; }
     static inline VoxelData initData() { return {1.f,  0.f}; }
 
-    template <typename T>
-    using MemoryPoolType = se::PagedMemoryPool<T>;
+    using VoxelBlockType = se::VoxelBlockFull<TSDF::VoxelType>;
+
+    using MemoryPoolType = se::PagedMemoryPool<TSDF::VoxelType>;
     template <typename ElemT>
     using MemoryBufferType = se::PagedMemoryBuffer<ElemT>;
   };
-
-
+  
+  using VoxelData      = TSDF::VoxelType::VoxelData;
+  using OctreeType     = se::Octree<TSDF::VoxelType>;
+  using VoxelBlockType = typename TSDF::VoxelType::VoxelBlockType;
 
   /**
    * The normals must be inverted when rendering a TSDF map.
@@ -70,49 +73,71 @@ struct TSDF {
   static constexpr bool invert_normals = true;
 
   /**
+   * The factor the voxel dim is multiplied with to compute mu
+   *
+   *  <br>\em Default: 8
+   */
+  static float mu_factor;
+
+  /**
+   * The TSDF truncation bound. Values of the TSDF are assumed to be in the
+   * interval ±mu. See Section 3.3 of \cite NewcombeISMAR2011 for more
+   * details.
+   *  <br>\em Default: 8 x voxel_dim
+   */
+  static float mu;
+
+  /**
    * The maximum value of the weight factor TSDF::VoxelType::VoxelData::y.
    */
-  static constexpr float max_weight = 100.f;
+  static float max_weight;
 
+  static std::string type() { return "tsdf"; }
 
+  /**
+   * Configure the TSDF parameters
+   */
+  static void configure(const float voxel_dim);
+  static void configure(YAML::Node yaml_config, const float voxel_dim);
+
+  static std::string printConfig();
 
   /**
    * Compute the VoxelBlocks and Nodes that need to be allocated given the
    * camera pose.
    */
-  static size_t buildAllocationList(
-      se::Octree<TSDF::VoxelType>& map,
-      const se::Image<float>&      depth_image,
-      const Eigen::Matrix4f&       T_MC,
-      const SensorImpl&            sensor,
-      se::key_t*                   allocation_list,
-      size_t                       reserved);
+  static size_t buildAllocationList(OctreeType&             map,
+                                    const se::Image<float>& depth_image,
+                                    const Eigen::Matrix4f&  T_MC,
+                                    const SensorImpl&       sensor,
+                                    se::key_t*              allocation_list,
+                                    size_t                  reserved);
 
 
 
   /**
    * Integrate a depth image into the map.
    */
-  static void integrate(se::Octree<TSDF::VoxelType>& map,
-                        const se::Image<float>&      depth_image,
-                        const Eigen::Matrix4f&       T_CM,
-                        const SensorImpl&            sensor,
-                        const unsigned               frame);
+  static void integrate(OctreeType&             map,
+                        const se::Image<float>& depth_image,
+                        const Eigen::Matrix4f&  T_CM,
+                        const SensorImpl&       sensor,
+                        const unsigned          frame);
 
 
 
   /**
    * Cast a ray and return the point where the surface was hit.
    */
-  static Eigen::Vector4f raycast(
-      const VolumeTemplate<TSDF, se::Octree>& volume,
-      const Eigen::Vector3f&                  ray_origin_M,
-      const Eigen::Vector3f&                  ray_dir_M,
-      const float                             near_plane,
-      const float                             far_plane,
-      const float                             mu,
-      const float                             step,
-      const float                             large_step);
+  static Eigen::Vector4f raycast(const OctreeType&      map,
+                                 const Eigen::Vector3f& ray_origin_M,
+                                 const Eigen::Vector3f& ray_dir_M,
+                                 const float            t_near,
+                                 const float            t_far);
+
+  static void dumpMesh(OctreeType&                map,
+                       std::vector<se::Triangle>& mesh);
+  
 };
 
 #endif

@@ -10,7 +10,7 @@
 #define EXTERNS TRUE
 #include "se/DenseSLAMSystem.h"
 #include <stdlib.h>
-#include "interface.h"
+#include "reader.hpp"
 #include "se/config.h"
 #include "se/perfstats.h"
 #include <PowerMonitor.h>
@@ -37,15 +37,11 @@ using namespace std;
 static ApplicationWindow *appWindow = NULL;
 
 //We need to know abot the function that will process frames
-extern int processAll(DepthReader *reader, bool processFrame, bool renderImages,
+extern int processAll(se::Reader *reader, bool processFrame, bool renderImages,
 		Configuration *config, bool reset = false);
-extern DepthReader *createReader(Configuration *config, std::string filename =
-		""
-
-);
 //We need to know where our kfusion object is so we can get required information
 static DenseSLAMSystem **pipeline_pp;
-static DepthReader **reader_pp;
+static se::Reader **reader_pp;
 static Configuration *config;
 
 //forceRender is passed to the GUI, and used to tell this file if a GUI event which requires rerendering of models to occur
@@ -87,7 +83,7 @@ static void newDenseSLAMSystem(bool resetPose) {
 		delete *pipeline_pp;
 	if (!resetPose) {
 		*pipeline_pp = new DenseSLAMSystem(
-				Eigen::Vector2i(640 / config->image_downsampling_factor, 480 / config->image_downsampling_factor),
+				Eigen::Vector2i(640 / config->sensor_downsampling_factor, 480 / config->sensor_downsampling_factor),
 				config->map_size, config->map_dim, T_MW, config->pyramid, *config);
   } else {
     Eigen::Matrix<float, 6, 1> twist;
@@ -98,15 +94,15 @@ static void newDenseSLAMSystem(bool resetPose) {
 		rot = Sophus::SE3<float>();
     Eigen::Vector3f t_MW = config->t_MW_factor.cwiseProduct(config->map_dim);
 		*pipeline_pp = new DenseSLAMSystem(
-				Eigen::Vector2i(640 / config->image_downsampling_factor,
-						480 / config->image_downsampling_factor),
+				Eigen::Vector2i(640 / config->sensor_downsampling_factor,
+						480 / config->sensor_downsampling_factor),
 				config->map_size,
 				config->map_dim,
         t_MW,
         config->pyramid, *config);
 	}
-	appWindow->viewers->setBufferSize(640 / config->image_downsampling_factor,
-			480 / config->image_downsampling_factor);
+	appWindow->viewers->setBufferSize(640 / config->sensor_downsampling_factor,
+			480 / config->sensor_downsampling_factor);
 	reset = true;
 }
 static void continueWithNewDenseSLAMSystem() {
@@ -119,56 +115,56 @@ static void continueWithNewDenseSLAMSystem() {
 //CAMERA_PAUSED  - we have more data but have opted not to read it at the moment
 //CAMERA_CLOSED  - we have more data and shouldn't try to accesss the camera.
 //reader==NULL   - we don't even have a camera attached
-//in the reader this is stored as 2 bool cameraOpen (i.e !CAMERA_CLOSED) cameraActive = CAMERA_RUNNING
+//in the reader this is stored as 2 bool camera_open_ (i.e !CAMERA_CLOSED) camera_active_ = CAMERA_RUNNING
 CameraState setEnableCamera(CameraState state, string inputFile) {
 	//float3 init_poseFactors = default_t_MW_factor; /* FIXME */
-	DepthReader *reader = *reader_pp;
+	se::Reader *reader = *reader_pp;
 	bool isLive = (state == CAMERA_LIVE) ? true : false;
 
 	if (state == CAMERA_RUNNING || state == CAMERA_LIVE) {
-		if (reader == NULL || (reader->cameraOpen == false)
+		if (reader == NULL || (reader->camera_open_ == false)
 				|| (state == CAMERA_LIVE)) {
-			DepthReader *oldReader = NULL;
+			se::Reader *oldReader = NULL;
 			string oldInputFile = "";
 			//Try to keep up a backup of the reader incase we need to go back to it
 			if (reader) {
 				//We can't open more than one openni reader and so we have to delete it
 				//if the current reader is OpenNI, otherwise we will fail;
-				if (reader->getType() == READER_OPENNI) {
+				if (reader->name() == "OpenNIReader") {
 					delete (reader);
 					reader = NULL;
 				}
 				oldReader = reader;
 				reader = NULL;
-				oldInputFile = config->input_file;
+				oldInputFile = config->sequence_path;
 			}
 			if (reader == NULL) {
-				config->input_file = inputFile;
-				reader = createReader(config);
+				config->sequence_path = inputFile;
+				reader = se::create_reader(*config);
 
 				appWindow->updateChoices();
 				if (reader) {
 					newDenseSLAMSystem(true);
-					appWindow->setCameraFunction(&(reader->cameraActive),
+					appWindow->setCameraFunction(&(reader->camera_active_),
 							(CameraState (*)(CameraState,
 									std::string))&setEnableCamera);
 
         } else {
-          bool cameraOpen = false;
-          appWindow->setCameraFunction(&cameraOpen, (CameraState (*)(CameraState, std::string))&setEnableCamera);
+          bool camera_open_ = false;
+          appWindow->setCameraFunction(&camera_open_, (CameraState (*)(CameraState, std::string))&setEnableCamera);
         }
 				*reader_pp = reader;
 				if (reader == NULL) {
 					if (inputFile == "") {
 						appWindow->errorBox("Unable to open a depth camera");
 						isLive = false;
-						config->input_file = oldInputFile;
+						config->sequence_path = oldInputFile;
 						*reader_pp = oldReader;
 						if (reader != NULL) {
 							reader = *reader_pp;
-							reader->cameraActive = false;
+							reader->camera_active_ = false;
 							appWindow->setCameraFunction(
-									&(reader->cameraActive),
+									&(reader->camera_active_),
 									(CameraState (*)(CameraState,
 											std::string))&setEnableCamera);}
 						} else
@@ -185,16 +181,16 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 				}
 			} else {
 
-				reader->cameraActive = true;
-				reader->cameraOpen = true;
+				reader->camera_active_ = true;
+				reader->camera_open_ = true;
 			}
 		} else {
 			if (reader) {
 				if(state==CAMERA_PAUSED) {
-					reader->cameraActive=false;
+					reader->camera_active_=false;
 				} else {
-					reader->cameraActive=false;
-					reader->cameraOpen=false;
+					reader->camera_active_=false;
+					reader->camera_open_=false;
 				}
 			}
 
@@ -202,9 +198,9 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 	if (reader == NULL)
 		return (CAMERA_CLOSED);
 
-	if (reader->cameraOpen && reader->cameraActive)
+	if (reader->camera_open_ && reader->camera_active_)
 		return (isLive ? CAMERA_LIVE : CAMERA_RUNNING);
-	if (reader->cameraOpen && !reader->cameraActive)
+	if (reader->camera_open_ && !reader->camera_active_)
 		return (CAMERA_PAUSED);
 	return (CAMERA_CLOSED);
 }
@@ -218,23 +214,23 @@ void qtIdle(void) {
 	else
 		(*pipeline_pp)->setRenderT_MC(&render_T_MR);
 	//If we are are reading a file then get a new frame and process it.
-	if ((*reader_pp) && (*reader_pp)->cameraActive) {
+	if ((*reader_pp) && (*reader_pp)->camera_active_) {
 		int finished = processAll((*reader_pp), true, true, config, reset);
 		if (finished) {
 			if (loopEnabled) {
 				newDenseSLAMSystem(true);
 				(*reader_pp)->restart();
 			} else {
-				(*reader_pp)->cameraActive = false;
-				(*reader_pp)->cameraOpen = false;
+				(*reader_pp)->camera_active_ = false;
+				(*reader_pp)->camera_open_ = false;
 			}
 		} else {
 			reset = false;
 		}
 	} else {
 		//If we aren't reading
-		if ((*reader_pp == NULL) || !(*reader_pp)->cameraOpen
-				|| !(*reader_pp)->cameraActive)
+		if ((*reader_pp == NULL) || !(*reader_pp)->camera_open_
+				|| !(*reader_pp)->camera_active_)
 			if (forceRender) {
 				processAll((*reader_pp), false, true, config, false);
 			}
@@ -242,30 +238,22 @@ void qtIdle(void) {
 	//refresh the gui
 
 	appWindow->update(
-			*reader_pp != NULL ? (*reader_pp)->getFrameNumber() + 1 : 0,
-			((*reader_pp == NULL) || !((*reader_pp)->cameraActive)) ?
+			*reader_pp != NULL ? (*reader_pp)->frame() + 1 : 0,
+			((*reader_pp == NULL) || !((*reader_pp)->camera_active_)) ?
 					CAMERA_CLOSED :
-					((*reader_pp)->cameraOpen ?
-							((config->input_file == "") ?
+					((*reader_pp)->camera_open_ ?
+							((config->sequence_path == "") ?
 									CAMERA_LIVE : CAMERA_RUNNING) :
 							CAMERA_PAUSED));
 }
 
 //Should we want to dump data from the gui this function can be passed to the QT and will be called with a filename when needed
-void dump_volume() {
-//Call the dump function
-	std::string filename = appWindow->fileSaveSelector("Save volume", ".",
-			"vol (*.vol);; All files (*.*)");
-	if (filename != "")
-		(*pipeline_pp)->dump_volume(filename.c_str());
-}
-
-void dump_mesh() {
+void dumpMesh() {
 //Call the dump function
 	std::string filename = appWindow->fileSaveSelector("Save mesh", ".",
 			"mesh (*.vtk);; All files (*.*)");
 	if (filename != "")
-		(*pipeline_pp)->dump_mesh(filename);
+		(*pipeline_pp)->dumpMesh(filename);
 }
 void dumpLog() {
 	std::string filename = appWindow->fileSaveSelector("Save sequence log", ".",
@@ -289,7 +277,7 @@ void dumpPowerLog() {
 //This function is what sets up the GUI
 
 void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
-		DepthReader **_depthReader, Configuration *_config, void *depthRender,
+		se::Reader **_depthReader, Configuration *_config, void *depthRender,
 		void *trackRender, void *volumeRender, void *RGBARender) {
 	pipeline_pp = _pipe;
 	config = _config;
@@ -320,27 +308,26 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 	//Rotate controls are disabled in this release
 	appWindow->setRotPointer(&rot);
 	appWindow->setRenderModelPointer(&forceRender);
-	appWindow->setFilenamePointer(&(config->input_file));
+	appWindow->setFilenamePointer(&(config->sequence_path));
 
 	//Function to call to dump volume model (also enable dump on file menu)
-	appWindow->setDumpFunction("Save Volume", &dump_volume);
-	appWindow->setDumpFunction("Save Mesh", &dump_mesh);
+	appWindow->setDumpFunction("Save Mesh", &dumpMesh);
 	appWindow->setDumpFunction("Save Statistics log", &dumpLog);
 	if (power_monitor && power_monitor->isActive())
 		appWindow->setDumpFunction("Save power log ", &dumpPowerLog);
 
 	//Fuction to control camera action, running, paused, closed or file to open, enables various options
-	bool cameraActive = false; //this is a bodge as we might not have a reader yet therefore camera must be off
+	bool camera_active_ = false; //this is a bodge as we might not have a reader yet therefore camera must be off
 
 	appWindow->setCameraFunction(
-			(*reader_pp) ? &((*reader_pp)->cameraActive) : &cameraActive,
+			(*reader_pp) ? &((*reader_pp)->camera_active_) : &camera_active_,
 			(CameraState (*)(CameraState, std::string))&setEnableCamera);
 
 			//This sets up the images but is pretty ugly and would be better stashed in DenseSLAMSystem
 
   appWindow	->addButtonChoices("Compute Res",
 			{ "640x480", "320x240", "160x120", "80x60" }, { 1, 2, 4, 8 },
-			&(config->image_downsampling_factor), continueWithNewDenseSLAMSystem);
+			&(config->sensor_downsampling_factor), continueWithNewDenseSLAMSystem);
 	appWindow->addButtonChoices("Vol. Size", { "4.0mx4.0mx4.0m",
 			"2.0mx2.0mx2.0m", "1.0mx1.0mx1.0m" }, { 4.0, 2.0, 1.0 },
 			(float *) (&(config->map_dim.x())), continueWithNewDenseSLAMSystem);
@@ -351,20 +338,17 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 
 	appWindow->addButtonChoices("ICP threshold", { "1e-4", "1e-5", "1e-6" }, {
 			1e-4, 1e-5, 1e-6 }, (float *) &(config->icp_threshold));
-	appWindow->addButtonChoices("Mu", { "0.005", "0.011", "0.022", "0.045",
-			"0.090", "0.180", "0.360" }, { 0.005, 0.011, 0.022, 0.045, 0.09,
-			0.18, 0.36 }, (float *) &(config->mu), continueWithNewDenseSLAMSystem);
 
 	int cwidth = (
-			((*reader_pp) == NULL) ? 640 : ((*reader_pp)->getInputImageResolution()).x)
-			/ config->image_downsampling_factor;
+			((*reader_pp) == NULL) ? 640 : ((*reader_pp)->depthImageRes()).x())
+			/ config->sensor_downsampling_factor;
 	int cheight = (
-			((*reader_pp) == NULL) ? 480 : ((*reader_pp)->getInputImageResolution()).y)
-			/ config->image_downsampling_factor;
+			((*reader_pp) == NULL) ? 480 : ((*reader_pp)->depthImageRes()).y())
+			/ config->sensor_downsampling_factor;
 	int width =
-			(((*reader_pp) == NULL) ? 640 : ((*reader_pp)->getInputImageResolution()).x);
+			(((*reader_pp) == NULL) ? 640 : ((*reader_pp)->depthImageRes()).x());
 	int height = (
-			((*reader_pp) == NULL) ? 480 : ((*reader_pp)->getInputImageResolution()).y);
+			((*reader_pp) == NULL) ? 480 : ((*reader_pp)->depthImageRes()).y());
 
 	FImage rgbImage = { cwidth, cheight, GL_RGBA, GL_UNSIGNED_BYTE, RGBARender };
 	FImage depthImage =

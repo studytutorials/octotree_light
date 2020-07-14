@@ -28,23 +28,26 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
+
 #include <cmath>
-#include "octree.hpp"
-#include "utils/math_utils.h"
-#include "gtest/gtest.h"
-#include "functors/axis_aligned_functor.hpp"
-#include "io/ply_io.hpp"
-#include "io/vtk-io.h"
-#include "algorithms/balancing.hpp"
-#include "interpolation/idw_interpolation.hpp"
+
+#include <gtest/gtest.h>
+
+#include <se/algorithms/balancing.hpp>
+#include <se/functors/axis_aligned_functor.hpp>
+#include <se/interpolation/idw_interpolation.hpp>
+#include <se/io/octree_io.hpp>
+#include <se/octree.hpp>
+#include <se/utils/math_utils.h>
 
 struct TestVoxelT {
   typedef float VoxelData;
   static inline VoxelData invalid(){ return 0.f; }
   static inline VoxelData initData(){ return 1.f; }
 
-  template <typename T>
-  using MemoryPoolType = se::PagedMemoryPool<T>;
+  using VoxelBlockType = se::VoxelBlockFull<TestVoxelT>;
+
+  using MemoryPoolType = se::PagedMemoryPool<TestVoxelT>;
   template <typename BufferT>
   using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
 };
@@ -81,9 +84,9 @@ class InterpolationTest : public ::testing::Test {
       const unsigned radius = size >> 2;
       const Eigen::Vector3f C(centre, centre, centre);
 
-      for(int z = centre - radius; z < (centre + radius); ++z) {
-        for(int y = centre - radius; y < (centre + radius); ++y) {
-          for(int x = centre - radius; x < (centre + radius); ++x) {
+      for(unsigned z = centre - radius; z < (centre + radius); ++z) {
+        for(unsigned y = centre - radius; y < (centre + radius); ++y) {
+          for(unsigned x = centre - radius; x < (centre + radius); ++x) {
             const Eigen::Vector3i voxel_coord(x, y, z);
             const float dist = fabs(sphere_dist(voxel_coord.cast<float>(), C, radius));
             if(dist > 20.f && dist < 25.f) {
@@ -100,25 +103,27 @@ class InterpolationTest : public ::testing::Test {
       };
       se::functor::axis_aligned_map(octree_, circle_dist);
 
-      se::print_octree("./test-sphere.ply", octree_);
+      se::save_octree_structure_ply(octree_, "./test-sphere.ply");
       {
         std::stringstream f;
         f << "./sphere-interp.vtk";
-        save3DSlice(octree_, Eigen::Vector3i(0, octree_.size()/2, 0),
-            Eigen::Vector3i(octree_.size(), octree_.size()/2 + 1, octree_.size()),
-            [](const float& data) { return data; }, octree_.maxBlockScale(), f.str().c_str());
+        save_3d_slice_vtk(octree_, f.str().c_str(),
+                          Eigen::Vector3i(0, octree_.size() / 2, 0),
+                          Eigen::Vector3i(octree_.size(), octree_.size()/2 + 1, octree_.size()),
+                          [](const float& data) { return data; }, octree_.maxBlockScale());
       }
 
       // balance and print.
       se::balance(octree_);
       se::functor::axis_aligned_map(octree_, circle_dist);
-      se::print_octree("./test-sphere-balanced.ply", octree_);
+      se::save_octree_structure_ply(octree_, "./test-sphere-balanced.ply");
       {
         std::stringstream f;
         f << "./sphere-interp-balanced.vtk";
-        save3DSlice(octree_, Eigen::Vector3i(0, octree_.size()/2, 0),
-            Eigen::Vector3i(octree_.size(), octree_.size()/2 + 1, octree_.size()),
-            [](const float& data) { return data; }, octree_.maxBlockScale(), f.str().c_str());
+        save_3d_slice_vtk(octree_, f.str().c_str(),
+                          Eigen::Vector3i(0, octree_.size() / 2, 0),
+                          Eigen::Vector3i(octree_.size(), octree_.size()/2 + 1, octree_.size()),
+                          [](const float& data) { return data; }, octree_.maxBlockScale());
       }
 
     }

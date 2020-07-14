@@ -37,6 +37,8 @@
 
 template <typename T>
 class se::VoxelBlockRayIterator {
+  using VoxelBlockType = typename T::VoxelBlockType;
+
   public:
     VoxelBlockRayIterator(const Octree<T>&       octree,
                           const Eigen::Vector3f& ray_origin_M,
@@ -124,7 +126,7 @@ class se::VoxelBlockRayIterator {
      * \return A pointer to an se::VoxelBlock or nullptr if all se::VoxelBlock
      * along the ray have been iterated through.
      */
-    VoxelBlock<T>* next() {
+    VoxelBlockType* next() {
 
       if (state_ == ADVANCE) {
         advance_ray();
@@ -140,7 +142,7 @@ class se::VoxelBlockRayIterator {
 
         if (scale_ == min_scale_ && child_ != nullptr){
           state_ = ADVANCE;
-          return static_cast<VoxelBlock<T>*>(child_);
+          return static_cast<VoxelBlockType*>(child_);
         } else if (child_ != nullptr && t_min_ <= t_max_) {
           // If the child is valid, descend the tree hierarchy.
           descend();

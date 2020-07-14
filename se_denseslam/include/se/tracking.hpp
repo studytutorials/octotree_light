@@ -47,6 +47,18 @@
 
 
 
+struct TrackData {
+	int result;
+	float error;
+	float J[6];
+
+    TrackData()
+      : result(0),
+      error(0.0f),
+      J{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f} {}
+};
+
+
 
 void new_reduce(const int              block_index,
                 float*                 output_data,
@@ -62,13 +74,27 @@ void reduceKernel(float*                 output_data,
                   const Eigen::Vector2i& J_res);
 
 
-
+/**
+ * \brief Compute the tracking data to update the current camera pose via ICP
+ *
+ * param[out] output_data               The array containing the tracking data.
+ * param[in]  input_point_cloud_C       The point cloud input provided by the sensor.
+ * param[in]  input_normals_C           The normals of the point cloud input provided by the sensor.
+ * param[in]  ref_surface_point_cloud_M The surface point cloud in map frame computed from the previous raycasting pose.
+ * param[in]  ref_surface_normals_M     The surface normals in map frame computed from the previous raycasting pose.
+ * param[in]  T_MC                      The current approximation of the camera pose.
+ * param[in]  T_MC_ref                  The raycasting pose the surface point cloud and normal was computed from.
+ * param[in]  sensor                    The sensor model used.
+ * param[in]  dist_threshold            The maximum abs distance between the input point and the projected surface point.
+ * param[in]  normal_threshold          The maximum dot product between the input normal and the projected normal.
+ */
 void trackKernel(TrackData*                        output_data,
                  const se::Image<Eigen::Vector3f>& input_point_cloud_C,
                  const se::Image<Eigen::Vector3f>& input_normals_C,
                  const se::Image<Eigen::Vector3f>& surface_point_cloud_M,
                  const se::Image<Eigen::Vector3f>& surface_normals_M,
                  const Eigen::Matrix4f&            T_MC,
+                 const Eigen::Matrix4f&            T_MC_ref,
                  const SensorImpl&                 sensor,
                  const float                       dist_threshold,
                  const float                       normal_threshold);

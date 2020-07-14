@@ -1,98 +1,81 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5...3.16)
 
-# This project name will also be the prefix of the libraries compiled from
-# se_voxel_impl.
-project(se-voxel-impl)
-
-
-
-# Find dependencies.
-find_package(Eigen3 REQUIRED)
-if(WITH_OPENMP)
-  find_package(OpenMP)
-  if(OPENMP_FOUND)
-    message(STATUS "Compiling with OpenMP support")
-  endif()
-endif()
-
-
-
-# Set the compiler flags and linked libraries.
-set(compile_flags -Wall -Wextra -Wno-unknown-pragmas)
-set(libraries SE::Shared se-core)
-if(APPLE)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D__APPLE__")
-endif(APPLE)
-if(WITH_OPENMP AND OPENMP_FOUND)
-  list(APPEND compile_flags ${OpenMP_CXX_FLAGS})
-  list(APPEND libraries ${OpenMP_CXX_FLAGS})
-endif()
-
-
-
-# List of voxel implementations to compile. The list elements must correspond
-# to folder names inside se_voxel_impl/include/se/voxel_implementations. When
-# adding a new voxel implementation, appending it to this list is enough to
-# compile supereight with it.
-set(SUPEREIGHT_VOXEL_IMPLS OFusion MultiresTSDF TSDF)
-
-# The camera implementations to compile. The valid values are the names of the
-# *Sensor classes defined in se_shared/include/se/sensor.hpp.
-set(SUPEREIGHT_SENSOR_IMPLS PinholeCamera OusterLidar)
-
+# Create library ##############################################################
 # Iterate over each voxel and sensor implementaion and compile into an
 # se-voxel-impl library.
-foreach(voxel_impl ${SUPEREIGHT_VOXEL_IMPLS})
-  foreach(sensor_impl ${SUPEREIGHT_SENSOR_IMPLS})
-    # Convert the implementation names to lowercase.
-    string(TOLOWER ${voxel_impl} voxel_impl_lc)
-    string(TOLOWER ${sensor_impl} sensor_impl_lc)
+foreach(VOXEL_IMPL ${SE_VOXEL_IMPLS})
+  foreach(SENSOR_IMPL ${SE_SENSOR_IMPLS})
+    # Prepare the library name
+    string(TOLOWER ${VOXEL_IMPL} VOXEL_IMPL_LC)
+    string(TOLOWER ${SENSOR_IMPL} SENSOR_IMPL_LC)
+    set(LIB_NAME "se-voxel-impl-${VOXEL_IMPL_LC}-${SENSOR_IMPL_LC}")
 
-    # Prepare the library name.
-    set(lib_name "${PROJECT_NAME}-${voxel_impl_lc}-${sensor_impl_lc}")
+    # Find the source files to compile
+    file(GLOB LIB_SRC "./src/${VOXEL_IMPL}/*.cpp")
 
-    # Find the source files to compile.
-    file(GLOB lib_src "./src/${voxel_impl}/*.cpp")
-
-    # Add the static library.
-    add_library(${lib_name} STATIC
-      ${lib_src})
-    target_include_directories(${lib_name} PUBLIC
-      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:include>
-      ${EIGEN3_INCLUDE_DIR})
-    target_compile_options(${lib_name} PUBLIC ${compile_flags})
-    target_link_libraries(${lib_name} ${libraries})
-
-    # Define the sensor implementation macro.
-    target_compile_definitions(${lib_name}
+    # Add the static library
+    add_library(${LIB_NAME} STATIC ${LIB_SRC})
+    target_include_directories(${LIB_NAME} BEFORE
       PUBLIC
-        SE_SENSOR_IMPLEMENTATION=${sensor_impl}
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+    )
+    target_link_libraries(${LIB_NAME}
+      PUBLIC
+        SE::Shared
+    )
+    set_target_properties(${LIB_NAME} PROPERTIES
+      CXX_STANDARD 14
+      CXX_STANDARD_REQUIRED ON
+      CXX_EXTENSIONS OFF
+    )
+	# Define the voxel and sensor implementation macros
+    target_compile_definitions(${LIB_NAME}
+      PUBLIC
+        SE_VOXEL_IMPLEMENTATION=${VOXEL_IMPL}
+        SE_SENSOR_IMPLEMENTATION=${SENSOR_IMPL}
     )
 
-    # Install the library and headers.
-    install(
-      TARGETS ${lib_name}
-      EXPORT supereightTargets
-      LIBRARY DESTINATION lib
-      ARCHIVE DESTINATION lib
-      RUNTIME DESTINATION bin
-      INCLUDES DESTINATION include)
-    install(
-      DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-      DESTINATION include)
+    # Add an alias so that the library can be used inside the build tree, e.g.
+    # when testing
+    add_library(SE::VoxelImpl${VOXEL_IMPL}${SENSOR_IMPL} ALIAS ${LIB_NAME})
+    # This is required so that the exported target has the name
+    # VoxelImplVoxelSensor and not se-voxel-impl-voxel-sensor
+    set_target_properties(${LIB_NAME} PROPERTIES EXPORT_NAME VoxelImpl${VOXEL_IMPL}${SENSOR_IMPL})
 
-    # Populate the list of libraries that are part of se-voxel-impl.
-    list(APPEND SUPEREIGHT_VOXEL_IMPL_LIBS ${lib_name})
+
+
+    # Install library #########################################################
+    set(SUBPACKAGE_NAME SEVoxelImpl${VOXEL_IMPL}${SENSOR_IMPL})
+    # Export the targets to a script
+    install(EXPORT ${LIB_NAME}-targets
+      FILE
+        ${SUBPACKAGE_NAME}Targets.cmake
+      NAMESPACE
+        SE::
+      DESTINATION
+        "${CMAKE_INSTALL_CMAKEDIR}"
+    )
+    # Install the headers
+    install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+    # Install the static library
+    install(TARGETS ${LIB_NAME}
+      EXPORT ${LIB_NAME}-targets
+      ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    )
+
+    # Export from the build tree ##############################################
+    export(EXPORT ${LIB_NAME}-targets
+        FILE "${CMAKE_CURRENT_BINARY_DIR}/${SUBPACKAGE_NAME}Targets.cmake"
+        NAMESPACE SE::
+    )
   endforeach()
 endforeach()
 
-# Make the list of voxel and sensor implementations available to the parent
-# file.
-set(SUPEREIGHT_VOXEL_IMPLS ${SUPEREIGHT_VOXEL_IMPLS} PARENT_SCOPE)
-set(SUPEREIGHT_SENSOR_IMPLS ${SUPEREIGHT_SENSOR_IMPLS} PARENT_SCOPE)
 
-# Make the list of compiled se-voxel-impl libraries available to the parent
-# file.
-set(SUPEREIGHT_VOXEL_IMPL_LIBS ${SUPEREIGHT_VOXEL_IMPL_LIBS} PARENT_SCOPE)
+
+# Test library ################################################################
+if(SE_BUILD_TESTS)
+  add_subdirectory(test)
+endif()
 

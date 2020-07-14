@@ -34,73 +34,65 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <time.h>
 #include <atomic>
+#include <vector>
 #include "octree_defines.h"
 #include "utils/math_utils.h"
 #include "io/se_serialise.hpp"
 
 namespace se {
-/*! \brief A non-leaf node of the Octree. Each Node has 8 children.
- */
 
-static inline Eigen::Vector3f getSampleCoord(const Eigen::Vector3i& octant_coord,
+static inline Eigen::Vector3f get_sample_coord(const Eigen::Vector3i& octant_coord,
                                              const int              octant_size,
                                              const Eigen::Vector3f& sample_offset_frac) {
   return octant_coord.cast<float>() + sample_offset_frac * octant_size;
 }
 
+/*! \brief A non-leaf node of the Octree. Each Node has 8 children.
+ */
 template <typename T>
 class Node {
 
 public:
   typedef typename T::VoxelData VoxelData;
 
-  VoxelData data_[8];
-  key_t code_;
-  unsigned int size_;
-  unsigned char children_mask_;
-  unsigned int timestamp_;
-  bool active_;
+  Node(const typename T::VoxelData init_data = T::initData());
 
-  Node(typename T::VoxelData init_data = T::initData()) {
-    code_ = 0;
-    size_ = 0;
-    children_mask_ = 0;
-    timestamp_ = 0;
-    for (unsigned int child_idx = 0; child_idx < 8; child_idx++) {
-      data_[child_idx]      = init_data;
-      parent_ptr_           = nullptr;
-      child_ptr_[child_idx] = nullptr;
-    }
-  }
+  Node(const Node<T>& node);
+
+  void operator=(const Node<T>& node);
 
   virtual ~Node(){};
 
+  VoxelData* childrenData() { return children_data_;}
+  const VoxelData* childrenData() const { return children_data_;}
+  VoxelData& childData(const int child_idx) { return children_data_[child_idx];}
+  void childData(const int child_idx, const VoxelData& child_data) {
+    children_data_[child_idx] = child_data;
+  };
+
   Node*& child(const int x, const int y, const int z) {
-    return child_ptr_[x + y * 2 + z * 4];
+    return children_ptr_[x + y * 2 + z * 4];
   };
-
   const Node* child(const int x, const int y, const int z) const {
-    return child_ptr_[x + y * 2 + z * 4];
+    return children_ptr_[x + y * 2 + z * 4];
   };
+  Node*& child(const int child_idx ) { return children_ptr_[child_idx]; }
+  const Node* child(const int child_idx ) const { return children_ptr_[child_idx]; }
 
-  Node*& child(const int child_idx ) {
-    return child_ptr_[child_idx];
-  }
+  Node*& parent() { return parent_ptr_; }
+  const Node* parent() const { return parent_ptr_; }
 
-  const Node* child(const int child_idx ) const {
-    return child_ptr_[child_idx];
-  }
+  void code(key_t code) { code_ = code; }
+  key_t code() const { return code_; }
 
-  Node*& parent() {
-    return parent_ptr_;
-  }
+  void size(int size) { size_ = size; }
+  int size() const { return size_; }
 
-  const Node* parent() const {
-    return parent_ptr_;
-  }
+  void children_mask(const unsigned char cm) { children_mask_ = cm; }
+  unsigned char children_mask() const { return children_mask_; }
 
-  unsigned int timestamp() { return timestamp_; }
-  unsigned int timestamp(unsigned int t) { return timestamp_ = t; }
+  void timestamp(const unsigned int t) { timestamp_ = t; }
+  unsigned int timestamp() const { return timestamp_; }
 
   void active(const bool a){ active_ = a; }
   bool active() const { return active_; }
@@ -108,11 +100,20 @@ public:
   virtual bool isBlock() const { return false; }
 
 protected:
-    Node* parent_ptr_;
-    Node* child_ptr_[8];
+  VoxelData children_data_[8];
+  Node* children_ptr_[8];
+  Node* parent_ptr_;
+  key_t code_;
+  unsigned int size_;
+  unsigned char children_mask_;
+  unsigned int timestamp_;
+  bool active_;
+
 private:
-    friend std::ofstream& internal::serialise <> (std::ofstream& out, Node& node);
-    friend void internal::deserialise <> (Node& node, std::ifstream& in);
+  // Internal copy helper function
+  void initFromNode(const Node<T>& node);
+  friend std::ofstream& internal::serialise <> (std::ofstream& out, Node& node);
+  friend void internal::deserialise <> (Node& node, std::ifstream& in);
 };
 
 /*! \brief A leaf node of the Octree. Each VoxelBlock contains compute_num_voxels() voxels
@@ -121,132 +122,159 @@ private:
 template <typename T>
 class VoxelBlock: public Node<T> {
 
-  public:
-    typedef typename T::VoxelData VoxelData;
+public:
+  using VoxelData = typename T::VoxelData;
 
-    static constexpr unsigned int size = BLOCK_SIZE;
-    static constexpr unsigned int size_sq = size * size;
-    static constexpr unsigned int size_cube = size * size * size;
+  static constexpr unsigned int size_li   = BLOCK_SIZE;
+  static constexpr unsigned int size_sq   = se::math::sq(size_li);
+  static constexpr unsigned int size_cu   = se::math::cu(size_li);
+  static constexpr unsigned int max_scale = se::math::log2_const(size_li);
 
-    VoxelBlock(typename T::VoxelData init_data = T::initData()) {
-      coordinates_ = Eigen::Vector3i::Constant(0);
-      current_scale_ = 0;
-      min_scale_ = -1;
-      for (unsigned int voxel_idx = 0; voxel_idx < num_voxels; voxel_idx++) {
-        voxel_block_[voxel_idx] = init_data;
-      }
-    }
+  VoxelBlock();
 
-    bool isBlock() const { return true; }
+  VoxelBlock(const VoxelBlock<T>& block);
 
-    Eigen::Vector3i coordinates() const { return coordinates_; }
-    void coordinates(const Eigen::Vector3i& block_coord){ coordinates_ = block_coord; }
+  void operator=(const VoxelBlock<T>& block);
 
-    VoxelData data(const Eigen::Vector3i& voxel_coord) const;
-    void setData(const Eigen::Vector3i& voxel_coord, const VoxelData& voxel_data);
+  virtual ~VoxelBlock() {};
 
-    VoxelData data(const Eigen::Vector3i& voxel_coord, const int scale) const;
-    void setData(const Eigen::Vector3i& voxel_coord, const int scale, const VoxelData& voxel_data);
+  bool isBlock() const { return true; }
 
-    VoxelData data(const int voxel_idx) const;
-    void setData(const int voxel_idx, const VoxelData& voxel_data);
+  Eigen::Vector3i coordinates() const { return coordinates_; }
+  void coordinates(const Eigen::Vector3i& block_coord){ coordinates_ = block_coord; }
 
-    int current_scale() const { return current_scale_; }
-    void current_scale(const int s) { current_scale_ = s; }
+  int current_scale() const { return current_scale_; }
+  void current_scale(const int s) { current_scale_ = s; }
 
-    int min_scale() const { return min_scale_; }
-    void min_scale(const int s) { min_scale_ = s; }
+  int min_scale() const { return min_scale_; }
+  void min_scale(const int s) { min_scale_ = s; }
 
-    VoxelData* getBlockRawPtr() { return voxel_block_; }
-    static constexpr int data_size() { return sizeof(VoxelBlock<T>); }
+  virtual VoxelData data(const Eigen::Vector3i& voxel_coord) const = 0;
+  virtual void setData(const Eigen::Vector3i& voxel_coord, const VoxelData& voxel_data) = 0;
 
-  private:
-    VoxelBlock(const VoxelBlock&) = delete;
-    Eigen::Vector3i coordinates_;
-    int current_scale_;
-    int min_scale_;
+  virtual VoxelData data(const Eigen::Vector3i& voxel_coord, const int scale) const = 0;
+  virtual void setData(const Eigen::Vector3i& voxel_coord, const int scale, const VoxelData& voxel_data) = 0;
 
-    static constexpr size_t compute_num_voxels() {
-      size_t voxel_count = 0;
-      unsigned int size_at_scale = size;
-      while(size_at_scale >= 1) {
-        voxel_count += size_at_scale * size_at_scale * size_at_scale;
-        size_at_scale = size_at_scale >> 1;
-      }
-      return voxel_count;
-    }
-    static constexpr size_t num_voxels = compute_num_voxels();
-    VoxelData voxel_block_[num_voxels]; // Brick of data.
+  virtual VoxelData data(const int voxel_idx) const = 0;
+  virtual void setData(const int voxel_idx, const VoxelData& voxel_data) = 0;
 
-    friend std::ofstream& internal::serialise <> (std::ofstream& out,
-        VoxelBlock& node);
-    friend void internal::deserialise <> (VoxelBlock& node, std::ifstream& in);
+protected:
+  Eigen::Vector3i coordinates_;
+  int current_scale_;
+  int min_scale_;
+
+private:
+  // Internal copy helper function
+  void initFromBlock(const VoxelBlock<T>& block);
 };
 
-template <typename T>
-inline typename VoxelBlock<T>::VoxelData
-VoxelBlock<T>::data(const Eigen::Vector3i& voxel_coord) const {
-  Eigen::Vector3i voxel_offset = voxel_coord - coordinates_;
-  return voxel_block_[voxel_offset.x() +
-                      voxel_offset.y() * size +
-                      voxel_offset.z() * size_sq];
-}
 
+/*! \brief A leaf node of the Octree. Each VoxelBlock contains compute_num_voxels() voxels
+ * voxels.
+ */
 template <typename T>
-inline typename VoxelBlock<T>::VoxelData
-VoxelBlock<T>::data(const Eigen::Vector3i& voxel_coord, const int scale) const {
-  Eigen::Vector3i voxel_offset = voxel_coord - coordinates_;
-  int scale_offset = 0;
-  int scale_tmp = 0;
-  int num_voxels = size_cube;
-  while(scale_tmp < scale) {
-    scale_offset += num_voxels;
-    num_voxels /= 8;
-    ++scale_tmp;
-  }
-  const int local_size = size / (1 << scale);
-  voxel_offset = voxel_offset / (1 << scale);
-  return voxel_block_[scale_offset + voxel_offset.x() +
-                                     voxel_offset.y() * local_size +
-                                     voxel_offset.z() * se::math::sq(local_size)];
-}
+class VoxelBlockFull: public VoxelBlock<T> {
 
-template <typename T>
-inline void VoxelBlock<T>::setData(const Eigen::Vector3i& voxel_coord,
-                                const VoxelData& voxel_data){
-  Eigen::Vector3i voxel_offset = voxel_coord - coordinates_;
-  voxel_block_[voxel_offset.x() + voxel_offset.y() * size + voxel_offset.z() * size_sq] = voxel_data;
-}
+public:
+  using VoxelData = typename VoxelBlock<T>::VoxelData;
 
-template <typename T>
-inline void VoxelBlock<T>::setData(const Eigen::Vector3i& voxel_coord, const int scale,
-                                const VoxelData& voxel_data){
-  Eigen::Vector3i voxel_offset = voxel_coord - coordinates_;
-  int scale_offset = 0;
-  int scale_tmp = 0;
-  int num_voxels = size_cube;
-  while(scale_tmp < scale) {
-    scale_offset += num_voxels;
-    num_voxels /= 8;
-    ++scale_tmp;
+  VoxelBlockFull(const typename T::VoxelData init_data = T::initData());
+
+  VoxelBlockFull(const VoxelBlockFull<T>& block);
+
+  void operator=(const VoxelBlockFull<T>& block);
+
+  virtual ~VoxelBlockFull() {};
+
+  VoxelData data(const Eigen::Vector3i& voxel_coord) const;
+  void setData(const Eigen::Vector3i& voxel_coord, const VoxelData& voxel_data);
+
+  VoxelData data(const Eigen::Vector3i& voxel_coord, const int scale) const;
+  void setData(const Eigen::Vector3i& voxel_coord, const int scale, const VoxelData& voxel_data);
+
+  VoxelData data(const int voxel_idx) const;
+  void setData(const int voxel_idx, const VoxelData& voxel_data);
+
+  VoxelData* blockData() { return block_data_; }
+  const VoxelData* blockData() const { return block_data_; }
+  static constexpr int data_size() { return sizeof(VoxelBlockFull<T>); }
+
+private:
+  // Internal copy helper function
+  void initFromBlock(const VoxelBlockFull<T>& block);
+
+  static constexpr size_t compute_num_voxels() {
+    size_t voxel_count = 0;
+    unsigned int size_at_scale = VoxelBlock<T>::size_li;
+    while(size_at_scale >= 1) {
+      voxel_count += size_at_scale * size_at_scale * size_at_scale;
+      size_at_scale = size_at_scale >> 1;
+    }
+    return voxel_count;
   }
 
-  const int size_at_scale = size / (1 << scale);
-  voxel_offset = voxel_offset / (1 << scale);
-  voxel_block_[scale_offset + voxel_offset.x() +
-                              voxel_offset.y() * size_at_scale +
-                              voxel_offset.z() * se::math::sq(size_at_scale)] = voxel_data;
-}
+  static constexpr size_t num_voxels_in_block = compute_num_voxels();
+  VoxelData block_data_[num_voxels_in_block]; // Brick of data.
 
-template <typename T>
-inline typename VoxelBlock<T>::VoxelData
-VoxelBlock<T>::data(const int voxel_idx) const {
-  return voxel_block_[voxel_idx];
-}
+  friend std::ofstream& internal::serialise <> (std::ofstream& out,
+                                                VoxelBlockFull& node);
+  friend void internal::deserialise <> (VoxelBlockFull& node, std::ifstream& in);
+};
 
+/*! \brief A leaf node of the Octree. Each VoxelBlock contains compute_num_voxels_in_block() voxels
+ * voxels.
+ */
 template <typename T>
-inline void VoxelBlock<T>::setData(const int voxel_idx, const VoxelData& voxel_data){
-  voxel_block_[voxel_idx] = voxel_data;
-}
-}
+class VoxelBlockSingle: public VoxelBlock<T> {
+
+public:
+  using VoxelData = typename VoxelBlock<T>::VoxelData;
+
+  VoxelBlockSingle(const typename T::VoxelData init_data = T::initData()) : init_data_(init_data) { };
+
+  VoxelBlockSingle(const VoxelBlockSingle<T>& block);
+
+  void operator=(const VoxelBlockSingle<T>& block);
+
+  ~VoxelBlockSingle();
+
+  VoxelData initData() const;
+  void setInitData(const VoxelData& init_data);
+
+  VoxelData data(const Eigen::Vector3i& voxel_coord) const;
+  void setData(const Eigen::Vector3i& voxel_coord, const VoxelData& voxel_data);
+  void setDataSafe(const Eigen::Vector3i& voxel_coord, const VoxelData& voxel_data);
+
+  VoxelData data(const Eigen::Vector3i& voxel_coord, const int scale) const;
+  void setData(const Eigen::Vector3i& voxel_coord, const int scale, const VoxelData& voxel_data);
+  void setDataSafe(const Eigen::Vector3i& voxel_coord, const int scale, const VoxelData& voxel_data);
+
+  VoxelData data(const int voxel_idx) const;
+  void setData(const int voxel_idx, const VoxelData& voxel_data);
+  void setDataSafe(const int voxel_idx, const VoxelData& voxel_data);
+
+  void allocateDownTo();
+  void allocateDownTo(const int scale);
+
+  void deleteUpTo(const int scale);
+
+  std::vector<VoxelData*>& blockData() { return block_data_; }
+  const std::vector<VoxelData*>& blockData() const { return block_data_; }
+  static constexpr int data_size() { return sizeof(VoxelBlock<T>); }
+
+private:
+  // Internal copy helper function
+  void initFromBlock(const VoxelBlockSingle<T>& block);
+  void initialiseData(VoxelData* voxel_data, const int num_voxels);
+  std::vector<VoxelData*> block_data_; // block_data_[0] returns the data at scale = max_scale and not scale = 0
+  VoxelData init_data_;
+
+  friend std::ofstream& internal::serialise <> (std::ofstream& out, VoxelBlockSingle& node);
+  friend void internal::deserialise <> (VoxelBlockSingle& node, std::ifstream& in);
+};
+
+} // namespace se
+
+#include "node_impl.hpp"
+
 #endif
