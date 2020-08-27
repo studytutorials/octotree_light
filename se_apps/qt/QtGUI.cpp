@@ -38,11 +38,11 @@ static ApplicationWindow *appWindow = NULL;
 
 //We need to know abot the function that will process frames
 extern int processAll(se::Reader *reader, bool processFrame, bool renderImages,
-		Configuration *config, bool reset = false);
+		se::Configuration *config, bool reset = false);
 //We need to know where our kfusion object is so we can get required information
 static DenseSLAMSystem **pipeline_pp;
 static se::Reader **reader_pp;
-static Configuration *config;
+static se::Configuration *config;
 
 //forceRender is passed to the GUI, and used to tell this file if a GUI event which requires rerendering of models to occur
 //Typically this is when we rotate an image
@@ -277,7 +277,7 @@ void dumpPowerLog() {
 //This function is what sets up the GUI
 
 void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
-		se::Reader **_depthReader, Configuration *_config, void *depthRender,
+		se::Reader **_depthReader, se::Configuration *_config, void *depthRender,
 		void *trackRender, void *volumeRender, void *RGBARender) {
 	pipeline_pp = _pipe;
 	config = _config;

@@ -1,5 +1,7 @@
 #include "se/str_utils.hpp"
 
+#include <algorithm>
+
 
 
 namespace str_utils {
@@ -19,6 +21,18 @@ namespace str_utils {
       }
     }
     return elems;
+  }
+
+
+  void to_lower(std::string& s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+        [](unsigned char c){ return std::tolower(c); });
+  }
+
+
+  void to_upper(std::string& s) {
+    std::transform(s.begin(), s.end(), s.begin(),
+        [](unsigned char c){ return std::toupper(c); });
   }
 
 

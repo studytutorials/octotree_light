@@ -30,8 +30,8 @@ namespace se {
     float cx = nan("");
     float cy = nan("");
     // LIDAR
-    Eigen::VectorXf beam_azimuth_angles = Eigen::VectorXf(0);
-    Eigen::VectorXf beam_elevation_angles = Eigen::VectorXf(0);
+    Eigen::VectorXf beam_azimuth_angles = Eigen::VectorXf(1);
+    Eigen::VectorXf beam_elevation_angles = Eigen::VectorXf(1);
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
@@ -250,7 +250,7 @@ namespace se {
     bool  left_hand_frame;
     float near_plane;
     float far_plane;
-    float max_elevation_diff;
+    float min_ray_angle;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };

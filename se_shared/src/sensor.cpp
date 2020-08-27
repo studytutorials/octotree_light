@@ -40,8 +40,10 @@ int se::PinholeCamera::computeIntegrationScale(
     const int              min_scale,
     const int              max_block_scale) const {
   const float dist = block_centre.z();
+  // Compute the side length in metres of a pixel projected dist metres from the camera
+  const float pixel_dim = dist * scaled_pixel;
+  const float pv_ratio = pixel_dim / voxel_dim;
   int scale = 0;
-  const float pv_ratio = dist * scaled_pixel / voxel_dim;
   if (pv_ratio < 1.5) {
     scale = 0;
   } else if (pv_ratio < 3) {
@@ -93,13 +95,15 @@ se::OusterLidar::OusterLidar(const SensorConfig& c)
   assert(c.far_plane > c.near_plane);
   assert(c.beam_azimuth_angles.size()   > 0);
   assert(c.beam_elevation_angles.size() > 0);
-  max_elevation_diff = abs(c.beam_elevation_angles[1] - c.beam_elevation_angles[0]);
-    for (int i = 2; i < c.beam_elevation_angles.size(); i++) {
-      const int diff = abs(c.beam_elevation_angles[i-1] - c.beam_elevation_angles[i]);
-      if (diff > max_elevation_diff) {
-        max_elevation_diff = diff;
-      }
+  float min_elevation_angle = fabsf(c.beam_elevation_angles[1] - c.beam_elevation_angles[0]);
+  for (int i = 2; i < c.beam_elevation_angles.size(); i++) {
+    const float diff = fabsf(c.beam_elevation_angles[i-1] - c.beam_elevation_angles[i]);
+    if (diff < min_elevation_angle) {
+      min_elevation_angle = diff;
     }
+  }
+  const float azimuth_angle = 360.0f / c.width;
+  min_ray_angle = std::min(min_elevation_angle, azimuth_angle);
 }
 
 se::OusterLidar::OusterLidar(const OusterLidar& ol, const float sf)
@@ -114,22 +118,25 @@ int se::OusterLidar::computeIntegrationScale(
     const int   last_scale,
     const int   min_scale,
     const int   max_block_scale) const {
+  constexpr float deg_to_rad = M_PI / 180.0f;
   const float dist = block_centre.norm();
-  // Approximate the voxel by it's circumscribed sphere.
-  const float voxel_radius = voxel_dim * std::sqrt(3) / 2.0f;
-  // The radius of a sphere whose center is at the voxel's center and is
-  // tangent to the rays directly above and below the current one. This is an
-  // approximation assuming the elevation angle difference between all the rays
-  // is max_elevation_diff.
-  const float tangent_radius = std::sin(max_elevation_diff * M_PI / 180.0f) * dist;
-  // Find how many times the voxel radius fits in the tangent radius.
-  const float radius_ratio = tangent_radius / voxel_radius;
-  // Since the scales 0, 1, 2, 3 correspond to 1*voxel_dim, 2*voxel_dim,
-  // 4*voxel_dim, 8*voxel_dim, use log2() to compute the scale.
-  int scale = static_cast<int>(std::log2(radius_ratio));
-  // Negative scales may arise if the voxel_radius is greater than the
-  // tangent_radius.
-  scale = std::min(std::max(scale, 0), max_block_scale);
+  // Compute the side length in metres of a pixel projected dist metres from
+  // the camera. This computes the chord length corresponding to the ray angle
+  // at distance dist.
+  const float pixel_dim = 2.0f * dist * std::tan(min_ray_angle / 2.0f * deg_to_rad);
+  // Compute the ratio using the worst case voxel_dim (space diagonal)
+  const float pv_ratio = pixel_dim / (std::sqrt(3) * voxel_dim);
+  int scale = 0;
+  if (pv_ratio < 1.0f) {
+    scale = 0;
+  } else if (pv_ratio < 2.0f) {
+    scale = 1;
+  } else if (pv_ratio < 4.0f) {
+    scale = 2;
+  } else {
+    scale = 3;
+  }
+  scale = std::min(scale, max_block_scale);
 
   Eigen::Vector3f block_centre_hyst = block_centre;
   bool recompute = false;

@@ -5,7 +5,7 @@
 
 
 int main(int argc, char** argv) {
-  Configuration config;
+  se::Configuration config;
 
   const Eigen::Vector2i image_size (640, 480);
   const Eigen::Vector3i map_size = Eigen::Vector3i::Constant(64);

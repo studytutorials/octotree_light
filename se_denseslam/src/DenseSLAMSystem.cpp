@@ -52,21 +52,21 @@
 
 extern PerfStats stats;
 
-DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& image_res,
-                                 const Eigen::Vector3i& map_size,
-                                 const Eigen::Vector3f& map_dim,
-                                 const Eigen::Vector3f& t_MW,
-                                 std::vector<int>&      pyramid,
-                                 const Configuration&   config)
+DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i&   image_res,
+                                 const Eigen::Vector3i&   map_size,
+                                 const Eigen::Vector3f&   map_dim,
+                                 const Eigen::Vector3f&   t_MW,
+                                 std::vector<int>&        pyramid,
+                                 const se::Configuration& config)
   : DenseSLAMSystem(image_res, map_size, map_dim,
       se::math::to_transformation(t_MW), pyramid, config) {}
 
-DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i& image_res,
-                                 const Eigen::Vector3i& map_size,
-                                 const Eigen::Vector3f& map_dim,
-                                 const Eigen::Matrix4f& T_MW,
-                                 std::vector<int>&      pyramid,
-                                 const Configuration&   config)
+DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i&   image_res,
+                                 const Eigen::Vector3i&   map_size,
+                                 const Eigen::Vector3f&   map_dim,
+                                 const Eigen::Matrix4f&   T_MW,
+                                 std::vector<int>&        pyramid,
+                                 const se::Configuration& config)
   : image_res_(image_res),
     depth_image_(image_res_.x(), image_res_.y()),
     rgba_image_(image_res_.x(), image_res_.y()),

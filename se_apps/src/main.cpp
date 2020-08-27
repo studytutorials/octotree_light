@@ -51,21 +51,21 @@ static Eigen::Vector3f t_MW;
 static std::ostream* log_stream = &std::cout;
 static std::ofstream log_file_stream;
 
-int processAll(se::Reader*    reader,
-               bool           process_frame,
-               bool           render_images,
-               Configuration* config,
-               bool           reset = false);
+int processAll(se::Reader*        reader,
+               bool               process_frame,
+               bool               render_images,
+               se::Configuration* config,
+               bool               reset = false);
 
-void qtLinkKinectQt(int               argc,
-                    char**            argv,
-                    DenseSLAMSystem** pipeline,
-                    se::Reader**      reader,
-                    Configuration*    config,
-                    void*             depth_render,
-                    void*             track_render,
-                    void*             volume_render,
-                    void*             rgba_render);
+void qtLinkKinectQt(int                argc,
+                    char**             argv,
+                    DenseSLAMSystem**  pipeline,
+                    se::Reader**       reader,
+                    se::Configuration* config,
+                    void*              depth_render,
+                    void*              track_render,
+                    void*              volume_render,
+                    void*              rgba_render);
 
 struct ProgressBar {
   ProgressBar(int total_frames=-1) : total_frames_(total_frames) {}
@@ -128,11 +128,14 @@ void storeStats(
 
 int main(int argc, char** argv) {
 
-  Configuration config = parseArgs(argc, argv);
+  se::Configuration config = parseArgs(argc, argv);
   power_monitor = new PowerMonitor();
 
   // ========= READER INITIALIZATION  =========
   reader = se::create_reader(config);
+  if (reader == nullptr) {
+    exit(EXIT_FAILURE);
+  }
 
   // ========= UPDATE MAX FRAME =========
   if (config.max_frame == -1 ||
@@ -255,11 +258,11 @@ int main(int argc, char** argv) {
   delete[] volume_render;
 }
 
-int processAll(se::Reader*    reader,
-               bool           process_frame,
-               bool           render_images,
-               Configuration* config,
-               bool           reset) {
+int processAll(se::Reader*        reader,
+               bool               process_frame,
+               bool               render_images,
+               se::Configuration* config,
+               bool               reset) {
 
   static int frame_offset = 0;
   static bool first_frame = true;

@@ -1,0 +1,7 @@
+voxel_impl:
+  surface_boundary:           0.0
+  occupancy_min_max:          [-100, 100]
+  tau:                        4
+  sigma_min_max_factor:       [2, 4]
+  k_sigma:                    0.01
+

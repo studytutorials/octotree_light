@@ -138,7 +138,7 @@ def parse_arguments():
     parser.add_argument('-A', '--no-equalize-axes', action='store_false',
             dest='equalize_axes',
             help=('Don\'t equalize the vertical axes of subplots.'))
-    parser.add_argument('--show-plot', help='show plot', action="store_true")
+    parser.add_argument('--hide-plot', help='hide plot', action="store_false", dest="show_plot")
     parser.add_argument('--save-plot', help='save plot', nargs='?', const="./plot.png", dest="plot_file")
     args = parser.parse_args()
     return args

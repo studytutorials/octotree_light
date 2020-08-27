@@ -3,6 +3,7 @@ general:
   sequence_name:              ""                              # e.g. "cow-and-lady"; No impact on pipeline.
                                                               # Parameter only helps name log files.
   sequence_path:              "/PATH/TO/scene.raw"
+  sequence_type:              "raw"
   enable_ground_truth:        true
   ground_truth_file:          "/PATH/TO/association.txt"
   benchmark:                  false
@@ -33,7 +34,7 @@ map:
   t_MW_factor:                [0.501, 0.501, 0.501]
 
 sensor:
-  type:                       ""                              # e.g. "pinholecamera"; No impact on pipeline.
+  type:                       "pinholecamera"                 # e.g. "pinholecamera"; No impact on pipeline.
                                                               # Parameter only helps name log files.
   intrinsics:                 [525,525,319.5,239.5]
   downsampling_factor:        4
@@ -44,3 +45,4 @@ sensor:
   init_T_WB:                  [0, 0, 0, 0, 0, 0, 1]           # tx, ty, tz, qx, qy, qz, qw
   near_plane:                 0.4
   far_plane:                  4.0
+

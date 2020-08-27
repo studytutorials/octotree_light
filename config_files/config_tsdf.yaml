@@ -1,0 +1,4 @@
+voxel_impl:
+  mu_factor:                  8
+  max_weight:                 100
+

@@ -43,287 +43,345 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-struct Configuration {
-  //
-  // Pipeline configuration parameters
-  // Command line arguments are parsed in default_parameters.h
-  //
+namespace se {
+  struct Configuration {
+    //
+    // Pipeline configuration parameters
+    // Command line arguments are parsed in default_parameters.h
+    //
 
-  std::string sensor_type;
-  std::string voxel_impl_type;
-  std::string sequence_name;
+    std::string sensor_type;
+    std::string voxel_impl_type;
+    std::string sequence_name;
 
-  /**
-   * The ratio of the input frame size over the frame size used internally.
-   * Values greater than 1 result in the input frames being downsampled
-   * before processing. Valid values are 1, 2, 4 and 8.
-   *
-   * <br>\em Default: 1
-   */
-  int sensor_downsampling_factor;
+    /**
+     * The type of the sequence.
+     * Valid types are (case insensitive):
+     * - RAW (https://github.com/pamela-project/slambench)
+     * - ICLNUIM (https://www.doc.ic.ac.uk/~ahanda/VaFRIC/iclnuim.html)
+     * - OpenNI (from file or live camera if sequence_path is empty)
+     * - NewerCollege (https://ori-drs.github.io/newer-college-dataset/)
+     *
+     * <br>\em Default: RAW
+     */
+    std::string sequence_type;
 
-  /**
-   * Perform tracking on a frame every tracking_rate frames.
-   *
-   * <br>\em Default: 1
-   */
-  int tracking_rate;
+    /**
+     * The ratio of the input frame size over the frame size used internally.
+     * Values greater than 1 result in the input frames being downsampled
+     * before processing. Valid values are 1, 2, 4 and 8.
+     *
+     * <br>\em Default: 1
+     */
+    int sensor_downsampling_factor;
 
-  /**
-   * Integrate a 3D reconstruction every integration_rate frames. Should not
-   * be less than tracking_rate.
-   *
-   * <br>\em Default: 2
-   */
-  int integration_rate;
+    /**
+     * Perform tracking on a frame every tracking_rate frames.
+     *
+     * <br>\em Default: 1
+     */
+    int tracking_rate;
 
-  /**
-   * Render the 3D reconstruction every rendering_rate frames
-   * \note configuration::enable_render == true (default) required.
-   *
-   * Special cases:
-   * If rendering_rate == 0 the volume is only rendered for configuration::max_frame.
-   * If rendering_rate < 0  the volume is only rendered for frame abs(rendering_rate).
-   *
-   * <br>\em Default: 4
-   */
-  int rendering_rate;
+    /**
+     * Integrate a 3D reconstruction every integration_rate frames. Should not
+     * be less than tracking_rate.
+     *
+     * <br>\em Default: 1
+     */
+    int integration_rate;
 
-  /**
-   * Mesh the 3D reconstruction every meshing_rate frames.
-   *
-   * Special cases:
-   * If meshing_rate == 0 the volume is only meshed for configuration::max_frame.
-   * If meshing_rate < 0  the volume is only meshed for frame abs(meshing_rate).
-   *
-   * <br>\em Default: 100
-   */
-  int meshing_rate;
+    /**
+     * Render the 3D reconstruction every rendering_rate frames
+     * \note configuration::enable_render == true (default) required.
+     *
+     * Special cases:
+     * If rendering_rate == 0 the volume is only rendered for configuration::max_frame.
+     * If rendering_rate < 0  the volume is only rendered for frame abs(rendering_rate).
+     *
+     * <br>\em Default: 4
+     */
+    int rendering_rate;
 
-  /**
-   * The x, y and z size of the reconstructed map in voxels.
-   *
-   * <br>\em Default: (256, 256, 256)
-   */
-  Eigen::Vector3i map_size;
+    /**
+     * Mesh the 3D reconstruction every meshing_rate frames.
+     *
+     * Special cases:
+     * If meshing_rate == 0 the volume is only meshed for configuration::max_frame.
+     * If meshing_rate < 0  the volume is only meshed for frame abs(meshing_rate).
+     *
+     * <br>\em Default: 100
+     */
+    int meshing_rate;
 
-  /**
-   * The x, y and z dimensions of the reconstructed map in meters.
-   *
-   * <br>\em Default: (2, 2, 2)
-   */
-  Eigen::Vector3f map_dim;
+    /**
+     * The x, y and z size of the reconstructed map in voxels.
+     *
+     * <br>\em Default: (256, 256, 256)
+     */
+    Eigen::Vector3i map_size;
 
-  /**
-   * The position of the first pose inside the volume. The coordinates are
-   * expressed as fractions [0, 1] of the volume's extent. The default value of
-   * (0.5, 0.5, 0) results in the first pose being placed halfway along the x
-   * and y axes and at the beginning of the z axis.
-   *
-   * <br>\em Default: (0.5, 0.5, 0)
-   */
-  Eigen::Vector3f t_MW_factor;
+    /**
+     * The x, y and z dimensions of the reconstructed map in meters.
+     *
+     * <br>\em Default: (2, 2, 2)
+     */
+    Eigen::Vector3f map_dim;
 
-  /**
-   * The number of pyramid levels and ICP iterations for the depth images. The
-   * number of elements in the vector is equal to the number of pramid levels.
-   * The values of the vector elements correspond to the number of ICP
-   * iterations run at this particular pyramid level. The first vector element
-   * corresponds to the first level etc. The first pyramid level contains the
-   * original depth image. Each subsequent pyramid level contains the image of
-   * the previous level downsampled to half the resolution. ICP starts from the
-   * highest (lowest resolution) pyramid level. The default value of (10, 5, 4)
-   * results in 10 ICP iterations for the initial depth frame, 5 iterations for
-   * the initial depth frame downsampled once and 4 iterations for the initial
-   * frame downsampled twice.
-   *
-   * <br>\em Default: (10, 5, 4)
-   */
-  std::vector<int> pyramid;
+    /**
+     * The position of the first pose inside the volume. The coordinates are
+     * expressed as fractions [0, 1] of the volume's extent. The default value
+     * of (0.5, 0.5, 0) results in the first pose being placed halfway along
+     * the x and y axes and at the beginning of the z axis.
+     *
+     * <br>\em Default: (0.5, 0.5, 0.5)
+     */
+    Eigen::Vector3f t_MW_factor;
 
-  /*
-   * TODO
-   * <br>\em Default: ""
-   */
-  std::string output_mesh_file;
+    /**
+     * The number of pyramid levels and ICP iterations for the depth images.
+     * The number of elements in the vector is equal to the number of pramid
+     * levels. The values of the vector elements correspond to the number of
+     * ICP iterations run at this particular pyramid level. The first vector
+     * element corresponds to the first level etc. The first pyramid level
+     * contains the original depth image. Each subsequent pyramid level
+     * contains the image of the previous level downsampled to half the
+     * resolution. ICP starts from the highest (lowest resolution) pyramid
+     * level. The default value of (10, 5, 4) results in 10 ICP iterations for
+     * the initial depth frame, 5 iterations for the initial depth frame
+     * downsampled once and 4 iterations for the initial frame downsampled
+     * twice.
+     *
+     * <br>\em Default: (10, 5, 4)
+     */
+    std::vector<int> pyramid;
 
-  /*
-   * TODO
-   * <br>\em Default: ""
-   */
-  std::string sequence_path;
+    /*
+     * TODO
+     * <br>\em Default: ""
+     */
+    std::string output_mesh_file;
 
-
-  /**
-   * Whether to run the pipeline in benchmark mode. Hiding the GUI results in faster operation.
-   *
-   * <br>\em Default: false
-   */
-  bool enable_benchmark;
-
-  /**
-   * The log file the timing results will be written to.
-   *
-   * <br>\em Default: std::cout if Configuration::enable_benchmark is blank (--enable-benchmark) or not Configuration::enable_render (--enable-render)
-   * <br>\em Default: autogen log filename if the Configuration::enable_benchmark argument is a directory (--enable-benchmark=/PATH/TO/DIR)
-   */
-  std::string log_file;
-
-  /**
-   * The path to a text file containing the ground truth poses T_WC. Each line
-   * of the file should correspond to a single pose. The pose should be encoded
-   * in the format `tx ty tz qx qy qz qw` where `tx`, `ty` and `tz` are the
-   * position coordinates and `qx`, `qy`, `qz` and `qw` the orientation
-   * quaternion. Each line in the file should be in the format `... tx ty tz qx
-   * qy qz qw`, that is the pose is encoded in the last 7 columns of the line.
-   * The other columns of the file are ignored. Lines beginning with # are
-   * comments.
-   *
-   * <br>\em Default: ""
-   *
-   * \note It is assumed that the ground truth poses are the sensor frame C
-   * expressed in the world frame W. The sensor frame is assumed to be z
-   * forward, x right with respect to the image. If the ground truth poses do
-   * not adhere to this assumption then the ground truth transformation
-   * Configuration::T_BC should be set appropriately.
-   */
-  std::string ground_truth_file;
-
-  /**
-   * Whether to use the available ground truth camera pose.
-   *
-   * <br>\em Default: true
-   */
-  bool enable_ground_truth;
+    /*
+     * TODO
+     * <br>\em Default: ""
+     */
+    std::string sequence_path;
 
 
-  /**
-   * A 4x4 transformation matrix post-multiplied with all poses read from the
-   * ground truth file. It is used if the ground truth poses are in some frame
-   * B other than the sensor frame C.
-   *
-   * <br>\em Default: Eigen::Matrix4f::Identity()
-   */
-  Eigen::Matrix4f T_BC;
+    /**
+     * Whether to run the pipeline in benchmark mode. Hiding the GUI results in
+     * faster operation.
+     *
+     * <br>\em Default: false
+     */
+    bool enable_benchmark;
 
-  /**
-   * The initial pose of the body in world frame expressed in a 4x4 transformation matrix.
-   *
-   * \note If T_BC is the Idenity matrix init_T_WB equals init_T_WC
-   *
-   * <br>\em Default: Eigen::Matrix4f::Identity()
-   */
-  Eigen::Matrix4f init_T_WB;
+    /**
+     * The log file the timing results will be written to.
+     *
+     * <br>\em Default: std::cout if Configuration::enable_benchmark is blank
+     * (--enable-benchmark) or not Configuration::enable_render
+     * (--enable-render)
+     * <br>\em Default: autogen log filename if the
+     * Configuration::enable_benchmark argument is a directory
+     * (--enable-benchmark=/PATH/TO/DIR)
+     */
+    std::string log_file;
 
-  /**
-   * The intrinsic sensor parameters. sensor_intrinsics.x, sensor_intrinsics.y, sensor_intrinsics.z and
-   * sensor_intrinsics.w are the x-axis focal length, y-axis focal length, horizontal
-   * resolution (pixels) and vertical resolution (pixels) respectively.
-   */
-  Eigen::Vector4f sensor_intrinsics;
+    /**
+     * The path to a text file containing the ground truth poses T_WC. Each
+     * line of the file should correspond to a single pose. The pose should be
+     * encoded in the format `tx ty tz qx qy qz qw` where `tx`, `ty` and `tz`
+     * are the position coordinates and `qx`, `qy`, `qz` and `qw` the
+     * orientation quaternion. Each line in the file should be in the format
+     * `... tx ty tz qx qy qz qw`, that is the pose is encoded in the last 7
+     * columns of the line. The other columns of the file are ignored. Lines
+     * beginning with # are comments.
+     *
+     * <br>\em Default: ""
+     *
+     * \note It is assumed that the ground truth poses are the sensor frame C
+     * expressed in the world frame W. The sensor frame is assumed to be z
+     * forward, x right with respect to the image. If the ground truth poses do
+     * not adhere to this assumption then the ground truth transformation
+     * Configuration::T_BC should be set appropriately.
+     */
+    std::string ground_truth_file;
 
-  /**
-   * Indicates if the sensor uses a left hand coordinate system
-   */
-  bool left_hand_frame;
+    /**
+     * Whether to use the available ground truth camera pose.
+     *
+     * <br>\em Default: true
+     */
+    bool enable_ground_truth;
 
-  /**
-   * Whether the default intrinsic sensor parameters have been overriden.
-   */
-  bool sensor_intrinsics_overrided;
 
-  /**
-   * Nearest z-distance to the sensor along the sensor frame z-axis, that voxels are updated.
-   */
-  float near_plane;
+    /**
+     * A 4x4 transformation matrix post-multiplied with all poses read from the
+     * ground truth file. It is used if the ground truth poses are in some
+     * frame B other than the sensor frame C.
+     *
+     * <br>\em Default: Eigen::Matrix4f::Identity()
+     */
+    Eigen::Matrix4f T_BC;
 
-  /**
-   * Furthest z-distance to the sensor along the sensor frame z-axis, that voxels are updated.
-   */
-  float far_plane;
+    /**
+     * The initial pose of the body in world frame expressed in a 4x4
+     * transformation matrix.
+     *
+     * \note If T_BC is the Idenity matrix init_T_WB equals init_T_WC
+     *
+     * <br>\em Default: Eigen::Matrix4f::Identity()
+     */
+    Eigen::Matrix4f init_T_WB;
 
-  /**
-   * Read frames at the specified rate, waiting if the computation rate is
-   * higher than se::Configuration::fps.
-   *
-   * \note Must be non-negative.
-   *
-   * <br>\em Default: 0
-   */
-  float fps;
+    /**
+     * The intrinsic sensor parameters. sensor_intrinsics.x,
+     * sensor_intrinsics.y, sensor_intrinsics.z and sensor_intrinsics.w are the
+     * x-axis focal length, y-axis focal length, horizontal resolution (pixels)
+     * and vertical resolution (pixels) respectively.
+     */
+    Eigen::Vector4f sensor_intrinsics;
 
-  /**
-   * Skip processing frames that could not be processed in time. Only has an
-   * effect if se::Configuration::fps is greater than 0.
-   * <br>\em Default: false
-   */
-  bool drop_frames;
+    /**
+     * Indicates if the sensor uses a left hand coordinate system
+     */
+    bool left_hand_frame;
 
-  /**
-   * Last frame to be integrated.
-   * \note: se::Configuration::max_frame starts from 0.
-   *
-   * Special cases
-   * If max_frame == -1 (default) the entire dataset will be integrated and the value will be overwritten by
-   * number of frames in dataset - 1 (exception number of frames is unknwon e.g. OpenNI/live feed).
-   *
-   * If max_frame > number of frames in dataset - 1 the value will be overwritten by reader.numFrames()
-   * (exception number of frames is unknwon e.g. OpenNI/live feed).
-   *
-   * If (max_frame == -1 (default) or max_frame > number of frames in dataset - 1) and the number of frames is unknown
-   * (e.g. OpenNI/live feed) the frames are integrated until the pipeline is terminated and max_frame is kept at -1.
-   *
-   * max_frame in [0, number of frames in dataset - 1] or [0, inf] if number of frames in dataset is unknown.
-   *
-   * <br>\em Default: -1 (full dataset)
-   */
-  int max_frame;
+    /**
+     * Nearest z-distance to the sensor along the sensor frame z-axis, that
+     * voxels are updated.
+     */
+    float near_plane;
 
-  /**
-   * The ICP convergence threshold.
-   *
-   * <br>\em Default: 1e-5
-   */
-  float icp_threshold;
+    /**
+     * Furthest z-distance to the sensor along the sensor frame z-axis, that
+     * voxels are updated.
+     */
+    float far_plane;
 
-  /**
-   * Whether to mesh the octree.
-   *
-   * <br>\em Default: false
-   */
-  bool enable_meshing;
+    /**
+     * Read frames at the specified rate, waiting if the computation rate is
+     * higher than se::Configuration::fps.
+     *
+     * \note Must be non-negative.
+     *
+     * <br>\em Default: 0
+     */
+    float fps;
 
-  /**
-   * Whether to hide the GUI. Hiding the GUI results in faster operation.
-   * <br>\em Default: true
-   */
-  bool enable_render;
+    /**
+     * Skip processing frames that could not be processed in time. Only has an
+     * effect if se::Configuration::fps is greater than 0.
+     * <br>\em Default: false
+     */
+    bool drop_frames;
 
-  /*
-   * TODO
-   * <br>\em Default: ""
-   */
-  std::string output_render_file;
+    /**
+     * Last frame to be integrated.
+     * \note: se::Configuration::max_frame starts from 0.
+     *
+     * Special cases
+     * If max_frame == -1 (default) the entire dataset will be integrated and the value will be overwritten by
+     * number of frames in dataset - 1 (exception number of frames is unknwon e.g. OpenNI/live feed).
+     *
+     * If max_frame > number of frames in dataset - 1 the value will be overwritten by reader.numFrames()
+     * (exception number of frames is unknwon e.g. OpenNI/live feed).
+     *
+     * If (max_frame == -1 (default) or max_frame > number of frames in dataset - 1) and the number of frames is unknown
+     * (e.g. OpenNI/live feed) the frames are integrated until the pipeline is terminated and max_frame is kept at -1.
+     *
+     * max_frame in [0, number of frames in dataset - 1] or [0, inf] if number of frames in dataset is unknown.
+     *
+     * <br>\em Default: -1 (full dataset)
+     */
+    int max_frame;
 
-  /*
-   * TODO
-   * <br>\em Default: false
-   */
-  bool render_volume_fullsize;
+    /**
+     * The ICP convergence threshold.
+     *
+     * <br>\em Default: 1e-5
+     */
+    float icp_threshold;
 
-  /**
-   * Whether to filter the depth input frames using a bilateral filter.
-   * Filtering using a bilateral filter helps to reduce the measurement
-   * noise.
-   *
-   * <br>\em Default: false
-   */
-  bool bilateral_filter;
+    /**
+     * Whether to mesh the octree.
+     *
+     * <br>\em Default: false
+     */
+    bool enable_meshing;
 
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-};
+    /**
+     * Whether to hide the GUI. Hiding the GUI results in faster operation.
+     * <br>\em Default: true
+     */
+    bool enable_render;
 
-static std::ostream& operator<<(std::ostream& out, const Configuration& config) {
+    /*
+     * TODO
+     * <br>\em Default: ""
+     */
+    std::string output_render_file;
+
+    /*
+     * TODO
+     * <br>\em Default: false
+     */
+    bool render_volume_fullsize;
+
+    /**
+     * Whether to filter the depth input frames using a bilateral filter.
+     * Filtering using a bilateral filter helps to reduce the measurement
+     * noise.
+     *
+     * <br>\em Default: false
+     */
+    bool bilateral_filter;
+
+    Configuration()
+      : sensor_type(""),
+        voxel_impl_type(""),
+        sequence_name(""),
+        sequence_type("raw"),
+        sensor_downsampling_factor(1),
+        tracking_rate(1),
+        integration_rate(1),
+        rendering_rate(4),
+        meshing_rate(100),
+        map_size(256, 256, 256),
+        map_dim(2.0f, 2.0f, 2.0f),
+        t_MW_factor(0.5f, 0.5f, 0.5f),
+        pyramid({10, 5, 4}),
+        output_mesh_file(""),
+        sequence_path(""),
+        enable_benchmark(false),
+        log_file(""),
+        ground_truth_file(""),
+        enable_ground_truth(true),
+        T_BC(Eigen::Matrix4f::Identity()),
+        init_T_WB(Eigen::Matrix4f::Identity()),
+        sensor_intrinsics(0.0f, 0.0f, 0.0f, 0.0f),
+        left_hand_frame(false),
+        near_plane(0.4f),
+        far_plane(4.0f),
+        fps(0.0f),
+        drop_frames(false),
+        max_frame(-1),
+        icp_threshold(1e-5),
+        enable_meshing(false),
+        enable_render(true),
+        output_render_file(""),
+        render_volume_fullsize(false),
+        bilateral_filter(false) {}
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  };
+} // namespace se
+
+
+
+
+static std::ostream& operator<<(std::ostream& out, const se::Configuration& config) {
 
   out << str_utils::header_to_pretty_str("GENERAL") << "\n";
   out << str_utils::str_to_pretty_str(config.voxel_impl_type,         "Voxel impl type") << "\n";
@@ -331,6 +389,7 @@ static std::ostream& operator<<(std::ostream& out, const Configuration& config) 
   out << "\n";
 
   out << str_utils::str_to_pretty_str(config.sequence_name,           "Sequence name") << "\n";
+  out << str_utils::str_to_pretty_str(config.sequence_type,           "Sequence type") << "\n";
   out << str_utils::str_to_pretty_str(config.sequence_path,           "Sequence path") << "\n";
   out << str_utils::str_to_pretty_str(config.ground_truth_file,       "Ground truth file") << "\n";
   out << str_utils::str_to_pretty_str((config.log_file == "" ? "std::cout" : config.log_file),
@@ -399,3 +458,4 @@ static std::ostream& operator<<(std::ostream& out, const Configuration& config) 
 }
 
 #endif
+

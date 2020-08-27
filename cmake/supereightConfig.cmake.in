@@ -2,6 +2,7 @@ get_filename_component(SUPEREIGHT_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 include(CMakeFindDependencyMacro)
 
 find_dependency(Eigen3)
+find_dependency(LodePNG)
 find_dependency(SRLProjection)
 find_dependency(Sophus)
 find_dependency(octomap)

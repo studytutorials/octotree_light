@@ -21,6 +21,10 @@ namespace str_utils {
                                       const char delim,
                                       const bool ignore_consec = false);
 
+  void to_lower(std::string& s);
+
+  void to_upper(std::string& s);
+
   static constexpr int default_width = 33;
 
   template<typename MatrixT>

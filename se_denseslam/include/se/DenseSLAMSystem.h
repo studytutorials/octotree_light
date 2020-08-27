@@ -67,7 +67,7 @@ class DenseSLAMSystem {
     // Pipeline config
     Eigen::Vector3f map_dim_;
     Eigen::Vector3i map_size_;
-    Configuration config_;
+	se::Configuration config_;
     std::vector<float> gaussian_;
 
     // Camera pose
@@ -108,15 +108,15 @@ class DenseSLAMSystem {
      * reconstructed volume in meters.
      * \param[in] t_MW The x, y and z coordinates of the world to map frame translation.
      * The map frame rotation is assumed to be aligned with the world frame.
-     * \param[in] pyramid See ::Configuration.pyramid for more details.
+     * \param[in] pyramid See se::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
-    DenseSLAMSystem(const Eigen::Vector2i& image_res,
-                    const Eigen::Vector3i& map_size,
-                    const Eigen::Vector3f& map_dim,
-                    const Eigen::Vector3f& t_MW,
-                    std::vector<int> &     pyramid,
-                    const Configuration&   config);
+    DenseSLAMSystem(const Eigen::Vector2i&   image_res,
+                    const Eigen::Vector3i&   map_size,
+                    const Eigen::Vector3f&   map_dim,
+                    const Eigen::Vector3f&   t_MW,
+                    std::vector<int> &       pyramid,
+                    const se::Configuration& config);
     /**
      * Constructor using the initial camera position.
      *
@@ -126,15 +126,15 @@ class DenseSLAMSystem {
      * \param[in] map_dim_ The x, y and z dimensions of the
      * reconstructed volume in meters.
      * \param[in] T_MW The world to map frame transformation encoded in a 4x4 matrix.
-     * \param[in] pyramid See ::Configuration.pyramid for more details.
+     * \param[in] pyramid See se::Configuration.pyramid for more details.
      * \param[in] config_ The pipeline options.
      */
-    DenseSLAMSystem(const Eigen::Vector2i& image_res,
-                    const Eigen::Vector3i& map_size,
-                    const Eigen::Vector3f& map_dim,
-                    const Eigen::Matrix4f& T_MW,
-                    std::vector<int> &     pyramid,
-                    const Configuration&   config);
+    DenseSLAMSystem(const Eigen::Vector2i&   image_res,
+                    const Eigen::Vector3i&   map_size,
+                    const Eigen::Vector3f&   map_dim,
+                    const Eigen::Matrix4f&   T_MW,
+                    std::vector<int> &       pyramid,
+                    const se::Configuration& config);
 
     /**
      * Preprocess a single depth frame and add it to the pipeline.
@@ -174,8 +174,8 @@ class DenseSLAMSystem {
      * obtained from all of the previous frames. This is the second stage of
      * the pipeline.
      *
-     * \param[in] k The intrinsic camera parameters. See ::Configuration.camera
-     * for details.
+	 * \param[in] k The intrinsic camera parameters. See
+	 * se::Configuration.camera for details.
      * \param[in] icp_threshold The ICP convergence threshold.
      * \return true if the camera pose was updated and false if it wasn't.
      */
@@ -187,8 +187,8 @@ class DenseSLAMSystem {
      * existing reconstruction. This is the third stage of the pipeline.
      *
      * \param[in] k The intrinsic camera parameters. See
-     * ::Configuration.camera for details.
-     * \param[in] mu TSDF truncation bound. See ::Configuration.mu for more
+     * se::Configuration.camera for details.
+     * \param[in] mu TSDF truncation bound. See se::Configuration.mu for more
      * details.
      * \param[in] frame The index of the current frame (starts from 0).
      * \return true (does not fail).
@@ -206,8 +206,8 @@ class DenseSLAMSystem {
      * index up to 2).
      *
      * \param[in] k The intrinsic camera parameters. See
-     * ::Configuration.camera for details.
-     * \param[in] mu TSDF truncation bound. See ::Configuration.mu for more
+     * se::Configuration.camera for details.
+     * \param[in] mu TSDF truncation bound. See se::Configuration.mu for more
      * details.
      * \return true (does not fail).
      */
@@ -258,11 +258,11 @@ class DenseSLAMSystem {
                      const Eigen::Vector2i& output_image_res);
 
     /**
-     * Render the current depth frame. The frame is rendered before
-     * preprocessing while taking into account the values of
-     * Configuration::near_plane and Configuration::far_plane. Regions closer
-     * to the camera than Configuration::near_plane appear white and regions
-     * further than Configuration::far_plane appear black.
+	 * Render the current depth frame. The frame is rendered before
+	 * preprocessing while taking into account the values of
+	 * se::Configuration::near_plane and se::Configuration::far_plane. Regions
+	 * closer to the camera than se::Configuration::near_plane appear white and
+	 * regions further than se::Configuration::far_plane appear black.
      *
      * \param[out] output_image_data A pointer to an array where the image will
      *                               be rendered. The array must be allocated
