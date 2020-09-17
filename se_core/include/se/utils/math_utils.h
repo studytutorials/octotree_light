@@ -157,6 +157,19 @@ namespace se {
         res = res.array().max(a.array());
         res = res.array().min(b.array());
       }
+
+    /*! \brief Compute the normal vector of a plane defined by 3 points.
+     * The direction of the normal depends on the order of the points.
+     */
+    static Eigen::Vector4f plane_normal(const Eigen::Vector4f& p1,
+                                        const Eigen::Vector4f& p2,
+                                        const Eigen::Vector4f& p3) {
+      // Plane tangent vectors
+      const Eigen::Vector3f t1 = p2.head<3>() - p1.head<3>();
+      const Eigen::Vector3f t2 = p3.head<3>() - p2.head<3>();
+      // Unit normal vector
+      return t1.cross(t2).normalized().homogeneous();
+    }
   }
 }
 #endif

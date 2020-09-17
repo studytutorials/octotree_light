@@ -6,6 +6,14 @@
 
 namespace str_utils {
 
+  bool begins_with(const std::string& s, const std::string& prefix) {
+    return (s.compare(0, prefix.length(), prefix) == 0);
+  }
+
+  bool ends_with(const std::string& s, const std::string& suffix) {
+    return (s.compare(s.length() - suffix.length(), suffix.length(), suffix) == 0);
+  }
+
   std::vector <std::string> split_str(
       const std::string &s,
       const char delim,

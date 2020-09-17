@@ -51,6 +51,9 @@ struct TSDF {
     struct VoxelData {
       float x; /**< The value of the TSDF. */
       float y; /**< The number of measurements integrated in the voxel. */
+
+      bool operator==(const VoxelData& other) const;
+      bool operator!=(const VoxelData& other) const;
     };
 
     static inline VoxelData invalid()     { return {1.f, -1.f}; }
@@ -62,7 +65,7 @@ struct TSDF {
     template <typename ElemT>
     using MemoryBufferType = se::PagedMemoryBuffer<ElemT>;
   };
-  
+
   using VoxelData      = TSDF::VoxelType::VoxelData;
   using OctreeType     = se::Octree<TSDF::VoxelType>;
   using VoxelBlockType = typename TSDF::VoxelType::VoxelBlockType;
@@ -137,7 +140,7 @@ struct TSDF {
 
   static void dumpMesh(OctreeType&                map,
                        std::vector<se::Triangle>& mesh);
-  
+
 };
 
 #endif

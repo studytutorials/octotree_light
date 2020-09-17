@@ -51,6 +51,9 @@ struct OFusion {
     struct VoxelData {
       float  x; /**< The occupancy value in log-odds. */
       double y; /**< The timestamp of the last update. */
+
+      bool operator==(const VoxelData& other) const;
+      bool operator!=(const VoxelData& other) const;
     };
 
     static inline VoxelData invalid()     { return {0.f, 0.f}; }

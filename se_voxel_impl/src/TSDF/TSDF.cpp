@@ -34,6 +34,14 @@
 
 
 
+bool TSDF::VoxelType::VoxelData::operator==(const TSDF::VoxelType::VoxelData& other) const {
+  return (x == other.x) && (y == other.y);
+}
+
+bool TSDF::VoxelType::VoxelData::operator!=(const TSDF::VoxelType::VoxelData& other) const {
+  return !(*this == other);
+}
+
 // Initialize static data members.
 constexpr bool TSDF::invert_normals;
 float TSDF::mu_factor;

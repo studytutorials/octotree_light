@@ -39,6 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "octree_defines.h"
 #include "utils/morton_utils.hpp"
 #include "octant_ops.hpp"
+#include "octree_iterator.hpp"
 
 #if defined(_OPENMP) && !defined(__clang__)
 #include <parallel/algorithm>
@@ -114,6 +115,9 @@ public:
   inline int maxBlockScale() const { return max_block_scale_; }
   inline int blockDepth() const { return block_depth_; }
   inline Node<T>* root() const { return root_; }
+
+  OctreeIterator<T> begin();
+  OctreeIterator<T> end();
 
   /*! \brief Verify if the each coordinate x, y and z is in the interval [0, size - 1]
    *

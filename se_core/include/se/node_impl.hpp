@@ -33,6 +33,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define NODE_IMPL_HPP
 
 #include <algorithm>
+#include <cstdlib>
+
+#include "se/octant_ops.hpp"
 
 namespace se {
 // Node implementation
@@ -70,6 +73,35 @@ void Node<T>::initFromNode(const se::Node<T>& node) {
   std::copy(node.childrenData(), node.childrenData() + 8, children_data_);
 }
 
+template <typename T>
+Eigen::Vector3i Node<T>::coordinates() const {
+  return se::keyops::decode(code_);
+}
+
+template <typename T>
+Eigen::Vector3i Node<T>::centreCoordinates() const {
+  return coordinates() + Eigen::Vector3i::Constant(size_ / 2);
+}
+
+template <typename T>
+Eigen::Vector3i Node<T>::childCoord(const int child_idx) const {
+  const std::div_t d1 = std::div(child_idx, 4);
+  const std::div_t d2 = std::div(d1.rem, 2);
+  const int rel_z = d1.quot;
+  const int rel_y = d2.quot;
+  const int rel_x = d2.rem;
+  const int child_size = size_ / 2;
+  return coordinates() + child_size * Eigen::Vector3i(rel_x, rel_y, rel_z);
+}
+
+template <typename T>
+Eigen::Vector3i Node<T>::childCentreCoord(const int child_idx) const {
+  const int child_size = size_ / 2;
+  return childCoord(child_idx) + Eigen::Vector3i::Constant(child_size / 2);
+}
+
+
+
 // Voxel block base implementation
 
 template <typename T>
@@ -89,6 +121,53 @@ void VoxelBlock<T>::operator=(const VoxelBlock<T>& block) {
 }
 
 template <typename T>
+Eigen::Vector3i VoxelBlock<T>::voxelCoordinates(const int voxel_idx) const {
+  int remaining_voxel_idx = voxel_idx;
+  int scale = 0;
+  int size_at_scale_cu = this->size_cu;
+  while (remaining_voxel_idx / size_at_scale_cu >= 1) {
+    scale += 1;
+    remaining_voxel_idx -= size_at_scale_cu;
+    size_at_scale_cu = scaleNumVoxels(scale);
+  }
+  return voxelCoordinates(remaining_voxel_idx, scale);
+}
+
+template <typename T>
+Eigen::Vector3i VoxelBlock<T>::voxelCoordinates(const int voxel_idx, const int scale) const {
+  const std::div_t d1 = std::div(voxel_idx, se::math::sq(scaleSize(scale)));
+  const std::div_t d2 = std::div(d1.rem, scaleSize(scale));
+  const int z = d1.quot;
+  const int y = d2.quot;
+  const int x = d2.rem;
+  return this->coordinates_ + scaleVoxelSize(scale) * Eigen::Vector3i(x, y, z);
+}
+
+template <typename T>
+constexpr int VoxelBlock<T>::scaleSize(const int scale) {
+  return size_li >> scale;
+}
+
+template <typename T>
+constexpr int VoxelBlock<T>::scaleVoxelSize(const int scale) {
+  return 1 << scale;
+}
+
+template <typename T>
+constexpr int VoxelBlock<T>::scaleNumVoxels(const int scale) {
+  return se::math::cu(scaleSize(scale));
+}
+
+template <typename T>
+constexpr int VoxelBlock<T>::scaleOffset(const int scale) {
+  int scale_offset = 0;
+  for (int s = 0; s < scale; ++s) {
+    scale_offset += scaleNumVoxels(s);
+  }
+  return scale_offset;
+}
+
+template <typename T>
 void VoxelBlock<T>::initFromBlock(const VoxelBlock<T>& block) {
   this->code_          = block.code();
   this->size_          = block.size_;
@@ -100,6 +179,8 @@ void VoxelBlock<T>::initFromBlock(const VoxelBlock<T>& block) {
   current_scale_ = block.current_scale();
   std::copy(block.childrenData(), block.childrenData() + 8, this->children_data_);
 }
+
+
 
 // Voxel block full scale allocation implementation
 
@@ -186,6 +267,19 @@ VoxelBlockFull<T>::data(const int voxel_idx) const {
 template <typename T>
 inline void VoxelBlockFull<T>::setData(const int voxel_idx, const VoxelData& voxel_data){
   block_data_[voxel_idx] = voxel_data;
+}
+
+template <typename T>
+inline typename VoxelBlock<T>::VoxelData
+VoxelBlockFull<T>::data(const int voxel_idx, const int scale) const {
+  return block_data_[this->scaleOffset(scale) + voxel_idx];
+}
+
+template <typename T>
+inline void VoxelBlockFull<T>::setData(const int        voxel_idx,
+                                       const int        scale,
+                                       const VoxelData& voxel_data) {
+  block_data_[this->scaleOffset(scale) + voxel_idx] = voxel_data;
 }
 
 template <typename T>
@@ -307,7 +401,7 @@ VoxelBlockSingle<T>::data(const int voxel_idx) const {
   int remaining_voxel_idx = voxel_idx;
   int scale = 0;
   int size_at_scale_cu = this->size_cu;
-  while (voxel_idx / size_at_scale_cu >= 1) {
+  while (remaining_voxel_idx / size_at_scale_cu >= 1) {
     scale += 1;
     remaining_voxel_idx -= size_at_scale_cu;
     size_at_scale_cu = se::math::cu(this->size_li >> scale);
@@ -346,6 +440,33 @@ inline void VoxelBlockSingle<T>::setDataSafe(const int        voxel_idx,
   }
   allocateDownTo(scale);
   block_data_[VoxelBlock<T>::max_scale - scale][remaining_voxel_idx] = voxel_data;
+}
+
+template <typename T>
+inline typename VoxelBlock<T>::VoxelData
+VoxelBlockSingle<T>::data(const int voxel_idx, const int scale) const {
+  const size_t scale_idx = VoxelBlock<T>::max_scale - scale;
+  if (scale_idx < block_data_.size()) {
+    return block_data_[scale_idx][voxel_idx];
+  } else {
+    return init_data_;
+  }
+}
+
+template <typename T>
+inline void VoxelBlockSingle<T>::setData(const int        voxel_idx,
+                                         const int        scale,
+                                         const VoxelData& voxel_data) {
+  const size_t scale_idx = VoxelBlock<T>::max_scale - scale;
+  block_data_[scale_idx][voxel_idx] = voxel_data;
+}
+
+template <typename T>
+inline void VoxelBlockSingle<T>::setDataSafe(const int        voxel_idx,
+                                             const int        scale,
+                                             const VoxelData& voxel_data) {
+  allocateDownTo(scale);
+  setData(voxel_idx, scale, voxel_data);
 }
 
 template <typename T>

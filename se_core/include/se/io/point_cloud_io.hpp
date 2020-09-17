@@ -29,9 +29,9 @@ namespace se {
    * \param[in] T_WM     The transformation from map to world frame.
    * \return 0 on success, nonzero on error.
    */
-  int save_point_cloud_pcd(const std::vector<Triangle>& mesh,
-                           const std::string            filename,
-                           const Eigen::Matrix4f&       T_WM);
+  static int save_point_cloud_pcd(const std::vector<Triangle>& mesh,
+                                  const std::string            filename,
+                                  const Eigen::Matrix4f&       T_WM);
 
   /**
    * \brief Save the mesh vertices as a PLY file.
@@ -44,9 +44,9 @@ namespace se {
    * \param[in] T_WM     The transformation from map to world frame.
    * \return 0 on success, nonzero on error.
    */
-  int save_point_cloud_ply(const std::vector<Triangle>& mesh,
-                           const std::string            filename,
-                           const Eigen::Matrix4f&       T_WM);
+  static int save_point_cloud_ply(const std::vector<Triangle>& mesh,
+                                  const std::string            filename,
+                                  const Eigen::Matrix4f&       T_WM);
 
   /**
    * \brief Save the mesh vertices as a VTK file.
@@ -59,9 +59,9 @@ namespace se {
    * \param[in] T_WM     The transformation from map to world frame.
    * \return 0 on success, nonzero on error.
    */
-  int save_point_cloud_vtk(const std::vector<Triangle>& mesh,
-                           const std::string            filename,
-                           const Eigen::Matrix4f&       T_WM);
+  static int save_point_cloud_vtk(const std::vector<Triangle>& mesh,
+                                  const std::string            filename,
+                                  const Eigen::Matrix4f&       T_WM);
 
 } // namespace se
 

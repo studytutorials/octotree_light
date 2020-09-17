@@ -35,6 +35,14 @@
 
 
 
+bool OFusion::VoxelType::VoxelData::operator==(const OFusion::VoxelType::VoxelData& other) const {
+  return (x == other.x) && (y == other.y);
+}
+
+bool OFusion::VoxelType::VoxelData::operator!=(const OFusion::VoxelType::VoxelData& other) const {
+  return !(*this == other);
+}
+
 // Initialize static data members.
 constexpr bool OFusion::invert_normals;
 float OFusion::surface_boundary;

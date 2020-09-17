@@ -213,8 +213,12 @@ class DenseSLAMSystem {
      */
     bool raycast(const SensorImpl& sensor);
 
-    /*
-     * TODO Document this.
+    /** \brief Export a mesh of the current state of the map.
+     *
+     * \param[in] filename   The name of the file where the mesh will be saved.
+     *                       A PLY mesh will be saved if it ends in `.ply`,
+     *                       otherwise a VTK mesh will be saved.
+     * \param[in] print_path Print the filename to stdout before saving.
      */
     void dumpMesh(const std::string filename, const bool print_path = false);
 

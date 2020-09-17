@@ -53,6 +53,9 @@ struct MultiresTSDF {
       float x_last;
       int   y;
       int   delta_y;
+
+      bool operator==(const VoxelData& other) const;
+      bool operator!=(const VoxelData& other) const;
     };
 
     static inline VoxelData invalid()     { return {1.f, 1.f, 0, 0}; }

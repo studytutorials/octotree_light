@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5...3.16)
 
-find_package(Sophus REQUIRED)
+find_package(Sophus 1.0 REQUIRED)
 find_package(octomap)
 
 # Generate the appropriate include line for each voxel implementation.
@@ -43,10 +43,10 @@ foreach(VOXEL_IMPL ${SE_VOXEL_IMPLS})
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
         $<INSTALL_INTERFACE:include>
-        ${SOPHUS_INCLUDE_DIR}
     )
     target_link_libraries(${LIB_NAME}
       PUBLIC
+        Sophus::Sophus
         SE::VoxelImpl${VOXEL_IMPL}${SENSOR_IMPL}
     )
     set_target_properties(${LIB_NAME} PROPERTIES

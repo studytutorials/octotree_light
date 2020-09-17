@@ -136,7 +136,45 @@ namespace se {
      */
     float measurementFromPoint(const Eigen::Vector3f& point_C) const;
 
+    /**
+     * \brief Test whether a 3D point in camera coordinates is inside the
+     * camera frustum.
+     */
+    bool pointInFrustum(const Eigen::Vector3f& point_C) const;
+
+    /**
+     * \brief Test whether a 3D point in camera coordinates is inside the
+     * camera frustum.
+     *
+     * The difference from PinholeCamera::pointInFrustum is that it is assumed
+     * that the far plane is at infinity.
+     */
+    bool pointInFrustumInf(const Eigen::Vector3f& point_C) const;
+
+    /**
+     * \brief Test whether a sphere in camera coordinates is inside the camera
+     * frustum.
+     *
+     * It is tested whether the sphere's center is inside the camera frustum
+     * offest outwards by the sphere's radius. This is a quick test that in
+     * some rare cases may return a sphere as being visible although it isn't.
+     */
+    bool sphereInFrustum(const Eigen::Vector3f& center_C,
+                         const float            radius) const;
+
+    /**
+     * \brief Test whether a sphere in camera coordinates is inside the camera
+     * frustum.
+     *
+     * The difference from PinholeCamera::sphereInFrustum is that it is assumed
+     * that the far plane is at infinity.
+     */
+    bool sphereInFrustumInf(const Eigen::Vector3f& center_C,
+                            const float            radius) const;
+
     static std::string type() { return "pinholecamera"; }
+
+
 
     srl::projection::PinholeCamera<srl::projection::NoDistortion> model;
     bool  left_hand_frame;
@@ -145,6 +183,15 @@ namespace se {
     float scaled_pixel;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    private:
+      void computeFrustumVertices();
+      void computeFrustumNormals();
+
+      static constexpr int num_frustum_vertices_ = 8;
+      static constexpr int num_frustum_normals_ = 6;
+      Eigen::Matrix<float, 4, num_frustum_vertices_> frustum_vertices_;
+      Eigen::Matrix<float, 4, num_frustum_normals_> frustum_normals_;
   };
 
 
@@ -243,6 +290,49 @@ namespace se {
      * \return The depth value that the sensor would get from this point.
      */
     float measurementFromPoint(const Eigen::Vector3f& point_C) const;
+
+    /**
+     * \brief Test whether a 3D point in camera coordinates is inside the
+     * sensor frustum.
+     *
+     * \todo Implement
+     */
+    bool pointInFrustum(const Eigen::Vector3f& point_C) const;
+
+    /**
+     * \brief Test whether a 3D point in camera coordinates is inside the
+     * sensor frustum.
+     *
+     * \todo Implement
+     *
+     * The difference from OusterLidar::pointInFrustum is that it is assumed
+     * that the far plane is at infinity.
+     */
+    bool pointInFrustumInf(const Eigen::Vector3f& point_C) const;
+
+    /**
+     * \brief Test whether a sphere in camera coordinates is inside the sensor
+     * frustum.
+     *
+     * \todo Implement
+     *
+     * \todo Describe any issues/assumptions/approximations once implemented.
+     */
+    bool sphereInFrustum(const Eigen::Vector3f& center_C,
+                         const float            radius) const;
+
+    /**
+     * \brief Test whether a sphere in camera coordinates is inside the sensor
+     * frustum.
+     *
+     * \todo Implement
+     *
+     * The difference from OusterLidar::sphereInFrustum is that it is assumed
+     * that the far plane is at infinity.
+     */
+    bool sphereInFrustumInf(const Eigen::Vector3f& center_C,
+                            const float            radius) const;
+
 
     static std::string type() { return "ousterlidar"; }
 

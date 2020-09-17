@@ -35,6 +35,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace se {
 
 template <typename T>
+OctreeIterator<T> Octree<T>::begin() {
+  return OctreeIterator<T>(this);
+}
+
+template <typename T>
+OctreeIterator<T> Octree<T>::end() {
+  return OctreeIterator<T>(nullptr);
+}
+
+template <typename T>
 inline bool Octree<T>::contains(const int x, const int y, const int z) const {
   if (x >= 0 && x < size_ &&
       y >= 0 && y < size_ &&

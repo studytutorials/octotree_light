@@ -9,6 +9,10 @@
 
 namespace str_utils {
 
+  bool begins_with(const std::string& s, const std::string& prefix);
+
+  bool ends_with(const std::string& s, const std::string& suffix);
+
 /**
  * Split a string into a vector of substrings based on a delimiter.
  *

@@ -277,5 +277,9 @@ void DenseSLAMSystem::dumpMesh(const std::string filename, const bool print_path
   }
   std::vector<se::Triangle> mesh;
   VoxelImpl::dumpMesh(*map_, mesh);
-  save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(this->T_MW_));
+  if (str_utils::ends_with(filename, ".ply")) {
+    save_mesh_ply(mesh, filename.c_str(), se::math::to_inverse_transformation(this->T_MW_));
+  } else {
+    save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(this->T_MW_));
+  }
 }

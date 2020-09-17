@@ -34,6 +34,15 @@
 
 
 
+bool MultiresTSDF::VoxelType::VoxelData::operator==(const MultiresTSDF::VoxelType::VoxelData& other) const {
+  return (x == other.x) && (x_last == other.x_last)
+      && (y == other.y) && (delta_y == other.delta_y);
+}
+
+bool MultiresTSDF::VoxelType::VoxelData::operator!=(const MultiresTSDF::VoxelType::VoxelData& other) const {
+  return !(*this == other);
+}
+
 // Initialize static data members.
 constexpr bool MultiresTSDF::invert_normals;
 float MultiresTSDF::mu_factor;

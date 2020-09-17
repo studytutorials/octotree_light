@@ -40,6 +40,7 @@ test-debug: debug
 
 .PHONY: test-install
 test-install:
+	rm -rf build/testinstall
 	mkdir -p build/testinstall
 	cd build/testinstall && cmake -DCMAKE_BUILD_TYPE=Release $(CMAKE_ARGUMENTS) ../../test/test_install
 	$(MAKE) -C build/testinstall $(MFLAGS)

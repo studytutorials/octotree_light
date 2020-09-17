@@ -88,6 +88,12 @@ public:
   void size(int size) { size_ = size; }
   int size() const { return size_; }
 
+  Eigen::Vector3i coordinates() const;
+  Eigen::Vector3i centreCoordinates() const;
+
+  Eigen::Vector3i childCoord(const int child_idx) const;
+  Eigen::Vector3i childCentreCoord(const int child_idx) const;
+
   void children_mask(const unsigned char cm) { children_mask_ = cm; }
   unsigned char children_mask() const { return children_mask_; }
 
@@ -143,6 +149,9 @@ public:
   Eigen::Vector3i coordinates() const { return coordinates_; }
   void coordinates(const Eigen::Vector3i& block_coord){ coordinates_ = block_coord; }
 
+  Eigen::Vector3i voxelCoordinates(const int voxel_idx) const;
+  Eigen::Vector3i voxelCoordinates(const int voxel_idx, const int scale) const;
+
   int current_scale() const { return current_scale_; }
   void current_scale(const int s) { current_scale_ = s; }
 
@@ -157,6 +166,25 @@ public:
 
   virtual VoxelData data(const int voxel_idx) const = 0;
   virtual void setData(const int voxel_idx, const VoxelData& voxel_data) = 0;
+
+  virtual VoxelData data(const int voxel_idx, const int scale) const = 0;
+  virtual void setData(const int voxel_idx, const int scale, const VoxelData& voxel_data) = 0;
+
+  /*! \brief The number of voxels per side at scale.
+   */
+  static constexpr int scaleSize(const int scale);
+  /*! \brief The side length of a voxel at scale expressed in primitive voxels.
+   * This is e.g. 1 for scale 0 and 8 for scale 3.
+   */
+  static constexpr int scaleVoxelSize(const int scale);
+  /*! \brief The total number of voxels contained in scale.
+   * This is equivalent to scaleSize()^3.
+   */
+  static constexpr int scaleNumVoxels(const int scale);
+  /*! \brief The offset needed to get to the first voxel of scale when using
+   * a linear index.
+   */
+  static constexpr int scaleOffset(const int scale);
 
 protected:
   Eigen::Vector3i coordinates_;
@@ -194,6 +222,9 @@ public:
 
   VoxelData data(const int voxel_idx) const;
   void setData(const int voxel_idx, const VoxelData& voxel_data);
+
+  VoxelData data(const int voxel_idx, const int scale) const;
+  void setData(const int voxel_idx, const int scale, const VoxelData& voxel_data);
 
   VoxelData* blockData() { return block_data_; }
   const VoxelData* blockData() const { return block_data_; }
@@ -252,6 +283,10 @@ public:
   VoxelData data(const int voxel_idx) const;
   void setData(const int voxel_idx, const VoxelData& voxel_data);
   void setDataSafe(const int voxel_idx, const VoxelData& voxel_data);
+
+  VoxelData data(const int voxel_idx, const int scale) const;
+  void setData(const int voxel_idx, const int scale, const VoxelData& voxel_data);
+  void setDataSafe(const int voxel_idx, const int scale, const VoxelData& voxel_data);
 
   void allocateDownTo();
   void allocateDownTo(const int scale);
