@@ -172,6 +172,34 @@ namespace se {
       return block_buffer_.size();
     }
 
+    std::vector<size_t> blockBufferSizeDetailed() {
+      if (!blocks_updated_)
+        updateBuffer();
+      std::vector<size_t> num_blocks_d(VoxelBlockType<T>::max_scale + 1, 0);
+      for (const auto& block: block_buffer_) {
+        int min_scale = block->min_scale();
+        if (min_scale == -1) {
+          continue;
+        }
+        num_blocks_d[min_scale]++;
+      }
+      return num_blocks_d;
+    }
+
+    const std::vector<size_t> blockBufferSizeDetailed() const {
+      if (!blocks_updated_)
+        updateBuffer();
+      std::vector<size_t> num_blocks_d(VoxelBlockType<T>::max_scale + 1, 0);
+      for (const auto& block: block_buffer_) {
+        int min_scale = block->min_scale();
+        if (min_scale == -1) {
+          continue;
+        }
+        num_blocks_d[min_scale]++;
+      }
+      return num_blocks_d;
+    }
+
   private:
     se::Node<T>* root_;
     mutable bool nodes_updated_;
@@ -329,6 +357,29 @@ namespace se {
 
     size_t nodeBufferSize()  { return node_buffer_.size();}
     size_t blockBufferSize() { return block_buffer_.size();}
+    std::vector<size_t> blockBufferSizeDetailed() {
+      std::vector<size_t> num_blocks(VoxelBlockType<T>::max_scale + 1, 0);
+      for (size_t i = 0; i < block_buffer_.size(); i++) {
+        int min_scale = block_buffer_[i]->min_scale();
+        if (min_scale == -1) {
+          continue;
+        }
+        num_blocks[min_scale]++;
+      }
+      return num_blocks;
+    }
+
+    const std::vector<size_t> blockBufferSizeDetailed() const {
+      std::vector<size_t> num_blocks(VoxelBlockType<T>::max_scale + 1, 0);
+      for (size_t i = 0; i < block_buffer_.size(); i++) {
+        int min_scale = block_buffer_[i]->min_scale();
+        if (min_scale == -1) {
+          continue;
+        }
+        num_blocks[min_scale]++;
+      }
+      return num_blocks;
+    }
 
   private:
     se::Node<T>* root_;

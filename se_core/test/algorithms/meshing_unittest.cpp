@@ -43,7 +43,15 @@ struct TestVoxelT {
   };
   static inline VoxelData invalid(){ return {0.f, 0.f}; }
   static inline VoxelData initData(){ return {-1.f, 1.f}; }
+  
+  static float selectValue(const TestVoxelT::VoxelData& data) {
+    return data.x;
+  };
 
+  static bool isInside(const TestVoxelT::VoxelData& data) {
+    return data.x < 0.f;
+  };
+  
   using VoxelBlockType = se::VoxelBlockFull<TestVoxelT>;
 
   using MemoryPoolType = se::PagedMemoryPool<TestVoxelT>;
@@ -98,15 +106,8 @@ TEST(MeshingTest, EqualScaleNeighbour) {
   std::cout << "Saving triangle mesh to file :" << filename  << std::endl;
 
   std::vector<se::Triangle> mesh;
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
 
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
-
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
@@ -156,15 +157,7 @@ TEST(MeshingTest, CoarserScaleNeighbour) {
   std::cout << "Saving triangle mesh to file :" << filename  << std::endl;
 
   std::vector<se::Triangle> mesh;
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
-
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
@@ -214,15 +207,7 @@ TEST(MeshingTest, FinerScaleNeighbour) {
   std::cout << "Saving triangle mesh to file :" << filename  << std::endl;
 
   std::vector<se::Triangle> mesh;
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
-
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
@@ -287,15 +272,7 @@ TEST(MeshingTest, Wall) {
   std::cout << "Saving triangle mesh to file :" << filename  << std::endl;
 
   std::vector<se::Triangle> mesh;
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
-
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
@@ -336,14 +313,6 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongY) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -391,7 +360,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongY) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-y-scale-0-1-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -438,7 +407,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-y-scale-0-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -485,7 +454,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-y-scale-0-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -532,7 +501,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-y-scale-1-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -579,7 +548,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-y-scale-1-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -626,7 +595,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-y-scale-2-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -666,14 +635,6 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongZ) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -721,7 +682,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongZ) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-z-scale-0-1-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -768,7 +729,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-z-scale-0-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -815,7 +776,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-z-scale-0-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -862,7 +823,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-z-scale-1-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -909,7 +870,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-z-scale-1-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -956,7 +917,7 @@ TEST(MeshingTest, WallCrossesXFineToCoarseAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-fine-to-coarse-along-z-scale-2-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -996,14 +957,6 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongY) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -1051,7 +1004,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongY) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-y-scale-1-0-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1098,7 +1051,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-y-scale-2-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1145,7 +1098,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-y-scale-3-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1192,7 +1145,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-y-scale-2-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1239,7 +1192,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-y-scale-3-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1286,7 +1239,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-y-scale-3-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -1326,15 +1279,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongZ) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
-
+  
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1381,7 +1326,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongZ) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-z-scale-1-0-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1428,7 +1373,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-z-scale-2-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1475,7 +1420,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-z-scale-3-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1522,7 +1467,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-z-scale-2-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1569,7 +1514,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-z-scale-3-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1616,7 +1561,7 @@ TEST(MeshingTest, WallCrossesXCoarseToFineAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-x-axis-coarse-to-fine-along-z-scale-3-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -1656,14 +1601,6 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongX) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -1711,7 +1648,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongX) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-x-scale-0-1-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1758,7 +1695,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-x-scale-0-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1805,7 +1742,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-x-scale-0-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1852,7 +1789,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-x-scale-1-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1899,7 +1836,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-x-scale-1-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -1946,7 +1883,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-x-scale-2-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -1986,14 +1923,6 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongZ) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -2041,7 +1970,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongZ) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-z-scale-0-1-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2088,7 +2017,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-z-scale-0-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2135,7 +2064,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-z-scale-0-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2182,7 +2111,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-z-scale-1-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2229,7 +2158,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-z-scale-1-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2276,7 +2205,7 @@ TEST(MeshingTest, WallCrossesYFineToCoarseAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-fine-to-coarse-along-z-scale-2-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -2316,14 +2245,6 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongX) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -2371,7 +2292,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongX) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-x-scale-1-0-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2418,7 +2339,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-x-scale-2-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2465,7 +2386,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-x-scale-3-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2512,7 +2433,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-x-scale-2-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2559,7 +2480,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-x-scale-3-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2606,7 +2527,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-x-scale-3-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -2646,14 +2567,6 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongZ) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -2701,7 +2614,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongZ) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-z-scale-1-0-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2748,7 +2661,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-z-scale-2-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2795,7 +2708,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-z-scale-3-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2842,7 +2755,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-z-scale-2-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2889,7 +2802,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-z-scale-3-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 0; z < 32; z += VoxelBlockType::size_li) {
@@ -2936,7 +2849,7 @@ TEST(MeshingTest, WallCrossesYCoarseToFineAlongZ) {
 
   filename = "../../out/multires-mesh-wall-crosses-y-axis-coarse-to-fine-along-z-scale-3-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -2976,14 +2889,6 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongX) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -3031,7 +2936,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongX) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-x-scale-0-1-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3078,7 +2983,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-x-scale-0-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3125,7 +3030,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-x-scale-0-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3172,7 +3077,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-x-scale-1-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3219,7 +3124,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-x-scale-1-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3266,7 +3171,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-x-scale-2-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -3306,14 +3211,6 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongY) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -3361,7 +3258,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongY) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-y-scale-0-1-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3408,7 +3305,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-y-scale-0-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3455,7 +3352,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-y-scale-0-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3502,7 +3399,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-y-scale-1-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3549,7 +3446,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-y-scale-1-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3596,7 +3493,7 @@ TEST(MeshingTest, WallCrossesZFineToCoarseAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-fine-to-coarse-along-y-scale-2-3-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -3636,14 +3533,6 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongX) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -3691,7 +3580,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongX) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-x-scale-1-0-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3738,7 +3627,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-x-scale-2-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3785,7 +3674,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-x-scale-3-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3832,7 +3721,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-x-scale-2-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3879,7 +3768,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-x-scale-3-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -3926,7 +3815,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongX) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-x-scale-3-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }
 
@@ -3966,14 +3855,6 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongY) {
   int   block_stride_3    = 1 << block_scale_0;
   float block_value_3_out = 4.f;
   float block_value_3_in  = -4.f;
-
-  auto inside = [](const TestVoxelT::VoxelData& data) {
-    return data.x < 0.f;
-  };
-
-  auto select_value = [](const TestVoxelT::VoxelData& data) {
-    return data.x;
-  };
 
   Eigen::Matrix4f T_MW = Eigen::Matrix4f::Identity();
 
@@ -4021,7 +3902,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongY) {
 
   std::string filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-y-scale-1-0-unittest.vtk";
   std::vector<se::Triangle> mesh;
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -4068,7 +3949,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-y-scale-2-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -4115,7 +3996,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-y-scale-3-0-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -4162,7 +4043,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-y-scale-2-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -4209,7 +4090,7 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-y-scale-3-1-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 
   for (unsigned z = 8; z < 24; z += VoxelBlockType::size_li) {
@@ -4256,6 +4137,6 @@ TEST(MeshingTest, WallCrossesZCoarseToFineAlongY) {
 
   filename = "../../out/multires-mesh-wall-crosses-z-axis-coarse-to-fine-along-y-scale-3-2-unittest.vtk";
   mesh.clear();
-  se::algorithms::dual_marching_cube(octree, select_value, inside, mesh);
+  se::algorithms::dual_marching_cube(octree, TestVoxelT::selectValue, TestVoxelT::isInside, mesh);
   save_mesh_vtk(mesh, filename.c_str(), se::math::to_inverse_transformation(T_MW));
 }

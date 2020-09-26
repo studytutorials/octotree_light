@@ -18,7 +18,7 @@ option(SE_BUILD_QT_GUI "Build the Qt-based GUI" ON)
 option(SE_USE_OMP "Compile with OpenMP" ON)
 
 # Compile without measuring individual function times
-add_definitions(-DSE_ENABLE_TICKTOCK=0)
+add_definitions(-DSE_ENABLE_PERFSTATS=1)
 
 # Compiler options
 add_compile_options(
@@ -28,6 +28,11 @@ add_compile_options(
   -Wno-unknown-pragmas
   -Wno-unused-function
 )
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  # Link against the GNU C++ library even when using clang
+  # Clang also requires explicitly linking with the math library
+  link_libraries(stdc++ m)
+endif()
 
 
 
@@ -82,8 +87,6 @@ if(SE_BUILD_TESTS)
   enable_testing()
 endif()
 
-# Couldn't get Sophus to work as a submodule any other way
-include_directories(third_party/sophus)
 # Build each supereight module
 add_subdirectory(third_party)
 add_subdirectory(se_core)

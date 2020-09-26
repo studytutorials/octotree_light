@@ -53,8 +53,6 @@ Eigen::Vector4f OFusion::raycast(const OctreeType&      map,
   const float t_max = ray.tmax();
   float t = t_min;
 
-  auto select_node_occupancy = [](const auto&){ return VoxelType::initData().x; };
-  auto select_voxel_occupancy = [](const auto& data){ return data.x; };
   const float step_size = map.voxelDim() / 2;
 
   Eigen::Vector3f ray_pos_M = Eigen::Vector3f::Zero();
@@ -64,7 +62,7 @@ Eigen::Vector4f OFusion::raycast(const OctreeType&      map,
   Eigen::Vector3f point_M_t = Eigen::Vector3f::Zero();
   Eigen::Vector3f point_M_tt = Eigen::Vector3f::Zero();
 
-  if (!find_valid_point(map, select_node_occupancy, select_voxel_occupancy,
+  if (!find_valid_point(map, VoxelType::selectNodeValue, VoxelType::selectVoxelValue,
                         ray_origin_M, ray_dir_M, step_size, t_far, t, value_t, point_M_t)) {
     return Eigen::Vector4f::Zero();
   }
@@ -74,10 +72,11 @@ Eigen::Vector4f OFusion::raycast(const OctreeType&      map,
   if (value_t <= OFusion::surface_boundary) {
     for (; t < t_max; t += step_size) {
       ray_pos_M = ray_origin_M + ray_dir_M * t;
-      VoxelData data = map.getFineAtPoint(ray_pos_M);
+      VoxelData data;
+      map.getAtPoint(ray_pos_M, data);
       if (data.y == 0) {
         t += step_size;
-        if (!find_valid_point(map, select_node_occupancy, select_voxel_occupancy,
+        if (!find_valid_point(map, VoxelType::selectNodeValue, VoxelType::selectVoxelValue,
                               ray_origin_M, ray_dir_M, step_size, t_far, t, value_t, point_M_t)) {
           return Eigen::Vector4f::Zero();
         }
@@ -90,11 +89,11 @@ Eigen::Vector4f OFusion::raycast(const OctreeType&      map,
       point_M_tt = ray_pos_M;
       if (value_tt > -100.f) {
         bool is_valid = false;
-        auto interp_res = map.interpAtPoint(ray_pos_M, select_node_occupancy, select_voxel_occupancy, 0, is_valid);
+        auto interp_res = map.interpAtPoint(ray_pos_M, VoxelType::selectNodeValue, VoxelType::selectVoxelValue, 0, is_valid);
         value_tt = interp_res.first;
         if (!is_valid) {
           t += step_size;
-          if (!find_valid_point(map, select_node_occupancy, select_voxel_occupancy,
+          if (!find_valid_point(map, VoxelType::selectNodeValue, VoxelType::selectVoxelValue,
                                 ray_origin_M, ray_dir_M, step_size, t_far, t, value_t, point_M_t)) {
             return Eigen::Vector4f::Zero();
           }

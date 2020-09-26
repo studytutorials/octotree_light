@@ -59,7 +59,27 @@ struct OFusion {
     static inline VoxelData invalid()     { return {0.f, 0.f}; }
     static inline VoxelData initData() { return {0.f, 0.f}; }
 
-    using VoxelBlockType = se::VoxelBlockFull<OFusion::VoxelType>;
+    static inline float selectValue(const VoxelData& data) {
+      return data.x;
+    };
+
+    static float selectNodeValue(const VoxelData& data) {
+      return selectValue(data);
+    };
+
+    static float selectVoxelValue(const VoxelData& data) {
+      return selectValue(data);
+    };
+
+    static bool isInside(const VoxelData& data) {
+      return data.x > surface_boundary;
+    };
+
+    static bool isValid(const VoxelData& data) {
+      return data.y > 0;
+    };
+
+    using VoxelBlockType = se::VoxelBlockFinest<OFusion::VoxelType>;
 
     using MemoryPoolType = se::PagedMemoryPool<OFusion::VoxelType>;
     template <typename ElemT>

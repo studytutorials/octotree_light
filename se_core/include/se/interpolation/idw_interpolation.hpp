@@ -29,33 +29,41 @@
 
 #ifndef IDW_INTERP_HPP
 #define IDW_INTERP_HPP
+
 #include "interp_gather.hpp"
 #include "../octree_defines.h"
+
+
+
 namespace se {
-  namespace internal {
-template <typename Precision, typename FieldType, 
-         template<typename FieldT> class OctreeT,
-         class FieldSelector>
-static inline std::pair<Precision, bool>
-    idw_interp(const OctreeT<FieldType>& octree, const Eigen::Vector3f& voxel_coord_f,
-        FieldSelector select_value) {
-      std::pair<Precision, Eigen::Vector3i> samples[8];
+namespace internal {
 
-      Node<FieldType>* stack[CAST_STACK_DEPTH] = {};
-      int voxel_depth = octree.voxelDepth();
-      auto base = se::internal::fetch(stack, octree.root(), voxel_depth,
-          voxel_coord_f.cast<int>());
-      std::cout << "base octant: \n" << se::keyops::decode(base->code()) << std::endl;
+template <typename Precision, typename FieldType,
+          template<typename FieldT> class OctreeT,
+          class NodeValueSelector>
+static inline std::pair<Precision, bool> idw_interp(const OctreeT<FieldType>& octree,
+                                                    const Eigen::Vector3f&    voxel_coord_f,
+                                                    NodeValueSelector         select_node_value) {
 
-      for(int i = 1; i < 7; ++i) {
-        samples[i] = se::internal::fetch_neighbour_sample<Precision>(stack, base,
-            voxel_depth, i, select_value);
-        std::cout << "direction: " << i << std::endl;
-        std::cout << "sample " << i << samples[i].first << std::endl;
-        std::cout << "coords: \n" << samples[i].second << std::endl << std::endl;
-      }
-      return std::make_pair(samples[0].first, true);
-    }
+  std::pair<Precision, Eigen::Vector3i> samples[8];
+
+  Node<FieldType>* stack[CAST_STACK_DEPTH] = {};
+  int voxel_depth = octree.voxelDepth();
+  auto base = se::internal::fetch(stack, octree.root(), voxel_depth,
+      voxel_coord_f.cast<int>());
+  std::cout << "base octant: \n" << se::keyops::decode(base->code()) << std::endl;
+
+  for(int i = 1; i < 7; ++i) {
+    samples[i] = se::internal::fetch_neighbour_sample<Precision>(stack, base,
+        voxel_depth, i, select_node_value);
+    std::cout << "direction: " << i << std::endl;
+    std::cout << "sample " << i << samples[i].first << std::endl;
+    std::cout << "coords: \n" << samples[i].second << std::endl << std::endl;
   }
+  return std::make_pair(samples[0].first, true);
 }
+
+} // namespace internal
+} // namespace se
+
 #endif

@@ -189,7 +189,8 @@ struct MultiresTSDFUpdate {
                     const Eigen::Vector3f voxel_sample_coord_f =
                         se::get_sample_coord(voxel_coord, stride, map.sample_offset_frac_);
                     voxel_data.x = se::math::clamp(map.interp(voxel_sample_coord_f,
-                                                              [](const VoxelData &data) { return data.x; },
+                                                              VoxelType::selectNodeValue,
+                                                              VoxelType::selectVoxelValue,
                                                               voxel_scale - 1, is_valid).first, -1.f, 1.f);
                     voxel_data.y = is_valid ? parent_data.y : 0;
                     voxel_data.x_last = voxel_data.x;
@@ -245,7 +246,9 @@ struct MultiresTSDFUpdate {
                 if (voxel_data.y == 0) {
                   bool is_valid;
                   voxel_data.x = se::math::clamp(map_.interp(voxel_sample_coord_f,
-                      [](const VoxelData &data) { return data.x; }, voxel_scale + 1, is_valid).first, -1.f, 1.f);
+                                                             VoxelType::selectNodeValue,
+                                                             VoxelType::selectVoxelValue,
+                                                             voxel_scale + 1, is_valid).first, -1.f, 1.f);
                   voxel_data.y = is_valid ? parent_data.y : 0;
                   voxel_data.x_last = voxel_data.x;
                   voxel_data.delta_y = 0;
@@ -383,7 +386,6 @@ void MultiresTSDF::integrate(OctreeType&             map,
                          in_frustum_predicate);
 
   std::deque<se::Node<VoxelType> *> node_queue;
-  std::mutex deque_mutex;
   struct MultiresTSDFUpdate block_update_funct(
       map, depth_image, T_CM, sensor, voxel_dim);
   se::functor::internal::parallel_for_each(active_list, block_update_funct);

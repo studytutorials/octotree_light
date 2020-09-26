@@ -41,45 +41,30 @@
 
 
 struct TSDFUpdate {
-  const se::Image<float>& depth_image;
-  const SensorImpl&       sensor;
-  bool                    is_visible;
+  const SensorImpl& sensor_;
 
-  TSDFUpdate(const se::Image<float>& depth_image,
-             const SensorImpl&       sensor) :
-      depth_image(depth_image),
-      sensor(sensor) {};
 
-  void reset() {
-    is_visible = false;
-  }
 
-  template <typename FieldType,
-            template <typename FieldT> class VoxelBlockT>
-  void operator()(VoxelBlockT<FieldType>* block) {
+  TSDFUpdate(const SensorImpl& sensor) :
+      sensor_(sensor) {};
+
+  template <typename DataType,
+      template <typename DataT> class VoxelBlockT>
+  void reset(VoxelBlockT<DataType>* /* block */) {}
+
+  template <typename DataType,
+      template <typename DataT> class VoxelBlockT>
+  void operator()(VoxelBlockT<DataType>* block, const bool is_visible) {
     block->active(is_visible);
   }
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
-                  const Eigen::Vector3i&,
-                  const Eigen::Vector3f& point_C) {
-    // Don't update the point if the sample point is behind the far plane
-    if (point_C.norm() > sensor.farDist(point_C)) {
-      return;
-    }
-
-    // Don't update the point if the depth value is closer than the near plane
-    float depth_value(0);
-    if (!sensor.projectToPixelValue(point_C, depth_image, depth_value,
-        [&](float depth_value){ return depth_value >= sensor.near_plane; })) {
-      return;
-    }
-
-    is_visible = true;
+                  const Eigen::Vector3f& point_C,
+                  const float            depth_value) {
 
     // Update the TSDF
-    const float m = sensor.measurementFromPoint(point_C);
+    const float m = sensor_.measurementFromPoint(point_C);
     const float sdf_value = (depth_value - m) / m * point_C.norm();
     if (sdf_value > -TSDF::mu) {
       const float tsdf_value = fminf(1.f, sdf_value / TSDF::mu);
@@ -100,10 +85,8 @@ void TSDF::integrate(OctreeType&             map,
                      const SensorImpl&       sensor,
                      const unsigned) {
 
-  const Eigen::Vector2i depth_image_res(depth_image.width(), depth_image.height());
+  struct TSDFUpdate funct(sensor);
 
-  struct TSDFUpdate funct(depth_image, sensor);
-
-  se::functor::projective_octree(map, map.sample_offset_frac_, T_CM, sensor, depth_image_res, funct);
+  se::functor::projective_octree(map, map.sample_offset_frac_, T_CM, sensor, depth_image, funct);
 }
 

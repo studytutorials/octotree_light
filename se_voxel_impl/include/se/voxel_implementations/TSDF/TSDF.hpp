@@ -59,7 +59,23 @@ struct TSDF {
     static inline VoxelData invalid()     { return {1.f, -1.f}; }
     static inline VoxelData initData() { return {1.f,  0.f}; }
 
-    using VoxelBlockType = se::VoxelBlockFull<TSDF::VoxelType>;
+    static float selectNodeValue(const VoxelData& /* data */) {
+      return VoxelType::initData().x;
+    };
+
+    static float selectVoxelValue(const VoxelData& data) {
+      return data.x;
+    };
+
+    static bool isInside(const VoxelData& data) {
+      return data.x < 0.f;
+    };
+
+    static bool isValid(const VoxelData& data) {
+      return (data.y > 0);
+    };
+
+    using VoxelBlockType = se::VoxelBlockFinest<TSDF::VoxelType>;
 
     using MemoryPoolType = se::PagedMemoryPool<TSDF::VoxelType>;
     template <typename ElemT>

@@ -77,7 +77,6 @@ struct ExampleVoxelImpl {
       // appropriate struct brace initializer.
     };
 
-
     /**
      * Returns a value corresponding to invalid voxels.
      *
@@ -85,14 +84,28 @@ struct ExampleVoxelImpl {
      */
     static inline VoxelData invalid()     { return {0.f}; }
 
-
-
     /**
      * Returns the value stored in newly created voxels.
      *
      * \warning The function signature must not be changed.
      */
     static inline VoxelData initData() { return {1.f}; }
+
+    static float selectNodeValue(VoxelData& data) {
+      return data.x;
+    };
+
+    static float selectVoxelValue(VoxelData& data) {
+      return data.x;
+    };
+
+    static bool isInside(VoxelData& data) {
+      return true; // if inside
+    };
+
+    static bool isValid(VoxelData& data) {
+      return true; // if valid
+    };
 
     using VoxelBlockType = se::VoxelBlockFull<ExampleVoxelImpl::VoxelType>;
 

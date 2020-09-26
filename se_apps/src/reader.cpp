@@ -25,6 +25,7 @@ se::Reader* se::create_reader(const Configuration& config) {
   const se::ReaderConfig reader_config = {
       config.fps,
       config.drop_frames,
+      !config.enable_benchmark,
       config.sequence_path,
       config.ground_truth_file
   };

@@ -55,12 +55,12 @@ inline bool Octree<T>::contains(const int x, const int y, const int z) const {
 }
 
 template <typename T>
-inline bool Octree<T>::contains(Eigen::Vector3i& voxel_coord) const {
+inline bool Octree<T>::contains(const Eigen::Vector3i& voxel_coord) const {
   return contains(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
 }
 
 template <typename T>
-inline bool Octree<T>::contains(Eigen::Vector3f& voxel_coord_f) const {
+inline bool Octree<T>::contains(const Eigen::Vector3f& voxel_coord_f) const {
   if (voxel_coord_f.x() >= 0 && voxel_coord_f.x() < size_ &&
       voxel_coord_f.y() >= 0 && voxel_coord_f.y() < size_ &&
       voxel_coord_f.z() >= 0 && voxel_coord_f.z() < size_) {
@@ -70,7 +70,7 @@ inline bool Octree<T>::contains(Eigen::Vector3f& voxel_coord_f) const {
 }
 
 template <typename T>
-bool Octree<T>::containsPoint(Eigen::Vector3f& point_M) const {
+bool Octree<T>::containsPoint(const Eigen::Vector3f& point_M) const {
   if (point_M.x() >= 0 && point_M.x() < dim_ &&
       point_M.y() >= 0 && point_M.y() < dim_ &&
       point_M.z() >= 0 && point_M.z() < dim_) {
@@ -80,51 +80,69 @@ bool Octree<T>::containsPoint(Eigen::Vector3f& point_M) const {
 }
 
 
-template <typename T>
-inline typename Octree<T>::VoxelData Octree<T>::getAtPoint(const Eigen::Vector3f& point_M,
-    VoxelBlockType* cached) const {
-  return get(point_M, 0, cached);
-}
 
 template <typename T>
-inline typename Octree<T>::VoxelData Octree<T>::getAtPoint(const Eigen::Vector3f& point_M,
-    int& scale, VoxelBlockType* cached) const {
+inline int Octree<T>::get(const int  x,
+                          const int  y,
+                          const int  z,
+                          VoxelData& data,
+                          const int  min_scale) const {
 
-  const Eigen::Vector3i voxel_coord = (point_M.homogeneous() *
-      Eigen::Vector4f::Constant(inverse_voxel_dim_)).template head<3>().template cast<int>();
-
-  if(cached != NULL){
-    Eigen::Vector3i lower_coord = cached->coordinates();
-    Eigen::Vector3i upper_coord = lower_coord + Eigen::Vector3i::Constant(block_size-1);
-    const int contained =
-      ((voxel_coord.array() >= lower_coord.array()) * (voxel_coord.array() <= upper_coord.array())).all();
-    if(contained){
-      return cached->data(voxel_coord, scale);
-    }
-  }
+  assert(min_scale < voxel_depth_);
 
   Node<T>* node = root_;
-  if(!node) {
-    return T::invalid();
+  if (!node) {
+    data = T::initData();
+    return size_; // size_ := map size
   }
 
-  // Get the block.
-
-  unsigned node_size = size_ >> 1;
-  for(; node_size >= block_size; node_size = node_size >> 1){
-    node = node->child((voxel_coord.x() & node_size) > 0,
-                       (voxel_coord.y() & node_size) > 0,
-                       (voxel_coord.z() & node_size) > 0);
-    if(!node){
-    return T::invalid();
+  const unsigned min_node_size = std::max((1 << min_scale), (int) block_size);
+  unsigned node_size = size_ >> 1; // size_ := map size
+  // Initialize just to stop the compiler from complaining.
+  int child_idx = -1;
+  for (; node_size >= min_node_size; node_size = node_size >> 1) {
+    child_idx  = ((x & node_size) > 0) + 2 * ((y & node_size) > 0) + 4 * ((z & node_size) > 0);
+    Node<T>* node_tmp = node->child(child_idx);
+    if (!node_tmp) {
+      const int scale = se::math::log2_const(node->size() / 2);
+      data = node->childData(child_idx);
+      return scale;
     }
+    node = node_tmp;
   }
 
-  // Get the element in the voxel block
-  auto block = static_cast<VoxelBlockType*>(node);
-  scale = std::max(block->current_scale(), scale);
-  return static_cast<VoxelBlockType*>(node)->data(voxel_coord, scale);
+  if (min_node_size == block_size) {
+    const auto block = static_cast<VoxelBlockType *>(node);
+    const int scale = std::max(min_scale, block->current_scale());
+    data = block->data(Eigen::Vector3i(x, y, z), scale);
+    return scale;
+  } else {
+    const int scale = se::math::log2_const(node->size() / 2);
+    data = (node->parent())->childData(child_idx);
+    return scale;
+  }
 }
+
+
+
+template <typename T>
+inline int Octree<T>::get(const Eigen::Vector3i& voxel_coord,
+                          VoxelData&             data,
+                          const int              scale) const {
+  return get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), data, scale);
+}
+
+
+
+template <typename T>
+inline int Octree<T>::getAtPoint(const Eigen::Vector3f& point_M,
+                                 VoxelData&             data,
+                                 const int              scale) const {
+  const Eigen::Vector3i voxel_coord = (inverse_voxel_dim_ * point_M).cast<int>();
+  return get(voxel_coord, data, scale);
+}
+
+
 
 template <typename T>
 inline void Octree<T>::set(const int        x,
@@ -164,105 +182,8 @@ inline void Octree<T>::set(const Eigen::Vector3i& voxel_coord,
 template <typename T>
 inline void Octree<T>::setAtPoint(const Eigen::Vector3f& point_M,
                                   const VoxelData&       data) {
-  const Eigen::Vector3i& voxel_coord = (inverse_voxel_dim_ * point_M).cast<int>();
+  const Eigen::Vector3i voxel_coord = (inverse_voxel_dim_ * point_M).cast<int>();
   return set(voxel_coord, data);
-}
-
-
-
-template <typename T>
-inline typename Octree<T>::VoxelData Octree<T>::get(const int x,
-                                                    const int y,
-                                                    const int z) const {
-  Node<T>* node = root_;
-  if (!node) {
-    return T::initData();
-  }
-
-  unsigned node_size = size_ >> 1;
-  for (; node_size >= block_size; node_size = node_size >> 1) {
-    const int child_idx = ((x & node_size) > 0) + 2 * ((y & node_size) > 0) + 4 * ((z & node_size) > 0);
-    Node<T>* node_tmp = node->child(child_idx);
-    if (!node_tmp) {
-      return node->childData(child_idx);
-    }
-    node = node_tmp;
-  }
-
-  return static_cast<VoxelBlockType *>(node)->data(Eigen::Vector3i(x, y, z));
-}
-
-
-
-template <typename T>
-inline typename Octree<T>::VoxelData Octree<T>::get(
-    const Eigen::Vector3i& voxel_coord) const {
-  return get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
-}
-
-
-
-template <typename T>
-inline typename Octree<T>::VoxelData Octree<T>::getAtPoint(
-    const Eigen::Vector3f& point_M) const {
-  const Eigen::Vector3i& voxel_coord = (inverse_voxel_dim_ * point_M).cast<int>();
-  return get(voxel_coord);
-}
-
-
-
-template <typename T>
-inline typename Octree<T>::VoxelData Octree<T>::getFine(
-    const int x,
-    const int y,
-    const int z,
-    const int scale) const {
-  assert(scale < voxel_depth_);
-
-  Node<T>* node = root_;
-  if (!node) {
-    return T::initData();
-  }
-
-  const unsigned min_node_size = std::max((1 << scale), (int) block_size);
-  unsigned node_size = size_ >> 1;
-  // Initialize just to stop the compiler from complaining.
-  int child_idx = -1;
-  for (; node_size >= min_node_size; node_size = node_size >> 1) {
-    child_idx  = ((x & node_size) > 0) + 2 * ((y & node_size) > 0) + 4 * ((z & node_size) > 0);
-    Node<T>* node_tmp = node->child(child_idx);
-    if (!node_tmp) {
-      auto& value = node->childData(child_idx);
-      return value;
-    }
-    node = node_tmp;
-  }
-
-  if (min_node_size == block_size) {
-    auto block = static_cast<VoxelBlockType *>(node);
-    return block->data(Eigen::Vector3i(x, y, z), std::max(scale, block->current_scale()));
-  } else {
-    return (node->parent())->childData(child_idx);
-  }
-}
-
-
-
-template <typename T>
-inline typename Octree<T>::VoxelData Octree<T>::getFine(
-    const Eigen::Vector3i& voxel_coord,
-    const int              scale) const {
-  return getFine(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), scale);
-}
-
-
-
-template <typename T>
-inline typename Octree<T>::VoxelData Octree<T>::getFineAtPoint(
-    const Eigen::Vector3f& point_M,
-    const int              scale) const {
-  const Eigen::Vector3i& voxel_coord = (inverse_voxel_dim_ * point_M).cast<int>();
-  return getFine(voxel_coord, scale);
 }
 
 
@@ -300,10 +221,8 @@ inline Eigen::Vector3f Octree<T>::pointToVoxelF(const Eigen::Vector3f& point_M) 
 
 template <typename T>
 template <bool safe>
-inline std::array<typename Octree<T>::VoxelData, 6> Octree<T>::get_face_neighbors(
-    const int x,
-    const int y,
-    const int z) const {
+inline std::array<typename Octree<T>::VoxelData, 6> Octree<T>::getFaceNeighbours(
+    const int x, const int y, const int z) const {
 
   std::array<typename Octree<T>::VoxelData, 6> neighbor_data;
 
@@ -318,58 +237,74 @@ inline std::array<typename Octree<T>::VoxelData, 6> Octree<T>::get_face_neighbor
          and (neighbor_y >= 0) and (neighbor_y < size())
          and (neighbor_z >= 0) and (neighbor_z < size())) {
         // The neighbor voxel is inside the map, get its value.
-        neighbor_data[i] = getFine(neighbor_x, neighbor_y, neighbor_z);
+        auto& neighbor_data_i = neighbor_data[i];
+        get(neighbor_x, neighbor_y, neighbor_z, neighbor_data_i);
       } else {
         // The neighbor voxel is outside the map, set the value to empty.
         neighbor_data[i] = T::invalid();
       }
     } else {
       // Get the value of the neighbor voxel.
-      neighbor_data[i] = getFine(neighbor_x, neighbor_y, neighbor_z);
+      auto& neighbor_data_i = neighbor_data[i];
+      get(neighbor_x, neighbor_y, neighbor_z, neighbor_data_i);
     }
   }
 
   return neighbor_data;
 }
 
-template <typename T>
-inline typename Octree<T>::VoxelData Octree<T>::get(const int x,
-   const int y, const int z, VoxelBlockType* cached) const {
-  return get(x, y, z, 0, cached);
-}
+
 
 template <typename T>
-inline typename Octree<T>::VoxelData Octree<T>::get(const int x,
-   const int y, const int z, int& scale, VoxelBlockType* cached) const {
+inline int Octree<T>::get(const int       x,
+                          const int       y,
+                          const int       z,
+                          VoxelBlockType* cached_block,
+                          VoxelData&      data,
+                          const int       min_scale) const {
 
-  if(cached != NULL){
+  if(cached_block != NULL) {
     const Eigen::Vector3i voxel_coord = Eigen::Vector3i(x, y, z);
-    const Eigen::Vector3i lower_coord = cached->coordinates();
+    const Eigen::Vector3i lower_coord = cached_block->coordinates();
     const Eigen::Vector3i upper_coord = lower_coord + Eigen::Vector3i::Constant(block_size - 1);
     const int contained =
       ((voxel_coord.array() >= lower_coord.array()) && (voxel_coord.array() <= upper_coord.array())).all();
     if(contained){
-      scale = std::max(cached->current_scale(), scale);
-      return cached->data(Eigen::Vector3i(x, y, z), scale);
+      const int scale = std::max(cached_block->current_scale(), min_scale);
+      data = cached_block->data(Eigen::Vector3i(x, y, z), scale);
+      return scale;
     }
   }
 
-  Node<T>* node  = root_;
-  if(!node) {
-    return T::initData();
-  }
-
-  unsigned node_size = size_ >> 1;
-  for(; node_size >= block_size; node_size = node_size >> 1){
-    node = node->child((x & node_size) > 0, (y & node_size) > 0, (z & node_size) > 0);
-    if(!node){
-      return T::initData();
-    }
-  }
-  auto block = static_cast<VoxelBlockType *>(node);
-  scale = std::max(block->current_scale(), scale);
-  return block->data(Eigen::Vector3i(x, y, z), scale);
+  return get(x, y, z, data, min_scale);
 }
+
+
+
+template <typename T>
+inline int Octree<T>::get(const Eigen::Vector3i& voxel_coord,
+                          VoxelBlockType*        cached_block,
+                          VoxelData&             data,
+                          const int              min_scale) const {
+
+  return get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), cached_block, data, min_scale);
+}
+
+
+
+template <typename T>
+inline int Octree<T>::getAtPoint(const Eigen::Vector3f& point_M,
+                                 VoxelBlockType*        cached_block,
+                                 VoxelData&             data,
+                                 const int              min_scale) const {
+
+  const Eigen::Vector3i voxel_coord =
+      (point_M.homogeneous() * Eigen::Vector4f::Constant(inverse_voxel_dim_)).template head<3>().template cast<int>();
+
+  return get(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), cached_block, data, min_scale);
+}
+
+
 
 template <typename T>
 void Octree<T>::deleteNode(Node<T> **node){
@@ -388,6 +323,7 @@ void Octree<T>::deleteNode(Node<T> **node){
 }
 
 
+
 template <typename T>
 void Octree<T>::init(int size, float dim) {
   size_ = size;
@@ -404,13 +340,15 @@ void Octree<T>::init(int size, float dim) {
   keys_at_depth_.resize(reserved_, 0);
 }
 
+
+
 template <typename T>
 inline typename Octree<T>::VoxelBlockType* Octree<T>::fetch(const int x, const int y,
    const int z) const {
 
   Node<T>* node = root_;
   if(!node) {
-    return NULL;
+    return nullptr;
   }
 
   // Get the block.
@@ -418,24 +356,27 @@ inline typename Octree<T>::VoxelBlockType* Octree<T>::fetch(const int x, const i
   for(; node_size >= block_size; node_size /= 2){
     node = node->child((x & node_size) > 0u, (y & node_size) > 0u, (z & node_size) > 0u);
     if(!node){
-      return NULL;
+      return nullptr;
     }
   }
   return static_cast<VoxelBlockType* > (node);
 }
+
+
 
 template <typename T>
 inline typename Octree<T>::VoxelBlockType* Octree<T>::fetch(const Eigen::Vector3i& voxel_coord) const {
   return fetch(voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
 }
 
+
+
 template <typename T>
-inline Node<T>* Octree<T>::fetch_node(const int x, const int y,
-   const int z, const int depth) const {
+inline Node<T>* Octree<T>::fetchNode(const int x, const int y, const int z, const int depth) const {
 
   Node<T>* node = root_;
   if(!node) {
-    return NULL;
+    return nullptr;
   }
 
   // Get the block.
@@ -443,17 +384,21 @@ inline Node<T>* Octree<T>::fetch_node(const int x, const int y,
   for(int d = 1; node_size >= block_size && d <= depth; node_size /= 2, ++d){
     node = node->child((x & node_size) > 0u, (y & node_size) > 0u, (z & node_size) > 0u);
     if(!node){
-      return NULL;
+      return nullptr;
     }
   }
   return node;
 }
 
+
+
 template <typename T>
-inline Node<T>* Octree<T>::fetch_node(const Eigen::Vector3i& voxel_coord,
-    const int depth) const {
-  return fetch_node(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), depth);
+inline Node<T>* Octree<T>::fetchNode(const Eigen::Vector3i& voxel_coord,
+                                     const int              depth) const {
+  return fetchNode(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), depth);
 }
+
+
 
 template <typename T>
 Node<T>* Octree<T>::insert(const int x,
@@ -522,6 +467,8 @@ Node<T>* Octree<T>::insert(const int x,
   }
   return node;
 }
+
+
 
 template <typename T>
 typename Octree<T>::VoxelBlockType* Octree<T>::insert(const int       x,
@@ -638,8 +585,7 @@ std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& voxel_coord_f,
       return {select_voxel_value(T::initData()), target_scale};
     }
 
-    int interp_scale = se::internal::gather_values(
-        *this, base_coord, target_scale, select_node_value, select_voxel_value, voxel_values);
+    int interp_scale = se::internal::gather_values(*this, base_coord, target_scale, select_node_value, select_voxel_value, voxel_values);
     se::internal::gather_values(
         *this, base_coord, target_scale, select_weight, select_weight, voxel_weights);
 
@@ -680,7 +626,7 @@ inline std::pair<float, int> Octree<T>::interpAtPoint(
     const Eigen::Vector3f& point_M,
     ValueSelector          select_value,
     const int              min_scale) const {
-  const Eigen::Vector3f& voxel_coord_f = inverse_voxel_dim_ * point_M;
+  const Eigen::Vector3f voxel_coord_f = inverse_voxel_dim_ * point_M;
   return interp(voxel_coord_f, select_value, min_scale);
 }
 
@@ -693,7 +639,7 @@ inline std::pair<float, int> Octree<T>::interpAtPoint(
     ValueSelector          select_value,
     const int              min_scale,
     bool&                  is_valid) const {
-  const Eigen::Vector3f& voxel_coord_f = inverse_voxel_dim_ * point_M;
+  const Eigen::Vector3f voxel_coord_f = inverse_voxel_dim_ * point_M;
   return interp(voxel_coord_f, select_value, min_scale, is_valid);
 }
 
@@ -706,7 +652,7 @@ inline std::pair<float, int> Octree<T>::interpAtPoint(
     NodeValueSelector      select_node_value,
     VoxelValueSelector     select_voxel_value,
     const int              min_scale) const {
-  const Eigen::Vector3f& voxel_coord_f = inverse_voxel_dim_ * point_M;
+  const Eigen::Vector3f voxel_coord_f = inverse_voxel_dim_ * point_M;
   return interp(voxel_coord_f, select_node_value, select_voxel_value, min_scale);
 }
 
@@ -720,17 +666,157 @@ inline std::pair<float, int> Octree<T>::interpAtPoint(
     VoxelValueSelector     select_voxel_value,
     const int              min_scale,
     bool&                  is_valid) const {
-  const Eigen::Vector3f& voxel_coord_f = inverse_voxel_dim_ * point_M;
+  const Eigen::Vector3f voxel_coord_f = inverse_voxel_dim_ * point_M;
   return interp(voxel_coord_f, select_node_value, select_voxel_value, min_scale, is_valid);
 }
 
 
 
 template <typename T>
-template <typename FieldSelector>
+template <typename ValueSelector>
 Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& voxel_coord_f,
-                                FieldSelector          select_value,
+                                ValueSelector          select_value,
                                 const int              min_scale) const {
+
+  auto get_value = [&](int x, int y, int z, VoxelBlockType* block) {
+    VoxelData data;
+    get(x, y, z, block, data, min_scale);
+    select_value(data);
+  };
+
+  return gradImpl(voxel_coord_f, get_value, min_scale);
+}
+
+template <typename T>
+template <typename ValueSelector, typename ValidChecker>
+Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& voxel_coord_f,
+                                ValueSelector          select_value,
+                                ValidChecker           check_is_valid,
+                                bool&                  is_valid,
+                                const int              min_scale) const {
+
+  is_valid = true;
+
+  auto get_values = [&](int x, int y, int z, VoxelBlockType* block) {
+    VoxelData data;
+    get(x, y, z, block, data, min_scale);
+    if (is_valid) {
+      is_valid = check_is_valid(data);
+    }
+    return select_value(data);
+  };
+
+  return gradImpl(voxel_coord_f, get_values, min_scale);
+}
+
+template <typename T>
+template <typename NodeValueSelector, typename VoxelValueSelector>
+Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& voxel_coord_f,
+                                NodeValueSelector      select_node_value,
+                                VoxelValueSelector     select_voxel_value,
+                                const int              min_scale) const {
+
+  auto get_values = [&](int x, int y, int z, VoxelBlockType* block) {
+    VoxelData data;
+    const unsigned int scale = get(x, y, z, block, data, min_scale);
+    if (scale > VoxelBlockType::max_scale) {
+      return select_node_value(data);
+    } else {
+      return select_voxel_value(data);
+    }
+  };
+
+  return gradImpl(voxel_coord_f, get_values, min_scale);
+}
+
+template <typename T>
+template <typename NodeValueSelector, typename VoxelValueSelector, typename ValidChecker>
+Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& voxel_coord_f,
+                                NodeValueSelector      select_node_value,
+                                VoxelValueSelector     select_voxel_value,
+                                ValidChecker           check_is_valid,
+                                bool&                  is_valid,
+                                const int              min_scale) const {
+
+  is_valid = true;
+
+  auto get_values = [&](int x, int y, int z, VoxelBlockType* block) {
+    VoxelData data;
+    const unsigned int scale = get(x, y, z, block, data, scale);
+    if (is_valid) {
+      is_valid = check_is_valid(data);
+    }
+    if (scale > VoxelBlockType::max_scale_) {
+      return select_node_value(data);
+    } else {
+      return select_voxel_value(data);
+    }
+  };
+
+  return gradImpl(voxel_coord_f, get_values, min_scale);
+}
+
+
+
+template <typename T>
+template <typename ValueSelector>
+inline Eigen::Vector3f Octree<T>::gradAtPoint(const Eigen::Vector3f& point_M,
+                                              ValueSelector          select_value,
+                                              const int              min_scale) const {
+
+  const Eigen::Vector3f voxel_coord_f = inverse_voxel_dim_ * point_M;
+  return grad(voxel_coord_f, select_value, min_scale);
+}
+
+
+
+template <typename T>
+template <typename ValueSelector, typename ValidChecker>
+inline Eigen::Vector3f Octree<T>::gradAtPoint(const Eigen::Vector3f& point_M,
+                                              ValueSelector          select_value,
+                                              ValidChecker           check_is_valid,
+                                              bool&                  is_valid,
+                                              const int              min_scale) const {
+
+  const Eigen::Vector3f voxel_coord_f = inverse_voxel_dim_ * point_M;
+  return grad(voxel_coord_f, select_value, check_is_valid, is_valid, min_scale);
+}
+
+
+
+template <typename T>
+template <typename NodeValueSelector, typename VoxelValueSelector>
+inline Eigen::Vector3f Octree<T>::gradAtPoint(const Eigen::Vector3f& point_M,
+                                              NodeValueSelector      select_node_value,
+                                              VoxelValueSelector     select_voxel_value,
+                                              const int              min_scale) const {
+
+  const Eigen::Vector3f voxel_coord_f = inverse_voxel_dim_ * point_M;
+  return grad(voxel_coord_f, select_node_value, select_voxel_value, min_scale);
+}
+
+
+
+template <typename T>
+template <typename NodeValueSelector, typename VoxelValueSelector, typename ValidChecker>
+inline Eigen::Vector3f Octree<T>::gradAtPoint(const Eigen::Vector3f& point_M,
+                                              NodeValueSelector      select_node_value,
+                                              VoxelValueSelector     select_voxel_value,
+                                              ValidChecker           check_is_valid,
+                                              bool&                  is_valid,
+                                              const int              min_scale) const {
+
+  const Eigen::Vector3f voxel_coord_f = inverse_voxel_dim_ * point_M;
+  return grad(voxel_coord_f, select_node_value, select_voxel_value, check_is_valid, is_valid, min_scale);
+}
+
+
+
+template <typename T>
+template <typename ValuesGetter>
+Eigen::Vector3f Octree<T>::gradImpl(const Eigen::Vector3f& voxel_coord_f,
+                                    ValuesGetter           get_values,
+                                    const int              min_scale) const {
 
   int iter = 0;
   int scale = min_scale;
@@ -739,7 +825,7 @@ Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& voxel_coord_f,
   Eigen::Vector3f gradient = Eigen::Vector3f::Constant(0);
   while (iter < 3) {
     const int stride = 1 << scale;
-    const Eigen::Vector3f scaled_voxel_coord_f = 1.f/stride * voxel_coord_f - sample_offset_frac_;
+    const Eigen::Vector3f scaled_voxel_coord_f = 1.f / stride * voxel_coord_f - sample_offset_frac_;
     factor =  math::fracf(scaled_voxel_coord_f);
     const Eigen::Vector3i base_coord = stride * scaled_voxel_coord_f.cast<int>();
     Eigen::Vector3i lower_lower_coord = (base_coord - stride * Eigen::Vector3i::Constant(1)).cwiseMax(Eigen::Vector3i::Constant(0));
@@ -751,83 +837,68 @@ Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& voxel_coord_f,
     Eigen::Vector3i & lower_coord = lower_upper_coord;
     Eigen::Vector3i & upper_coord = upper_lower_coord;
 
-
     VoxelBlockType* block = fetch(base_coord.x(), base_coord.y(), base_coord.z());
-    gradient.x() = (((select_value(get(upper_lower_coord.x(), lower_coord.y(), lower_coord.z(), scale, block))
-            - select_value(get(lower_lower_coord.x(), lower_coord.y(), lower_coord.z(), scale, block))) * (1 - factor.x())
-          + (select_value(get(upper_upper_coord.x(), lower_coord.y(), lower_coord.z(), scale, block))
-            - select_value(get(lower_upper_coord.x(), lower_coord.y(), lower_coord.z(), scale, block))) * factor.x())
-        * (1 - factor.y())
-        + ((select_value(get(upper_lower_coord.x(), upper_coord.y(), lower_coord.z(), scale, block))
-            - select_value(get(lower_lower_coord.x(), upper_coord.y(), lower_coord.z(), scale, block))) * (1 - factor.x())
-          + (select_value(get(upper_upper_coord.x(), upper_coord.y(), lower_coord.z(), scale, block))
-            - select_value(get(lower_upper_coord.x(), upper_coord.y(), lower_coord.z(), scale, block)))
-          * factor.x()) * factor.y()) * (1 - factor.z())
-      + (((select_value(get(upper_lower_coord.x(), lower_coord.y(), upper_coord.z(), scale, block))
-              - select_value(get(lower_lower_coord.x(), lower_coord.y(), upper_coord.z(), scale, block))) * (1 - factor.x())
-            + (select_value(get(upper_upper_coord.x(), lower_coord.y(), upper_coord.z(), scale, block))
-              - select_value(get(lower_upper_coord.x(), lower_coord.y(), upper_coord.z(), scale, block)))
-            * factor.x()) * (1 - factor.y())
-          + ((select_value(get(upper_lower_coord.x(), upper_coord.y(), upper_coord.z(), scale, block))
-              - select_value(get(lower_lower_coord.x(), upper_coord.y(), upper_coord.z(), scale, block)))
-            * (1 - factor.x())
-            + (select_value(get(upper_upper_coord.x(), upper_coord.y(), upper_coord.z(), scale, block))
-              - select_value(get(lower_upper_coord.x(), upper_coord.y(), upper_coord.z(), scale, block)))
-            * factor.x()) * factor.y()) * factor.z();
+
+    gradient.x() = (((get_values(upper_lower_coord.x(), lower_coord.y(), lower_coord.z(), block)
+                    - get_values(lower_lower_coord.x(), lower_coord.y(), lower_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_upper_coord.x(), lower_coord.y(), lower_coord.z(), block)
+                    - get_values(lower_upper_coord.x(), lower_coord.y(), lower_coord.z(), block)) * factor.x()) * (1 - factor.y())
+                  + ((get_values(upper_lower_coord.x(), upper_coord.y(), lower_coord.z(), block)
+                    - get_values(lower_lower_coord.x(), upper_coord.y(), lower_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_upper_coord.x(), upper_coord.y(), lower_coord.z(), block)
+                    - get_values(lower_upper_coord.x(), upper_coord.y(), lower_coord.z(), block)) * factor.x()) * factor.y()) * (1 - factor.z())
+                 + (((get_values(upper_lower_coord.x(), lower_coord.y(), upper_coord.z(), block)
+                    - get_values(lower_lower_coord.x(), lower_coord.y(), upper_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_upper_coord.x(), lower_coord.y(), upper_coord.z(), block)
+                    - get_values(lower_upper_coord.x(), lower_coord.y(), upper_coord.z(), block)) * factor.x()) * (1 - factor.y())
+                  + ((get_values(upper_lower_coord.x(), upper_coord.y(), upper_coord.z(), block)
+                    - get_values(lower_lower_coord.x(), upper_coord.y(), upper_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_upper_coord.x(), upper_coord.y(), upper_coord.z(), block)
+                    - get_values(lower_upper_coord.x(), upper_coord.y(), upper_coord.z(), block)) * factor.x()) * factor.y()) * factor.z();
     if (scale != last_scale) {
       last_scale = scale;
       iter++;
       continue;
     }
 
-    gradient.y() = (((select_value(get(lower_coord.x(), upper_lower_coord.y(), lower_coord.z(), scale, block))
-            - select_value(get(lower_coord.x(), lower_lower_coord.y(), lower_coord.z(), scale, block))) * (1 - factor.x())
-          + (select_value(get(upper_coord.x(), upper_lower_coord.y(), lower_coord.z(), scale, block))
-            - select_value(get(upper_coord.x(), lower_lower_coord.y(), lower_coord.z(), scale, block))) * factor.x())
-        * (1 - factor.y())
-        + ((select_value(get(lower_coord.x(), upper_upper_coord.y(), lower_coord.z(), scale, block))
-            - select_value(get(lower_coord.x(), lower_upper_coord.y(), lower_coord.z(), scale, block))) * (1 - factor.x())
-          + (select_value(get(upper_coord.x(), upper_upper_coord.y(), lower_coord.z(), scale, block))
-            - select_value(get(upper_coord.x(), lower_upper_coord.y(), lower_coord.z(), scale, block)))
-          * factor.x()) * factor.y()) * (1 - factor.z())
-      + (((select_value(get(lower_coord.x(), upper_lower_coord.y(), upper_coord.z(), scale, block))
-              - select_value(get(lower_coord.x(), lower_lower_coord.y(), upper_coord.z(), scale, block))) * (1 - factor.x())
-            + (select_value(get(upper_coord.x(), upper_lower_coord.y(), upper_coord.z(), scale, block))
-              - select_value(get(upper_coord.x(), lower_lower_coord.y(), upper_coord.z(), scale, block)))
-            * factor.x()) * (1 - factor.y())
-          + ((select_value(get(lower_coord.x(), upper_upper_coord.y(), upper_coord.z(), scale, block))
-              - select_value(get(lower_coord.x(), lower_upper_coord.y(), upper_coord.z(), scale, block)))
-            * (1 - factor.x())
-            + (select_value(get(upper_coord.x(), upper_upper_coord.y(), upper_coord.z(), scale, block))
-              - select_value(get(upper_coord.x(), lower_upper_coord.y(), upper_coord.z(), scale, block)))
-            * factor.x()) * factor.y()) * factor.z();
+    gradient.y() = (((get_values(lower_coord.x(), upper_lower_coord.y(), lower_coord.z(), block)
+                    - get_values(lower_coord.x(), lower_lower_coord.y(), lower_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_coord.x(), upper_lower_coord.y(), lower_coord.z(), block)
+                    - get_values(upper_coord.x(), lower_lower_coord.y(), lower_coord.z(), block)) * factor.x()) * (1 - factor.y())
+                  + ((get_values(lower_coord.x(), upper_upper_coord.y(), lower_coord.z(), block)
+                    - get_values(lower_coord.x(), lower_upper_coord.y(), lower_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_coord.x(), upper_upper_coord.y(), lower_coord.z(), block)
+                    - get_values(upper_coord.x(), lower_upper_coord.y(), lower_coord.z(), block)) * factor.x()) * factor.y()) * (1 - factor.z())
+                 + (((get_values(lower_coord.x(), upper_lower_coord.y(), upper_coord.z(), block)
+                    - get_values(lower_coord.x(), lower_lower_coord.y(), upper_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_coord.x(), upper_lower_coord.y(), upper_coord.z(), block)
+                    - get_values(upper_coord.x(), lower_lower_coord.y(), upper_coord.z(), block)) * factor.x()) * (1 - factor.y())
+                  + ((get_values(lower_coord.x(), upper_upper_coord.y(), upper_coord.z(), block)
+                    - get_values(lower_coord.x(), lower_upper_coord.y(), upper_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_coord.x(), upper_upper_coord.y(), upper_coord.z(), block)
+                    - get_values(upper_coord.x(), lower_upper_coord.y(), upper_coord.z(), block)) * factor.x()) * factor.y()) * factor.z();
     if (scale != last_scale) {
       last_scale = scale;
       iter++;
       continue;
     }
 
-    gradient.z() = (((select_value(get(lower_coord.x(), lower_coord.y(), upper_lower_coord.z(), scale, block))
-            - select_value(get(lower_coord.x(), lower_coord.y(), lower_lower_coord.z(), scale, block))) * (1 - factor.x())
-          + (select_value(get(upper_coord.x(), lower_coord.y(), upper_lower_coord.z(), scale, block))
-            - select_value(get(upper_coord.x(), lower_coord.y(), lower_lower_coord.z(), scale, block))) * factor.x())
-        * (1 - factor.y())
-        + ((select_value(get(lower_coord.x(), upper_coord.y(), upper_lower_coord.z(), scale, block))
-            - select_value(get(lower_coord.x(), upper_coord.y(), lower_lower_coord.z(), scale, block))) * (1 - factor.x())
-          + (select_value(get(upper_coord.x(), upper_coord.y(), upper_lower_coord.z(), scale, block))
-            - select_value(get(upper_coord.x(), upper_coord.y(), lower_lower_coord.z(), scale, block)))
-          * factor.x()) * factor.y()) * (1 - factor.z())
-      + (((select_value(get(lower_coord.x(), lower_coord.y(), upper_upper_coord.z(), scale, block))
-              - select_value(get(lower_coord.x(), lower_coord.y(), lower_upper_coord.z(), scale, block))) * (1 - factor.x())
-            + (select_value(get(upper_coord.x(), lower_coord.y(), upper_upper_coord.z(), scale, block))
-              - select_value(get(upper_coord.x(), lower_coord.y(), lower_upper_coord.z(), scale, block)))
-            * factor.x()) * (1 - factor.y())
-          + ((select_value(get(lower_coord.x(), upper_coord.y(), upper_upper_coord.z(), scale, block))
-              - select_value(get(lower_coord.x(), upper_coord.y(), lower_upper_coord.z(), scale, block)))
-            * (1 - factor.x())
-            + (select_value(get(upper_coord.x(), upper_coord.y(), upper_upper_coord.z(), scale, block))
-              - select_value(get(upper_coord.x(), upper_coord.y(), lower_upper_coord.z(), scale, block)))
-            * factor.x()) * factor.y()) * factor.z();
+    gradient.z() = (((get_values(lower_coord.x(), lower_coord.y(), upper_lower_coord.z(), block)
+                    - get_values(lower_coord.x(), lower_coord.y(), lower_lower_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_coord.x(), lower_coord.y(), upper_lower_coord.z(), block)
+                    - get_values(upper_coord.x(), lower_coord.y(), lower_lower_coord.z(), block)) * factor.x()) * (1 - factor.y())
+                  + ((get_values(lower_coord.x(), upper_coord.y(), upper_lower_coord.z(), block)
+                    - get_values(lower_coord.x(), upper_coord.y(), lower_lower_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_coord.x(), upper_coord.y(), upper_lower_coord.z(), block)
+                    - get_values(upper_coord.x(), upper_coord.y(), lower_lower_coord.z(), block)) * factor.x()) * factor.y()) * (1 - factor.z())
+                 + (((get_values(lower_coord.x(), lower_coord.y(), upper_upper_coord.z(), block)
+                    - get_values(lower_coord.x(), lower_coord.y(), lower_upper_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_coord.x(), lower_coord.y(), upper_upper_coord.z(), block)
+                    - get_values(upper_coord.x(), lower_coord.y(), lower_upper_coord.z(), block)) * factor.x()) * (1 - factor.y())
+                   +((get_values(lower_coord.x(), upper_coord.y(), upper_upper_coord.z(), block)
+                    - get_values(lower_coord.x(), upper_coord.y(), lower_upper_coord.z(), block)) * (1 - factor.x())
+                    +(get_values(upper_coord.x(), upper_coord.y(), upper_upper_coord.z(), block)
+                    - get_values(upper_coord.x(), upper_coord.y(), lower_upper_coord.z(), block)) * factor.x()) * factor.y()) * factor.z();
     if (scale != last_scale) {
       last_scale = scale;
       iter++;
@@ -842,20 +913,11 @@ Eigen::Vector3f Octree<T>::grad(const Eigen::Vector3f& voxel_coord_f,
 
 
 template <typename T>
-template <typename FieldSelect>
-inline Eigen::Vector3f Octree<T>::gradAtPoint(const Eigen::Vector3f& point_M,
-                                              FieldSelect            select_value,
-                                              const int              min_scale) const {
-  const Eigen::Vector3f& voxel_coord_f = inverse_voxel_dim_ * point_M;
-  return grad(voxel_coord_f, select_value, min_scale);
-}
-
-
-
-template <typename T>
 int Octree<T>::blockCount(){
   return pool_.blockBufferSize();
 }
+
+
 
 template <typename T>
 int Octree<T>::blockCountRecursive(Node<T>* node){
@@ -875,10 +937,14 @@ int Octree<T>::blockCountRecursive(Node<T>* node){
   return sum;
 }
 
+
+
 template <typename T>
 int Octree<T>::nodeCount(){
   return pool_.nodeBufferSize();
 }
+
+
 
 template <typename T>
 int Octree<T>::nodeCountRecursive(Node<T>* node){
@@ -893,6 +959,8 @@ int Octree<T>::nodeCountRecursive(Node<T>* node){
   return node_count;
 }
 
+
+
 template <typename T>
 void Octree<T>::reserveBuffers(const int num_blocks){
 
@@ -903,6 +971,8 @@ void Octree<T>::reserveBuffers(const int num_blocks){
   }
   pool_.reserveBlocks(num_blocks);
 }
+
+
 
 template <typename T>
 bool Octree<T>::allocate(key_t* keys, int num_elem){
@@ -928,6 +998,8 @@ std::sort(keys, keys + num_elem);
   }
   return success;
 }
+
+
 
 template <typename T>
 bool Octree<T>::allocate_depth(key_t* octant_keys, int num_tasks, int target_depth){
@@ -970,6 +1042,8 @@ bool Octree<T>::allocate_depth(key_t* octant_keys, int num_tasks, int target_dep
   return true;
 }
 
+
+
 template <typename T>
 void Octree<T>::getBlockList(std::vector<VoxelBlockType*>& block_list, bool active){
   Node<T>* node = root_;
@@ -977,6 +1051,8 @@ void Octree<T>::getBlockList(std::vector<VoxelBlockType*>& block_list, bool acti
   if(active) getActiveBlockList(node, block_list);
   else getAllocatedBlockList(node, block_list);
 }
+
+
 
 template <typename T>
 void Octree<T>::getActiveBlockList(Node<T>* node,
@@ -1000,6 +1076,8 @@ void Octree<T>::getActiveBlockList(Node<T>* node,
   }
 }
 
+
+
 template <typename T>
 void Octree<T>::getAllocatedBlockList(Node<T>* ,
     std::vector<VoxelBlockType*>& block_list){
@@ -1008,6 +1086,8 @@ void Octree<T>::getAllocatedBlockList(Node<T>* ,
     block_list.push_back(block_buffer[i]);
   }
 }
+
+
 
 template <typename T>
 void Octree<T>::save(const std::string& filename) {
@@ -1027,6 +1107,8 @@ void Octree<T>::save(const std::string& filename) {
   for(size_t i = 0; i < num_blocks; ++i)
     internal::serialise(os, *block_buffer[i]);
 }
+
+
 
 template <typename T>
 void Octree<T>::load(const std::string& filename) {

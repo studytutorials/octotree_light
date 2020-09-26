@@ -1,6 +1,6 @@
 /*
 
-Copyright 2016 Emanuele Vespa, Imperial College London 
+Copyright 2016 Emanuele Vespa, Imperial College London
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -25,11 +25,10 @@ DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include <Eigen/Core>
 #include <gtest/gtest.h>
 
 #include <se/utils/math_utils.h>
@@ -54,3 +53,24 @@ TEST(EigenUtils, ClampFixVec2) {
   ASSERT_TRUE(base.x() >= min.x() && base.x() <= max.x());
   ASSERT_TRUE(base.y() >= min.y() && base.y() <= max.y());
 }
+
+TEST(MathUtils, median) {
+  std::vector<int> v1 {1, 2, 3, 4};
+  EXPECT_EQ(se::math::median(v1), 2);
+
+  std::vector<int> v2 {2, 3, 4};
+  EXPECT_EQ(se::math::median(v2), 3);
+
+  const std::vector<short> v3 {15, 0, 2, 4};
+  EXPECT_EQ(se::math::median(v3), 3);
+
+  std::vector<short> v4;
+  EXPECT_EQ(se::math::median(v4), short());
+
+  std::vector<float> v5 {1.0f, 28.123f, 0.0f, 8.5f, 2.4f};
+  EXPECT_FLOAT_EQ(se::math::median(v5), 2.4f);
+
+  const std::vector<float> v6 {1.0f, 0.0f, 8.5f, 2.4f};
+  EXPECT_FLOAT_EQ(se::math::median(v6), 1.7f);
+}
+

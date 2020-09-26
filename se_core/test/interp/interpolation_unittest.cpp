@@ -50,6 +50,10 @@ struct TestVoxelT {
   using MemoryPoolType = se::PagedMemoryPool<TestVoxelT>;
   template <typename BufferT>
   using MemoryBufferType = se::PagedMemoryBuffer<BufferT>;
+
+  static double selectValue(VoxelData& data) {
+    return data;
+  };
 };
 
 float test_fun(float x, float y, float z) {
@@ -65,7 +69,7 @@ float sphere_dist(const Eigen::Vector3f& p, const Eigen::Vector3f& C,
   const float b = 2 * dir.dot(centre_offset);
   const float c = centre_offset.dot(centre_offset) - radius * radius;
   const float delta = b * b - 4 * a * c;
-  float dist = std::numeric_limits<int>::max();
+  float dist = std::numeric_limits<float>::max();
   if(delta > 0) {
     dist = std::min(-b + sqrtf(delta), -b - sqrtf(delta));
     dist /= 2 * a;
@@ -107,10 +111,11 @@ class InterpolationTest : public ::testing::Test {
       {
         std::stringstream f;
         f << "./sphere-interp.vtk";
-        save_3d_slice_vtk(octree_, f.str().c_str(),
+        save_3d_value_slice_vtk(octree_, f.str().c_str(),
                           Eigen::Vector3i(0, octree_.size() / 2, 0),
                           Eigen::Vector3i(octree_.size(), octree_.size()/2 + 1, octree_.size()),
-                          [](const float& data) { return data; }, octree_.maxBlockScale());
+                          TestVoxelT::selectValue,
+                          octree_.maxBlockScale());
       }
 
       // balance and print.
@@ -120,10 +125,11 @@ class InterpolationTest : public ::testing::Test {
       {
         std::stringstream f;
         f << "./sphere-interp-balanced.vtk";
-        save_3d_slice_vtk(octree_, f.str().c_str(),
+        save_3d_value_slice_vtk(octree_, f.str().c_str(),
                           Eigen::Vector3i(0, octree_.size() / 2, 0),
                           Eigen::Vector3i(octree_.size(), octree_.size()/2 + 1, octree_.size()),
-                          [](const float& data) { return data; }, octree_.maxBlockScale());
+                          TestVoxelT::selectValue,
+                          octree_.maxBlockScale());
       }
 
     }
@@ -135,8 +141,7 @@ class InterpolationTest : public ::testing::Test {
 
 TEST_F(InterpolationTest, IDWInterp) {
   Eigen::Vector3f voxel_coord_f(128.4f, 129.1f, 127.5f);
-  auto select_value =  [](const TestVoxelT::VoxelData& data) { return data; };
-  se::internal::idw_interp<TestVoxelT::VoxelData>(octree_, voxel_coord_f, select_value);
+  se::internal::idw_interp<TestVoxelT::VoxelData>(octree_, voxel_coord_f, TestVoxelT::selectValue);
 
 }
 

@@ -62,7 +62,9 @@ class MultiscaleTest : public ::testing::Test {
 };
 
 TEST_F(MultiscaleTest, Init) {
-  EXPECT_EQ(octree_.get(137, 138, 130), TestVoxelT::initData());
+  TestVoxelT::VoxelData test_data;
+  octree_.get(137, 138, 130, test_data);
+  EXPECT_EQ(test_data, TestVoxelT::initData());
 }
 
 TEST_F(MultiscaleTest, PlainAlloc) {
@@ -75,9 +77,13 @@ TEST_F(MultiscaleTest, PlainAlloc) {
 
   octree_.set(56, 12, 254, 3.f);
 
-  EXPECT_EQ(octree_.get(56, 12, 254), 3.f);
-  EXPECT_EQ(octree_.get(106, 12, 254), TestVoxelT::initData());
-  EXPECT_NE(octree_.get(106, 12, 254), 3.f);
+  TestVoxelT::VoxelData test_data;
+  octree_.get(56, 12, 254, test_data);
+  EXPECT_EQ(test_data, 3.f);
+  octree_.get(106, 12, 254, test_data);
+  EXPECT_EQ(test_data, TestVoxelT::initData());
+  octree_.get(106, 12, 254, test_data);
+  EXPECT_NE(test_data, 3.f);
 }
 
 TEST_F(MultiscaleTest, ScaledAlloc) {
@@ -88,10 +94,12 @@ TEST_F(MultiscaleTest, ScaledAlloc) {
   }
 
   octree_.allocate(allocation_list, 2);
-  se::Node<TestVoxelT>* node = octree_.fetch_node(87, 32, 420, 5);
+  se::Node<TestVoxelT>* node = octree_.fetchNode(87, 32, 420, 5);
   ASSERT_TRUE(node != NULL);
   node->childData(0, 10.f);
-  EXPECT_EQ(octree_.get(87, 32, 420), 10.f);
+  TestVoxelT::VoxelData test_data;
+  octree_.get(87, 32, 420, test_data);
+  EXPECT_EQ(test_data, 10.f);
 }
 
 TEST_F(MultiscaleTest, Iterator) {
@@ -142,10 +150,10 @@ TEST_F(MultiscaleTest, OctantAlloc) {
   allocation_list[2] = allocation_list[2] | 3;
   allocation_list[9] = allocation_list[2] | 5;
   octree_.allocate(allocation_list, 10);
-  se::Node<TestVoxelT>* node = octree_.fetch_node(blocks_coord[4].x(), blocks_coord[4].y(),
+  se::Node<TestVoxelT>* node = octree_.fetchNode(blocks_coord[4].x(), blocks_coord[4].y(),
       blocks_coord[4].z(), 3);
   ASSERT_TRUE(node != nullptr);
-  node = octree_.fetch_node(blocks_coord[9].x(), blocks_coord[9].y(),
+  node = octree_.fetchNode(blocks_coord[9].x(), blocks_coord[9].y(),
       blocks_coord[9].z(), 6);
   ASSERT_TRUE(node == nullptr);
 }
@@ -172,7 +180,7 @@ TEST_F(MultiscaleTest, MultipleInsert) {
     for(int j = 0; j < 20; ++j) {
       Eigen::Vector3i voxel_coord(dis(gen), dis(gen), dis(gen));
       octree.insert(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), i);
-      se::Node<TestVoxelT>* fetched_node = octree.fetch_node(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), i);
+      se::Node<TestVoxelT>* fetched_node = octree.fetchNode(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), i);
       Eigen::Vector3i node_coord = se::keyops::decode(fetched_node->code());
       Eigen::Vector3i node_coord_rounded = node_size * (voxel_coord / node_size);
 

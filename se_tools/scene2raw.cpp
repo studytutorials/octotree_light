@@ -26,8 +26,9 @@
 
 typedef unsigned short int ushort;
 
-static const float SceneK[3][3] = { 481.20, 0.00, 319.50, 0.00, -480.00, 239.50,
-		0.00, 0.00, 1.00 };
+static const float SceneK[3][3] = {{481.20,    0.00, 319.50},
+                                   {  0.00, -480.00, 239.50},
+                                   {  0.00,    0.00,   1.00}};
 
 static const int _scenewidth = 640;
 static const int _sceneheight = 480;

@@ -53,10 +53,10 @@ class EvaluateATE:
     def __init__(self, result_file):
         self.ground_truth_file = None
         self.result_file       = result_file
-        self.result_idx        = None
+        self.result_header_idx = None
 
     def __str__(self):
-        return "".join(["========   ATE RESULTS   =======",
+        return "'\n'".join(["========   ATE RESULTS   =======",
                         "ATE RMSE:    {:f} m".format(self.ate_rmse()),
                         "ATE mean:    {:f} m".format(numpy.mean(self.trans_error)),
                         "ATE median:  {:f} m".format(numpy.median(self.trans_error)),
@@ -73,13 +73,19 @@ class EvaluateATE:
                 if str(line.split()[0]) == 'Ground':
                     self.ground_truth_file = str(line.split()[3])
                 elif str(line.split()[0]) == 'frame':
-                    self.result_idx = idx + 1
+                    self.result_header_idx = idx
                     break
         if self.ground_truth_file == "":
             raise ValueError('No ground truth file provided')
-        result = [line.split() for line in lines[self.result_idx:]]
-        #                     frame    | X           | Y           | Z
-        result_trajectory = [[int(r[0]), float(r[10]), float(r[11]), float(r[12])] for r in result]
+        result_header = lines[self.result_header_idx].split('\t')
+        frame_idx  = result_header.index('frame [#]')
+        t_WC_x_idx = result_header.index('t_WC.x [m]')
+        t_WC_y_idx = result_header.index('t_WC.y [m]')
+        t_WC_z_idx = result_header.index('t_WC.z [m]')
+        result = [line.split() for line in lines[self.result_header_idx + 1:]]
+        #                     frame | X | Y | Z
+        result_trajectory = [[int(r[frame_idx]),
+                              float(r[t_WC_x_idx]), float(r[t_WC_y_idx]), float(r[t_WC_z_idx])] for r in result]
         return result_trajectory
 
     def read_ground_truth_file(self, ground_truth_file):
@@ -128,7 +134,7 @@ class EvaluateATE:
     def save_ate(self):
         f = open(self.result_file, "r")
         contents = f.readlines()
-        contents.insert(self.result_idx - 2, str(self))
+        contents.insert(self.result_header_idx - 1, str(self))
         contents = "".join(contents)
 
         f = open(self.result_file, "w")

@@ -22,6 +22,7 @@
 #include <QMessageBox>
 #include <QApplication>
 #include <Eigen/Dense>
+#include "se/utils/math_utils.h"
 
 // #ifdef __APPLE__
 // #include <GLUT/glut.h>
@@ -58,8 +59,8 @@ static void setThreads() {
 static bool reset = false;
 
 // The following control the view of the model if we aren't using camera track
-static Sophus::SE3<float> rot;
-static Sophus::SE3<float> trans;
+static Eigen::Matrix4f rot;
+static Eigen::Matrix4f trans;
 
 //usePOV tells us to position the model according to the camera pose, setCameraView is passed to the QT and
 //is called if we interact with the view button
@@ -90,8 +91,8 @@ static void newDenseSLAMSystem(bool resetPose) {
   	twist << config->t_MW_factor.x() * config->map_dim.x(),
 						 config->t_MW_factor.y() * config->map_dim.x(),
 					   config->t_MW_factor.z() * config->map_dim.x(), 0, 0, 0;
-		trans = Sophus::SE3<float>::exp(twist);
-		rot = Sophus::SE3<float>();
+		trans = se::math::exp(twist);
+		rot = Eigen::Matrix4f::Identity();
     Eigen::Vector3f t_MW = config->t_MW_factor.cwiseProduct(config->map_dim);
 		*pipeline_pp = new DenseSLAMSystem(
 				Eigen::Vector2i(640 / config->sensor_downsampling_factor,
@@ -174,7 +175,7 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 						if(oldReader!=NULL)
 						delete(oldReader);
 						oldReader=NULL;
-						stats.reset();
+                        se::perfstats.reset();
 						if((power_monitor!=NULL) && power_monitor->isActive())
 						power_monitor->powerStats.reset();
 					}
@@ -208,7 +209,7 @@ CameraState setEnableCamera(CameraState state, string inputFile) {
 //This function is passed to QT and is called whenever we aren't busy i.e in a constant loop
 void qtIdle(void) {
 	//This will set the view for rendering the model, either to the tracked camera view or the static view
-	Eigen::Matrix4f render_T_MR = (rot * trans).matrix();
+	Eigen::Matrix4f render_T_MR = rot * trans;
 	if (usePOV)
 		(*pipeline_pp)->setRenderT_MC(); //current position as found by track
 	else
@@ -260,7 +261,7 @@ void dumpLog() {
 			"*.log (*.log);; All files (*.*)");
 	if (filename != "") {
 		std::ofstream logStream(filename.c_str());
-		stats.print_all_data(logStream);
+        se::perfstats.writeSummaryToOStream(logStream);
 		logStream.close();
 	}
 }
@@ -269,7 +270,7 @@ void dumpPowerLog() {
 			"log (*.prpt);; All files (*.*)");
 	if (filename != "" && power_monitor && power_monitor->isActive()) {
 		std::ofstream logStream(filename.c_str());
-		power_monitor->powerStats.print_all_data(logStream);
+		power_monitor->powerStats.writeSummaryToOStream(logStream);
 		logStream.close();
 	}
 }
@@ -286,7 +287,7 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
   twist << config->t_MW_factor.x() * config->map_dim.x(),
 					 config->t_MW_factor.y() * config->map_dim.x(),
 				   config->t_MW_factor.z() * config->map_dim.x(), 0, 0, 0;
-	trans = Sophus::SE3<float>::exp(twist);
+	trans = se::math::exp(twist);
 	QApplication a(argc, argv);
 
 	//Create a new ApplicationWindow (which holds everything)
@@ -374,12 +375,12 @@ void qtLinkKinectQt(int argc, char *argv[], DenseSLAMSystem **_pipe,
 	//The following enables the stats Viewer, the statsEnabled variable is to enable the removal of the capture phase
 	//although this is currently not implemented (N.B clearly the variable wouldn't be local!!)
 	bool statsEnabled = true;
-	appWindow->viewers->addViewer(&stats, (const char *) "Performance",
+	appWindow->viewers->addViewer(&se::perfstats, (const char *) "Performance",
 			(const char*) "Performance Statistics", &statsEnabled);
 	appWindow->viewers->setStatEntry("Performance", { "X", "Y", "Z", "tracked",
 			"integrated", "frame" }, false);
 	//this is the default field used for calculating the frame rate
-	appWindow->setFrameRateField((char *) "computation");
+	appWindow->setFrameRateField((char *) "COMPUTATION");
 
 	if (power_monitor != NULL && power_monitor->isActive()) {
 		appWindow->viewers->addViewer(&(power_monitor->powerStats),

@@ -63,6 +63,8 @@ public:
 
   virtual ~Node(){};
 
+  const VoxelData& data() const;
+
   VoxelData* childrenData() { return children_data_;}
   const VoxelData* childrenData() const { return children_data_;}
   VoxelData& childData(const int child_idx) { return children_data_[child_idx];}
@@ -136,7 +138,8 @@ public:
   static constexpr unsigned int size_cu   = se::math::cu(size_li);
   static constexpr unsigned int max_scale = se::math::log2_const(size_li);
 
-  VoxelBlock();
+  VoxelBlock(const int current_scale,
+             const int min_scale);
 
   VoxelBlock(const VoxelBlock<T>& block);
 
@@ -196,6 +199,60 @@ private:
   void initFromBlock(const VoxelBlock<T>& block);
 };
 
+/*! \brief A leaf node of the Octree. Each VoxelBlock contains compute_num_voxels() voxels
+ * voxels.
+ */
+template <typename T>
+class VoxelBlockFinest: public VoxelBlock<T> {
+
+public:
+  using VoxelData = typename VoxelBlock<T>::VoxelData;
+
+  VoxelBlockFinest(const typename T::VoxelData init_data = T::initData());
+
+  VoxelBlockFinest(const VoxelBlockFinest<T>& block);
+
+  void operator=(const VoxelBlockFinest<T>& block);
+
+  virtual ~VoxelBlockFinest() {};
+
+  VoxelData data(const Eigen::Vector3i& voxel_coord) const;
+  void setData(const Eigen::Vector3i& voxel_coord, const VoxelData& voxel_data);
+
+  /**
+   * \note Data will always retrieved and set at scale 0.
+   *       Function only exist to keep API consistent.
+   */
+  VoxelData data(const Eigen::Vector3i& voxel_coord, const int scale) const;
+  void setData(const Eigen::Vector3i& voxel_coord, const int scale, const VoxelData& voxel_data);
+
+  VoxelData data(const int voxel_idx) const;
+  void setData(const int voxel_idx, const VoxelData& voxel_data);
+
+  /**
+   * \note WARNING this functions should not be used with VoxelBlockFinest and will always just access at scale 0.
+   *
+   */
+  VoxelData data(const int voxel_idx, const int scale) const;
+  void setData(const int voxel_idx, const int scale, const VoxelData& voxel_data);
+
+  VoxelData* blockData() { return block_data_; }
+  const VoxelData* blockData() const { return block_data_; }
+  static constexpr int data_size() { return sizeof(VoxelBlockFinest<T>); }
+
+private:
+  // Internal copy helper function
+  void initFromBlock(const VoxelBlockFinest<T>& block);
+
+  static constexpr size_t num_voxels_in_block = VoxelBlock<T>::size_cu;
+  VoxelData block_data_[num_voxels_in_block]; // Brick of data.
+
+  friend std::ofstream& internal::serialise <> (std::ofstream& out,
+                                                VoxelBlockFinest& node);
+  friend void internal::deserialise <> (VoxelBlockFinest& node, std::ifstream& in);
+};
+
+
 
 /*! \brief A leaf node of the Octree. Each VoxelBlock contains compute_num_voxels() voxels
  * voxels.
@@ -252,6 +309,8 @@ private:
   friend void internal::deserialise <> (VoxelBlockFull& node, std::ifstream& in);
 };
 
+
+
 /*! \brief A leaf node of the Octree. Each VoxelBlock contains compute_num_voxels_in_block() voxels
  * voxels.
  */
@@ -261,7 +320,7 @@ class VoxelBlockSingle: public VoxelBlock<T> {
 public:
   using VoxelData = typename VoxelBlock<T>::VoxelData;
 
-  VoxelBlockSingle(const typename T::VoxelData init_data = T::initData()) : init_data_(init_data) { };
+  VoxelBlockSingle(const typename T::VoxelData init_data = T::initData());
 
   VoxelBlockSingle(const VoxelBlockSingle<T>& block);
 

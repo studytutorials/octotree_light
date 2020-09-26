@@ -36,8 +36,6 @@
 
 #include "se/tracking.hpp"
 
-#include <sophus/se3.hpp>
-
 
 
 static inline Eigen::Matrix<float, 6, 6> makeJTJ(
@@ -223,7 +221,7 @@ void reduceKernel(float*                 output_data,
                   TrackData*             J_data,
                   const Eigen::Vector2i& J_res) {
 
-  TICK();
+  TICKD("reduceKernel");
 #ifdef OLDREDUCE
 #pragma omp parallel for
 #endif
@@ -235,7 +233,7 @@ void reduceKernel(float*                 output_data,
   for (int j = 1; j < 8; ++j) {
     values.row(0) += values.row(j);
   }
-  TOCK("reduceKernel", 512);
+  TOCK("reduceKernel");
 }
 
 
@@ -251,7 +249,7 @@ void trackKernel(TrackData*                        output_data,
                  const float                       dist_threshold,
                  const float                       normal_threshold) {
 
-  TICK();
+  TICKD("trackKernel");
   const Eigen::Vector2i input_res( input_point_cloud_C.width(),  input_point_cloud_C.height());
   const Eigen::Vector2i ref_res(surface_point_cloud_M_ref.width(), surface_point_cloud_M_ref.height());
 
@@ -315,7 +313,7 @@ void trackKernel(TrackData*                        output_data,
       row.J[5] = cross_prod.z();
     }
   }
-  TOCK("trackKernel", input_res.x() * input_res.y());
+  TOCK("trackKernel");
 }
 
 
@@ -325,16 +323,16 @@ bool updatePoseKernel(Eigen::Matrix4f& T_MC,
                       float            icp_threshold) {
 
   bool res = false;
-  TICK();
+  TICKD("updatePoseKernel");
   Eigen::Map<const Eigen::Matrix<float, 8, 32, Eigen::RowMajor> > values(reduction_output_data);
   Eigen::Matrix<float, 6, 1> x = solve(values.row(0).segment(1, 27));
-  Eigen::Matrix4f delta = Sophus::SE3<float>::exp(x).matrix();
+  Eigen::Matrix4f delta = se::math::exp(x);
   T_MC = delta * T_MC;
 
   if (x.norm() < icp_threshold)
     res = true;
 
-  TOCK("updatePoseKernel", 1);
+  TOCK("updatePoseKernel");
   return res;
 }
 

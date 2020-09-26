@@ -67,7 +67,9 @@ class GatherTest : public ::testing::Test {
 };
 
 TEST_F(GatherTest, Init) {
-  EXPECT_EQ(octree_.get(137, 138, 130), TestVoxelT::initData());
+  TestVoxelT::VoxelData test_data;
+  octree_.get(137, 138, 130, test_data);
+  EXPECT_EQ(test_data, TestVoxelT::initData());
 }
 
 TEST_F(GatherTest, GatherLocal) {

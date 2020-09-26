@@ -582,7 +582,7 @@ void ApplicationWindow::setCameraFunction(bool *isOpen,
 	enableMenuItem(OPEN_SCENE);
 }
 
-void ApplicationWindow::setRotPointer(Sophus::SE3<float> *rotVar) {
+void ApplicationWindow::setRotPointer(Eigen::Matrix4f *rotVar) {
 	rot = rotVar;
 
 	QPushButton *rightButton, *leftButton, *upButton, *downButton;
@@ -960,20 +960,20 @@ void ApplicationWindow::lButtonPress() {
 if (rot) {
   Eigen::Matrix<float, 6, 1> twist;
   twist << 0.0, 0, 0, 0, 0.1, 0;
-	*rot = Sophus::SE3<float>::exp(twist) * (*rot);
-requireUpdate = true;
-*forceRender = true;
-if (povButton) {
-	povButton->setChecked(false);
-	povButtonPress();
-}
+  *rot = se::math::exp(twist) * (*rot);
+  requireUpdate = true;
+  *forceRender = true;
+  if (povButton) {
+    povButton->setChecked(false);
+    povButtonPress();
+  }
 }
 }
 void ApplicationWindow::rButtonPress() {
 if (rot) {
   Eigen::Matrix<float, 6, 1> twist;
   twist << 0.0, 0, 0, 0, -0.1, 0;
-	*rot = Sophus::SE3<float>::exp(twist) * (*rot);
+	*rot = se::math::exp(twist) * (*rot);
 	requireUpdate = true;
 	*forceRender = true;
 	if (povButton) {
@@ -986,7 +986,7 @@ void ApplicationWindow::uButtonPress() {
 if (rot) {
   Eigen::Matrix<float, 6, 1> twist;
   twist << 0.0, 0, 0, -0.1, 0, 0;
-	*rot = Sophus::SE3<float>::exp(twist) * (*rot);
+	*rot = se::math::exp(twist) * (*rot);
 	requireUpdate = true;
 	*forceRender = true;
 	if (povButton) {
@@ -999,7 +999,7 @@ void ApplicationWindow::dButtonPress() {
 if (rot) {
   Eigen::Matrix<float, 6, 1> twist;
   twist << 0.0, 0, 0, 0.1, 0, 0;
-	*rot = Sophus::SE3<float>::exp(twist) * (*rot);
+	*rot = se::math::exp(twist) * (*rot);
 	requireUpdate = true;
 	*forceRender = true;
 	if (povButton) {
@@ -1122,20 +1122,21 @@ viewers->updateImages();
 if (fid > _conditionalStart)
 	for (int i = 0; i < conditionalBreakpoints.length(); i++) {
 		if (conditionalBreakpoints.at(i)->type == COND_BOOL) {
-			char message[256];
-			int value = stats->getLastData(
-					conditionalBreakpoints.at(i)->name.toStdString().c_str());
-			if (value == *((int *) (conditionalBreakpoints.at(i)->value))) {
-				setCameraState(CAMERA_PAUSED);
-				sprintf(message,
-						"Conditional breakpoint hit: stopped at frame %d\n%s == %s",
-						fid,
-						conditionalBreakpoints.at(i)->name.toStdString().c_str(),
-						value == 1 ? "TRUE" : "FALSE");
-				messageBox = new QMessageBox(QMessageBox::Information,
-						"Breakpoint", message, QMessageBox::Ok);
+			if (stats != nullptr) {
+				int value = stats->getLastDataMerged(
+						conditionalBreakpoints.at(i)->name.toStdString().c_str());
+				if (value == *((int *) (conditionalBreakpoints.at(i)->value))) {
+					char message[256];
+					setCameraState(CAMERA_PAUSED);
+					sprintf(message,
+							"Conditional breakpoint hit: stopped at frame %d\n%s == %s",
+							fid,
+							conditionalBreakpoints.at(i)->name.toStdString().c_str(),
+							value == 1 ? "TRUE" : "FALSE");
+					messageBox = new QMessageBox(QMessageBox::Information,
+							"Breakpoint", message, QMessageBox::Ok);
+				}
 			}
-
 		}
 	}
 for (int i = 0; i < breakpoints.length(); i++) {
@@ -1150,7 +1151,7 @@ for (int i = 0; i < breakpoints.length(); i++) {
 }
 
 if (stats != NULL) {
-	elapsed = stats->getLastData(frameRateField.toStdString().c_str());
+	elapsed = stats->getLastDataMerged(frameRateField.toStdString().c_str());
 	cumulativeTime = cumulativeTime + elapsed;
 	numSamples++;
 

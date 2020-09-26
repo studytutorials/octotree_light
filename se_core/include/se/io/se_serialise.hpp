@@ -41,17 +41,22 @@ namespace se {
   class Node;
 
   template <typename T>
+  class VoxelBlockFinest;
+
+  template <typename T>
   class VoxelBlockFull;
 
   template <typename T>
   class VoxelBlockSingle;
 
   namespace internal {
-    /*
+
+    /**
      * \brief Write node's data to output file out. We do not serialise child
      * pointers and mask as those will be reconstructed when deserialising.
-     * \param out binary output file
-     * \param node Node to be serialised
+     *
+     * \param[out] out  The binary output file
+     * \param[in]  node The node to be serialised
      */
     template <typename T>
     std::ofstream& serialise(std::ofstream& out, Node<T>& node) {
@@ -64,11 +69,12 @@ namespace se {
       return out;
     }
 
-    /*
+    /**
      * \brief Read node's data from input binary file. We do not read child
      * pointers and mask as those will be reconstructed when deserialising.
-     * \param out binary output file
-     * \param node Node to be serialised
+     *
+     * \param[out] node The node to be serialised
+     * \param[in]  in   The binary output file
      */
     template <typename T>
     void deserialise(Node<T>& node, std::ifstream& in) {
@@ -80,10 +86,53 @@ namespace se {
       in.read(reinterpret_cast<char *>(&node.children_data_), sizeof(node.children_data_));
     }
 
-    /*
+    /**
      * \brief Write VoxelBlock's data to output file out.
-     * \param out binary output file
-     * \param node Node to be serialised
+     *
+     * \param[out]  out   The binary output file
+     * \param[in]   block The node to be serialised
+     */
+    template <typename T>
+    std::ofstream& serialise(std::ofstream& out, VoxelBlockFinest<T>& block) {
+      out.write(reinterpret_cast<char *>(&block.code_), sizeof(key_t));
+      out.write(reinterpret_cast<char *>(&block.size_), sizeof(int));
+      out.write(reinterpret_cast<char *>(&block.children_mask_), sizeof(unsigned char));
+      out.write(reinterpret_cast<char *>(&block.timestamp_), sizeof(unsigned int));
+      out.write(reinterpret_cast<char *>(&block.active_), sizeof(bool));
+      out.write(reinterpret_cast<char *>(&block.children_data_), sizeof(block.children_data_));
+      out.write(reinterpret_cast<char *>(&block.coordinates_), sizeof(Eigen::Vector3i));
+      out.write(reinterpret_cast<char *>(&block.min_scale_), sizeof(int));
+      out.write(reinterpret_cast<char *>(&block.current_scale_), sizeof(int));
+      out.write(reinterpret_cast<char *>(&block.block_data_),
+                sizeof(block.block_data_));
+      return out;
+    }
+
+    /**
+     * \brief Read VoxelBlock's data from input file.
+     *
+     * \param[out] block The block to be deserialised
+     * \param[in]  in    The binary input file
+     */
+    template <typename T>
+    void deserialise(VoxelBlockFinest<T>& block, std::ifstream& in) {
+      in.read(reinterpret_cast<char *>(&block.code_), sizeof(key_t));
+      in.read(reinterpret_cast<char *>(&block.size_), sizeof(int));
+      in.read(reinterpret_cast<char *>(&block.children_mask_), sizeof(unsigned char));
+      in.read(reinterpret_cast<char *>(&block.timestamp_), sizeof(unsigned int));
+      in.read(reinterpret_cast<char *>(&block.active_), sizeof(bool));
+      in.read(reinterpret_cast<char *>(&block.children_data_), sizeof(block.children_data_));
+      in.read(reinterpret_cast<char *>(&block.coordinates_), sizeof(Eigen::Vector3i));
+      in.read(reinterpret_cast<char *>(&block.min_scale_), sizeof(int));
+      in.read(reinterpret_cast<char *>(&block.current_scale_), sizeof(int));
+      in.read(reinterpret_cast<char *>(&block.block_data_), sizeof(block.block_data_));
+    }
+
+    /**
+     * \brief Write VoxelBlock's data to output file out.
+     *
+     * \param[out]  out   The binary output file
+     * \param[in]   block The node to be serialised
      */
     template <typename T>
     std::ofstream& serialise(std::ofstream& out, VoxelBlockFull<T>& block) {
@@ -101,11 +150,11 @@ namespace se {
       return out;
     }
 
-    /*
-     * \brief Read node's data from input binary file. We do not read child
-     * pointers and mask as those will be reconstructed when deserialising.
-     * \param out binary output file
-     * \param node Node to be serialised
+    /**
+     * \brief Read VoxelBlock's data from input file.
+     *
+     * \param[out] block The block to be deserialised
+     * \param[in]  in    The binary input file
      */
     template <typename T>
     void deserialise(VoxelBlockFull<T>& block, std::ifstream& in) {
@@ -121,11 +170,12 @@ namespace se {
       in.read(reinterpret_cast<char *>(&block.block_data_), sizeof(block.block_data_));
     }
 
-    /*
-    * \brief Write VoxelBlock's data to output file out.
-    * \param out binary output file
-    * \param node Node to be serialised
-    */
+    /**
+     * \brief Write VoxelBlock's data to output file out.
+     *
+     * \param[out]  out   The binary output file
+     * \param[in]   block The node to be serialised
+     */
     template <typename T>
     std::ofstream& serialise(std::ofstream& out, VoxelBlockSingle<T>& block) {
       out.write(reinterpret_cast<char *>(&block.code_), sizeof(key_t));
@@ -149,11 +199,11 @@ namespace se {
       return out;
     }
 
-    /*
-     * \brief Read node's data from input binary file. We do not read child
-     * pointers and mask as those will be reconstructed when deserialising.
-     * \param out binary output file
-     * \param node Node to be serialised
+    /**
+     * \brief Read VoxelBlock's data from input file.
+     *
+     * \param[out] block The block to be deserialised
+     * \param[in]  in    The binary input file
      */
     template <typename T>
     void deserialise(VoxelBlockSingle<T>& block, std::ifstream& in) {

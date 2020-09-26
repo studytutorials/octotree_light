@@ -52,6 +52,7 @@ namespace se {
 
     std::string sensor_type;
     std::string voxel_impl_type;
+    std::string voxel_impl_yaml;
     std::string sequence_name;
 
     /**
@@ -165,8 +166,19 @@ namespace se {
      * TODO
      * <br>\em Default: ""
      */
-    std::string sequence_path;
+    bool enable_structure;
 
+    /*
+     * TODO
+     * <br>\em Default: ""
+     */
+    std::string output_structure_file;
+
+    /*
+     * TODO
+     * <br>\em Default: ""
+     */
+    std::string sequence_path;
 
     /**
      * Whether to run the pipeline in benchmark mode. Hiding the GUI results in
@@ -341,6 +353,7 @@ namespace se {
     Configuration()
       : sensor_type(""),
         voxel_impl_type(""),
+        voxel_impl_yaml(""),
         sequence_name(""),
         sequence_type("raw"),
         sensor_downsampling_factor(1),
@@ -353,6 +366,8 @@ namespace se {
         t_MW_factor(0.5f, 0.5f, 0.5f),
         pyramid({10, 5, 4}),
         output_mesh_file(""),
+        enable_structure(false),
+        output_structure_file(""),
         sequence_path(""),
         enable_benchmark(false),
         log_file(""),
@@ -403,6 +418,10 @@ static std::ostream& operator<<(std::ostream& out, const se::Configuration& conf
   out << str_utils::bool_to_pretty_str(config.enable_meshing,         "Enable meshing"     ) << "\n";
   if (config.output_mesh_file != "") {
     out << str_utils::str_to_pretty_str(config.output_mesh_file,      "Output mesh file") << "\n";
+  }
+  out << str_utils::bool_to_pretty_str(config.enable_structure,       "Enable structure"     ) << "\n";
+  if (config.output_structure_file != "") {
+    out << str_utils::str_to_pretty_str(config.output_structure_file, "Output structure file") << "\n";
   }
   out << "\n";
 

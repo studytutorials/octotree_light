@@ -52,8 +52,6 @@ Eigen::Vector4f TSDF::raycast(const OctreeType&      map,
   }
   const float t_max = ray.tmax();
 
-  auto select_node_tsdf = [](const auto&){ return VoxelType::initData().x; };
-  auto select_voxel_tsdf = [](const auto& data){ return data.x; };
   // first walk with large steps until we found a hit
   float t = t_min;
   float step_size = TSDF::mu / 2;
@@ -64,7 +62,7 @@ Eigen::Vector4f TSDF::raycast(const OctreeType&      map,
   Eigen::Vector3f point_M_t = Eigen::Vector3f::Zero();
   Eigen::Vector3f point_M_tt = Eigen::Vector3f::Zero();
   
-  if (!find_valid_point(map, select_node_tsdf, select_voxel_tsdf,
+  if (!find_valid_point(map, TSDF::VoxelType::selectNodeValue, TSDF::VoxelType::selectVoxelValue,
                         ray_origin_M, ray_dir_M, step_size, t_max, t, value_t, point_M_t)) {
     return Eigen::Vector4f::Zero();
   }
@@ -74,10 +72,11 @@ Eigen::Vector4f TSDF::raycast(const OctreeType&      map,
   if (value_t > 0) { // ups, if we were already in it, then don't render anything here
     for (; t < t_max; t += step_size) {
       ray_pos_M = ray_origin_M + ray_dir_M * t;
-      VoxelData data = map.getFineAtPoint(ray_pos_M);
+      VoxelData data;
+      map.getAtPoint(ray_pos_M, data);
       if (data.y == 0) {
         t += step_size;
-        if (!find_valid_point(map, select_node_tsdf, select_voxel_tsdf,
+        if (!find_valid_point(map, TSDF::VoxelType::selectNodeValue, TSDF::VoxelType::selectVoxelValue,
                               ray_origin_M, ray_dir_M, step_size, t_max, t, value_t, point_M_t)) {
           return Eigen::Vector4f::Zero();
         }
@@ -90,10 +89,10 @@ Eigen::Vector4f TSDF::raycast(const OctreeType&      map,
       point_M_tt = ray_pos_M;
       if (value_tt <= 0.1) {
         bool is_valid = false;
-        value_tt = map.interpAtPoint(ray_pos_M, select_node_tsdf, select_voxel_tsdf, 0, is_valid).first;
+        value_tt = map.interpAtPoint(ray_pos_M, TSDF::VoxelType::selectNodeValue, TSDF::VoxelType::selectVoxelValue, 0, is_valid).first;
         if (!is_valid) {
           t += step_size;
-          if (!find_valid_point(map, select_node_tsdf, select_voxel_tsdf,
+          if (!find_valid_point(map, TSDF::VoxelType::selectNodeValue, TSDF::VoxelType::selectVoxelValue,
                                 ray_origin_M, ray_dir_M, step_size, t_max, t, value_t, point_M_t)) {
             return Eigen::Vector4f::Zero();
           }

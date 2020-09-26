@@ -19,12 +19,71 @@
 
 
 template <typename VoxelT, typename ValueSelector>
-int se::save_3d_slice_vtk(const se::Octree<VoxelT>& octree,
-                          const std::string         filename,
+int se::save_3d_value_slice_vtk(const se::Octree<VoxelT>& octree,
+                                const std::string         filename,
+                                const Eigen::Vector3i&    lower_coord,
+                                const Eigen::Vector3i&    upper_coord,
+                                ValueSelector             select_value,
+                                const int                 min_scale) {
+
+  auto get_value = [&](int x, int y, int z) {
+    typename VoxelT::VoxelData data;
+    octree.get(x, y, z, data, min_scale);
+    return select_value(data);
+  };
+
+  return se::save_3d_slice_vtk(filename, lower_coord, upper_coord, get_value, min_scale);
+}
+
+
+
+template <typename VoxelT, typename NodeValueSelector, typename VoxelValueSelector>
+int se::save_3d_value_slice_vtk(const se::Octree<VoxelT>& octree,
+                                const std::string         filename,
+                                const Eigen::Vector3i&    lower_coord,
+                                const Eigen::Vector3i&    upper_coord,
+                                NodeValueSelector         select_node_value,
+                                VoxelValueSelector        select_voxel_value,
+                                const int                 min_scale) {
+
+  auto get_value = [&](int x, int y, int z) {
+    typename VoxelT::VoxelData data;
+    const unsigned scale = octree.get(x, y, z, data, min_scale);
+    if (scale >= VoxelT::VoxelBlockType::max_scale) { // scale == max_scale should be the same value in the node and voxel
+      return select_node_value(data);
+    } else {
+      return select_voxel_value(data);
+    }
+  };
+
+  return se::save_3d_slice_vtk(filename, lower_coord, upper_coord, get_value, min_scale);
+}
+
+
+
+template <typename VoxelT>
+int se::save_3d_scale_slice_vtk(const se::Octree<VoxelT>& octree,
+                                const std::string         filename,
+                                const Eigen::Vector3i&    lower_coord,
+                                const Eigen::Vector3i&    upper_coord,
+                                const int                 min_scale) {
+
+  auto get_value = [&](int x, int y, int z) {
+    typename VoxelT::VoxelData data;
+    return octree.get(x, y, z, data, min_scale);
+  };
+
+  return se::save_3d_slice_vtk(filename, lower_coord, upper_coord, get_value, min_scale);
+}
+
+
+
+template <typename ValueGetter>
+int se::save_3d_slice_vtk(const std::string         filename,
                           const Eigen::Vector3i&    lower_coord,
                           const Eigen::Vector3i&    upper_coord,
-                          ValueSelector             select_value,
-                          const int                 scale) {
+                          ValueGetter               get_value,
+                          const int                 min_scale) {
 
   // Open the file for writing.
   std::ofstream file (filename.c_str());
@@ -35,7 +94,7 @@ int se::save_3d_slice_vtk(const se::Octree<VoxelT>& octree,
 
   std::stringstream ss_x_coord, ss_y_coord, ss_z_coord, ss_scalars;
 
-  const int stride = 1 << scale;
+  const int stride = 1 << min_scale;
   const int dimX = std::max(1, (upper_coord.x() - lower_coord.x()) / stride);
   const int dimY = std::max(1, (upper_coord.y() - lower_coord.y()) / stride);
   const int dimZ = std::max(1, (upper_coord.z() - lower_coord.z()) / stride);
@@ -59,7 +118,7 @@ int se::save_3d_slice_vtk(const se::Octree<VoxelT>& octree,
   for (int z = lower_coord.z(); z < upper_coord.z(); z += stride) {
     for (int y = lower_coord.y(); y < upper_coord.y(); y += stride) {
       for (int x = lower_coord.x(); x < upper_coord.x(); x += stride) {
-        const auto value = select_value(octree.getFine(x, y, z, scale));
+        const auto value = get_value(x, y, z);
         ss_scalars << value << std::endl;
       }
     }

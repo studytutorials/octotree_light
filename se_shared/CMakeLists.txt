@@ -1,10 +1,5 @@
 cmake_minimum_required(VERSION 3.5...3.16)
 
-find_package(SRLProjection REQUIRED)
-# Looks like yaml-cpp doesn't properly generate its CMake files and
-# find_package does not work in the same build tree
-#find_package(yaml-cpp REQUIRED)
-
 # Create library ##############################################################
 set(LIB_NAME "se-shared")
 add_library(${LIB_NAME} STATIC
@@ -12,6 +7,7 @@ add_library(${LIB_NAME} STATIC
   "src/sensor.cpp"
   "src/str_utils.cpp"
   "src/point_cloud_utils.cpp"
+  "src/stats.cpp"
 )
 target_include_directories(${LIB_NAME}
   PUBLIC
@@ -29,11 +25,6 @@ set_target_properties(${LIB_NAME} PROPERTIES
   CXX_STANDARD 14
   CXX_STANDARD_REQUIRED ON
   CXX_EXTENSIONS OFF
-)
-# Use floats in srl_projection
-target_compile_definitions(${LIB_NAME}
-  PUBLIC
-	SRL_FLOAT_T=float
 )
 
 # Add an alias so that the library can be used inside the build tree, e.g. when

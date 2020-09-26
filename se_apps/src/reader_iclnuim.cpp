@@ -124,8 +124,8 @@ se::ReaderStatus se::ICLNUIMReader::nextRGBA(se::Image<uint32_t>& rgba_image) {
     free(image_data);
     return se::ReaderStatus::error;
   }
-  assert(rgba_image_res_.x() == w);
-  assert(rgba_image_res_.y() == h);
+  assert(rgba_image_res_.x() == static_cast<int>(w));
+  assert(rgba_image_res_.y() == static_cast<int>(h));
   // Resize the output image if needed.
   if ((   rgba_image.width()  != rgba_image_res_.x())
       || (rgba_image.height() != rgba_image_res_.y())) {

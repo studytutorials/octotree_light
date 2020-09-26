@@ -5,21 +5,17 @@
 
 #include "perfstats.h"
 
-#if defined(SE_ENABLE_TICKTOCK) && SE_ENABLE_TICKTOCK
+#if defined(SE_ENABLE_PERFSTATS) && SE_ENABLE_PERFSTATS
 
-#define TICK() { \
-  const auto tickdata = std::chrono::steady_clock::now();
-
-#define TOCK(str, size) \
-  const auto tockdata = std::chrono::steady_clock::now(); \
-  const auto diff = tockdata - tickdata; \
-  stats.sample(str, std::chrono::duration_cast<std::chrono::nanoseconds>(diff).count()); \
-}
+#define TICK(str) se::perfstats.sampleDurationStart(str);
+#define TICKD(str) se::perfstats.sampleDurationStart(str, true);
+#define TOCK(str) se::perfstats.sampleDurationEnd(str);
 
 #else
 
-#define TICK()
-#define TOCK(str, size)
+#define TICK(str)
+#define TICKD(str)
+#define TOCK(str)
 
 #endif
 

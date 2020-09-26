@@ -129,17 +129,28 @@ namespace meshing {
     INSIDE = 0xFF, // 255
   };
 
-  template <typename OctreeT, typename FieldSelector>
-  inline Eigen::Vector3f compute_intersection(const OctreeT&         map,
-                                              FieldSelector          select,
-                                              const Eigen::Vector3i& source,
-                                              const Eigen::Vector3i& dest){
+  template <typename FieldType,
+            template <typename FieldT> class OctreeT,
+            typename ValueSelector>
+  inline Eigen::Vector3f compute_intersection(const OctreeT<FieldType>& map,
+                                              ValueSelector             select_value,
+                                              const Eigen::Vector3i&    source_coord,
+                                              const Eigen::Vector3i&    dest_coord){
+
+    typename FieldType::VoxelData data_0;
+    unsigned int size_0  = 1 << map.get(source_coord, data_0);
+    float value_0 = select_value(data_0);
+    typename FieldType::VoxelData data_1;
+    unsigned int size_1  = 1 << map.get(source_coord, data_1);
+    float value_1 = select_value(data_1);
+
     const float voxel_dim = map.dim() / map.size();
-    Eigen::Vector3f s = voxel_dim * (source.cast<float>() + OctreeT::sample_offset_frac_);
-    Eigen::Vector3f d = voxel_dim * (dest.cast<float>()   + OctreeT::sample_offset_frac_);
-    float value_0 = select(map.getFine(source));
-    float value_1 = select(map.getFine(dest));
-    return s + (0.0 - value_0) * (d - s) / (value_1 - value_0);
+    Eigen::Vector3f source_point_M =
+        voxel_dim * (source_coord.cast<float>() + size_0 * OctreeT<FieldType>::sample_offset_frac_);
+    Eigen::Vector3f dest_point_M =
+        voxel_dim * (dest_coord.cast<float>()   + size_1 * OctreeT<FieldType>::sample_offset_frac_);
+
+    return source_point_M + (0.0 - value_0) * (dest_point_M - source_point_M) / (value_1 - value_0);
   }
 
   template <typename OctreeT, typename FieldSelector>
@@ -205,14 +216,15 @@ namespace meshing {
                           const int                 x,
                           const int                 y,
                           const int                 z) {
-    data[0] = map.getFine(x, y, z);
-    data[1] = map.getFine(x + 1, y, z);
-    data[2] = map.getFine(x + 1, y, z + 1);
-    data[3] = map.getFine(x, y, z + 1);
-    data[4] = map.getFine(x, y + 1, z);
-    data[5] = map.getFine(x + 1, y + 1, z);
-    data[6] = map.getFine(x + 1, y + 1, z + 1);
-    data[7] = map.getFine(x, y + 1, z + 1);
+
+    map.get(x,     y,     z,     data[0]);
+    map.get(x + 1, y,     z,     data[1]);
+    map.get(x + 1, y,     z + 1, data[2]);
+    map.get(x,     y,     z + 1, data[3]);
+    map.get(x,     y + 1, z,     data[4]);
+    map.get(x + 1, y + 1, z,     data[5]);
+    map.get(x + 1, y + 1, z + 1, data[6]);
+    map.get(x,     y + 1, z + 1, data[7]);
   }
 
   template <typename FieldType,

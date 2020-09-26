@@ -26,6 +26,7 @@ namespace se {
   struct ReaderConfig {
     float fps;
     bool drop_frames;
+    bool enable_print;
     std::string sequence_path;
     std::string ground_truth_file;
 
@@ -213,6 +214,7 @@ namespace se {
       float fps_;
       double spf_;
       bool drop_frames_;
+      bool enable_print_;
       bool is_live_reader_;
       ReaderStatus status_;
       /** The frame_ is initialized to SIZE_MAX, so that when first incremented

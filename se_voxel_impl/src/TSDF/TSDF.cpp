@@ -81,12 +81,6 @@ std::string TSDF::printConfig() {
 
 void TSDF::dumpMesh(OctreeType&                map,
                     std::vector<se::Triangle>& mesh) {
-  auto inside = [](const VoxelData& data) {
-    return data.x < 0.f;
-  };
 
-  auto select_value = [](const VoxelData& data) {
-    return data.x;
-  };
-  se::algorithms::marching_cube(map, select_value, inside, mesh);
+  se::algorithms::marching_cube(map, VoxelType::selectVoxelValue, VoxelType::isInside, mesh);
 }

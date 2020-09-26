@@ -17,12 +17,12 @@ class runCommand:
         self.result_manual_file = None
 
     def benchmark(self):
-        self.result_file  = os.path.join(self.result_dir, self.base_filename + '_result.txt')
-        benchmark_arg     = ['--enable-benchmark='   + self.result_file]
-        output_render_arg = ['--output-render-path=' + os.path.join(self.output_dir, self.base_filename + '_render')]
-        output_mesh_arg   = ['--output-mesh-path=' + os.path.join(self.output_dir, self.base_filename + '_mesh')]
-
-        return ' '.join(self.executable + self.args + benchmark_arg + output_render_arg + output_mesh_arg)
+        self.result_file     = os.path.join(self.result_dir, self.base_filename + '_result.txt')
+        benchmark_arg        = ['--enable-benchmark='   + self.result_file]
+        output_render_arg    = ['--output-render-path=' + os.path.join(self.output_dir, self.base_filename + '_render')]
+        output_mesh_arg      = ['--output-mesh-path=' + os.path.join(self.output_dir, self.base_filename + '_mesh')]
+        output_structure_arg = ['--output-structure-path=' + os.path.join(self.output_dir, self.base_filename + '_structure')]
+        return ' '.join(self.executable + self.args + benchmark_arg + output_render_arg + output_mesh_arg + output_structure_arg)
 
     def evaluateATE(self):
         executable_cmd = [os.path.dirname(os.path.realpath(__file__)) + '/evaluate_ate.py']
@@ -32,8 +32,8 @@ class runCommand:
 
     def generateSummary(self):
         executable_cmd = [os.path.dirname(os.path.realpath(__file__)) + '/result_summary.py']
-        result_file_arg = ['--result-file ' + self.result_file]
-        summary_file_arg = ['--summary-file ' + os.path.join(self.result_dir, self.base_filename + '_summary')]
+        result_file_arg = [self.result_file]
+        summary_file_arg = [os.path.join(self.result_dir, self.base_filename + '_summary')]
         return ' '.join(executable_cmd + result_file_arg + summary_file_arg)
 
 
@@ -42,7 +42,8 @@ class runCommand:
         benchmark_arg     = ['--enable-benchmark='   + self.result_manual_file]
         output_render_arg = ['--output-render-path=' + os.path.join(self.output_dir, self.base_filename + '_render_manual_run')]
         output_mesh_arg =   ['--output-mesh-path=' + os.path.join(self.output_dir, self.base_filename + '_mesh_manual_run')]
-        return ' '.join(self.executable + self.args + benchmark_arg + output_render_arg + output_mesh_arg)
+        output_structure_arg = ['--output-structure-path=' + os.path.join(self.output_dir, self.base_filename + '_structure_manual_run')]
+        return ' '.join(self.executable + self.args + benchmark_arg + output_render_arg + output_mesh_arg + output_structure_arg)
 
     def evaluateManualATE(self):
         executable_cmd  = [os.path.dirname(os.path.realpath(__file__)) + '/evaluate_ate.py']
@@ -53,8 +54,8 @@ class runCommand:
 
     def generateManualSummary(self):
         executable_cmd = [os.path.dirname(os.path.realpath(__file__)) + '/result_summary.py']
-        result_file_arg = ['--result-file ' + self.result_manual_file]
-        summary_file_arg = ['--summary-file ' + os.path.join(self.result_dir, self.base_filename + '_summary_manual_run')]
+        result_file_arg = [self.result_manual_file]
+        summary_file_arg = [os.path.join(self.result_dir, self.base_filename + '_summary_manual_run')]
         return ' '.join(executable_cmd + result_file_arg + summary_file_arg)
 
     def withoutBenchmark(self): # Force rendering to be enabled

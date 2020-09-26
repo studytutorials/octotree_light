@@ -46,32 +46,26 @@
  * depth frame.
  */
 struct OFusionUpdate {
-  const se::Image<float>& depth_image;
-  const SensorImpl&       sensor;
-  float                   timestamp;
-  float                   voxel_dim;
-  bool                    is_visible;
+  const SensorImpl& sensor_;
+  float             timestamp_;
+
+
+  OFusionUpdate(const SensorImpl&       sensor,
+                float                   timestamp) :
+      sensor_(sensor),
+      timestamp_(timestamp) {};
 
 
 
-  OFusionUpdate(const se::Image<float>& depth_image,
-                const SensorImpl&       sensor,
-                float                   timestamp,
-                float                   voxel_dim) :
-      depth_image(depth_image),
-      sensor(sensor),
-      timestamp(timestamp),
-      voxel_dim(voxel_dim) {};
-
-  void reset() {
-    is_visible = false;
-  }
+  template <typename DataType,
+            template <typename DataT> class VoxelBlockT>
+  void reset(VoxelBlockT<DataType>* /* block */) {}
 
 
 
-  template <typename FieldType,
-      template <typename FieldT> class VoxelBlockT>
-  void operator()(VoxelBlockT<FieldType>* block) {
+  template <typename DataType,
+            template <typename DataT> class VoxelBlockT>
+  void operator()(VoxelBlockT<DataType>* block, const bool is_visible) {
     block->active(is_visible);
   }
 
@@ -143,24 +137,11 @@ struct OFusionUpdate {
 
   template <typename DataHandlerT>
   void operator()(DataHandlerT&          handler,
-                  const Eigen::Vector3i&,
-                  const Eigen::Vector3f& point_C) {
-    // Don't update the point if the sample point is behind the far plane
-    if (point_C.norm() > sensor.farDist(point_C)) {
-      return;
-    }
-
-    // Don't update the point if the depth value is closer than the near plane
-    float depth_value(0);
-    if (!sensor.projectToPixelValue(point_C, depth_image, depth_value,
-        [&](float depth_value){ return depth_value >= sensor.near_plane; })) {
-      return;
-    }
-
-    is_visible = true;
+                  const Eigen::Vector3f& point_C,
+                  const float            depth_value) {
 
     // Compute the occupancy probability for the current measurement.
-    const float m = sensor.measurementFromPoint(point_C);
+    const float m = sensor_.measurementFromPoint(point_C);
     const float diff = (m - depth_value);
     const float sigma = se::math::clamp(OFusion::k_sigma * se::math::sq(m), OFusion::sigma_min, OFusion::sigma_max);
     float sample = ofusion_H(diff / sigma);
@@ -172,11 +153,11 @@ struct OFusionUpdate {
     auto data = handler.get();
 
     // Update the occupancy probability.
-    const double delta_t = timestamp - data.y;
+    const double delta_t = timestamp_ - data.y;
     data.x = ofusion_apply_window(data.x, OFusion::surface_boundary, delta_t, OFusion::tau);
     data.x = ofusion_update_logs(data.x, sample);
     data.x = se::math::clamp(data.x, OFusion::min_occupancy, OFusion::max_occupancy);
-    data.y = timestamp;
+    data.y = timestamp_;
 
     handler.set(data);
   }
@@ -191,11 +172,9 @@ void OFusion::integrate(OctreeType&             map,
                         const unsigned          frame) {
 
   const float timestamp = (1.f / 30.f) * frame;
-  const float voxel_dim =  map.dim() / map.size();
-  const Eigen::Vector2i depth_image_res(depth_image.width(), depth_image.height());
 
-  struct OFusionUpdate funct(depth_image, sensor, timestamp, voxel_dim);
+  struct OFusionUpdate funct(sensor, timestamp);
 
-  se::functor::projective_octree(map, map.sample_offset_frac_, T_CM, sensor, depth_image_res, funct);
+  se::functor::projective_octree(map, map.sample_offset_frac_, T_CM, sensor, depth_image, funct);
 }
 

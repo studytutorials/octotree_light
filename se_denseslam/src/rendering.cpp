@@ -99,10 +99,10 @@ void renderRGBAKernel(uint32_t*                  output_RGBA_image_data,
                       const Eigen::Vector2i&     output_RGBA_image_res,
                       const se::Image<uint32_t>& input_RGBA_image) {
 
-  TICK();
+  TICKD("renderRGBAKernel");
   memcpy(output_RGBA_image_data, input_RGBA_image.data(),
          output_RGBA_image_res.prod() * sizeof(uint32_t));
-  TOCK("renderRGBAKernel", output_RGBA_image_res.prod());
+  TOCK("renderRGBAKernel");
 }
 
 
@@ -113,7 +113,7 @@ void renderDepthKernel(uint32_t*              depth_RGBA_image_data,
                        const float            near_plane,
                        const float            far_plane) {
 
-  TICK();
+  TICKD("renderDepthKernel");
 
   const float range_scale = 1.f / (far_plane - near_plane);
 
@@ -134,7 +134,7 @@ void renderDepthKernel(uint32_t*              depth_RGBA_image_data,
       }
     }
   }
-  TOCK("renderDepthKernel", depth_RGBA_image_res.prod());
+  TOCK("renderDepthKernel");
 }
 
 
@@ -143,7 +143,7 @@ void renderTrackKernel(uint32_t*              tracking_RGBA_image_data,
                        const TrackData*       tracking_result_data,
                        const Eigen::Vector2i& tracking_RGBA_image_res) {
 
-  TICK();
+  TICKD("renderTrackKernel");
 
 #pragma omp parallel for
   for (int y = 0; y < tracking_RGBA_image_res.y(); y++)
@@ -180,7 +180,7 @@ void renderTrackKernel(uint32_t*              tracking_RGBA_image_data,
           break;
       }
     }
-  TOCK("renderTrackKernel", tracking_RGBA_image_res.prod());
+  TOCK("renderTrackKernel");
 }
 
 

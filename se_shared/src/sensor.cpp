@@ -33,13 +33,18 @@ se::PinholeCamera::PinholeCamera(const SensorConfig& c)
   assert(!std::isnan(c.fy));
   assert(!std::isnan(c.cx));
   assert(!std::isnan(c.cy));
+
+  horizontal_fov = 2.0f * atanf(c.width / (2.0f * c.fx));
+  vertical_fov = 2.0f * atanf(c.height / (2.0f * c.fy));
 }
 
 se::PinholeCamera::PinholeCamera(const PinholeCamera& pc, const float sf)
     : model(pc.model.imageWidth() * sf, pc.model.imageHeight() * sf,
             pc.model.focalLengthU() * sf, pc.model.focalLengthV() * sf,
-            pc.model.imageCenterU() * sf, pc.model.imageCenterV() * sf, _distortion),
-            left_hand_frame(pc.left_hand_frame), near_plane(pc.near_plane), far_plane(pc.far_plane) {
+            ((pc.model.imageCenterU() + 0.5f) * sf - 0.5f),
+            ((pc.model.imageCenterV() + 0.5f) * sf - 0.5f),
+            _distortion), left_hand_frame(pc.left_hand_frame), near_plane(pc.near_plane), far_plane(pc.far_plane) {
+
   computeFrustumVertices();
   computeFrustumNormals();
 }
@@ -209,6 +214,8 @@ void se::PinholeCamera::computeFrustumNormals() {
 
 
 
+
+
 se::OusterLidar::OusterLidar(const SensorConfig& c)
     : model(c.width, c.height, c.beam_azimuth_angles, c.beam_elevation_angles),
       left_hand_frame(c.left_hand_frame), near_plane(c.near_plane), far_plane(c.far_plane) {
@@ -227,6 +234,11 @@ se::OusterLidar::OusterLidar(const SensorConfig& c)
   }
   const float azimuth_angle = 360.0f / c.width;
   min_ray_angle = std::min(min_elevation_angle, azimuth_angle);
+  horizontal_fov = 2.0f * M_PI;
+  constexpr float deg_to_rad = M_PI / 180.0f;
+  const float max_elevation = c.beam_elevation_angles.maxCoeff();
+  const float min_elevation = c.beam_elevation_angles.minCoeff();
+  vertical_fov = deg_to_rad * (max_elevation - min_elevation);
 }
 
 se::OusterLidar::OusterLidar(const OusterLidar& ol, const float sf)

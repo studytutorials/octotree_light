@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3
 
 # SPDX-FileCopyrightText: 2020 Smart Robotics Lab, Imperial College London
 # SPDX-FileCopyrightText: 2020 Nils Funk
@@ -6,9 +6,10 @@
 
 import matplotlib
 import numpy as np
-
-from pylatex import *
 import os
+
+from enum import Enum
+from pylatex import *
 
 from evaluate_ate import *
 from plot_stats import *
@@ -16,6 +17,115 @@ from plot_stats import *
 
 
 matplotlib.use('TkAgg')
+
+class Type(Enum):
+    BOOL            = 0
+    COORDINATES     = 1
+    COUNT           = 2
+    CURRENT         = 3
+    DISTANCE        = 4
+    DOUBLE          = 5
+    DURATION        = 6
+    ENERGY          = 7
+    FRAME           = 8
+    FREQUENCY       = 9
+    INT             = 10
+    ITERATION       = 11
+    MEMORY          = 12
+    ORIENTATION     = 13
+    PERCENTAGE      = 14
+    POSITION        = 15
+    POWER           = 16
+    TIME            = 17
+    UNDEFINED       = 18
+    VOLTAGE         = 19
+
+
+
+def typeStringToType(type_string):
+    switch={
+        '[bool]'    : Type.BOOL,
+        '[voxel]'   : Type.COORDINATES,
+        '[count]'   : Type.COUNT,
+        '[I]'       : Type.CURRENT,
+        '[dm]'      : Type.DISTANCE, # d := \Delta for relative measurement
+        '[double]'  : Type.DOUBLE,
+        '[ds]'      : Type.DURATION, # d := \Delta for relative measurement
+        '[J]'       : Type.ENERGY,
+        '[1/s]'     : Type.FREQUENCY,
+        '[int]'     : Type.INT,
+        '[#]'       : Type.ITERATION,
+        '[MB]'      : Type.MEMORY,
+        '[-]'       : Type.ORIENTATION,
+        '[%]'       : Type.PERCENTAGE,
+        '[m]'       : Type.POSITION,
+        '[W]'       : Type.POWER,
+        '[s]'       : Type.TIME,
+        '[und.]'    : Type.UNDEFINED,
+        '[V]'       : Type.VOLTAGE,
+    }
+    return switch.get(type_string)
+
+
+
+class Stats:
+    def __init__(self, type):
+        self.data = []
+        self.type = type
+
+    def stringToData(self, data_string):
+        if data_string == '*':
+            return None
+
+        if self.type in [Type.BOOL, Type.COORDINATES, Type.COUNT, Type.INT, Type.ITERATION]:
+            return int(data_string)
+
+        return float(data_string)
+
+    def summariseData(self):
+        # mean, median, std, min, max, last
+        start_iter = 4
+        d = [i for i in self.data[start_iter:] if i] # Remove None values and data before start_iter
+        if self.type in [Type.BOOL, Type.COUNT, Type.COORDINATES, Type.INT, Type.ITERATION]:
+            mean_d   = '-'
+            median_d = '-'
+            std_d    = '-'
+            min_d    = '-'
+            max_d    = '-'
+            last_d   = d[-1] if len(d) > 0 else '-'
+            return [mean_d, median_d, std_d, min_d, max_d, last_d]
+
+        if self.type in [Type.CURRENT, Type.DISTANCE, Type.DOUBLE, Type.ORIENTATION,
+                         Type.PERCENTAGE, Type.POSITION, Type.TIME, Type.UNDEFINED]:
+            mean_d   = '-'
+            median_d = '-'
+            std_d    = '-'
+            min_d    = '-'
+            max_d    = '-'
+            last_d   = '%.4f' % d[-1] if len(d) > 0 else '-'
+            return [mean_d, median_d, std_d, min_d, max_d, last_d]
+
+        if self.type in [Type.MEMORY]:
+            mean_d   = '-'
+            median_d = '-'
+            std_d    = '-'
+            min_d    = '-'
+            max_d    = '%.4f' % np.max(d)
+            last_d   = '%.4f' % d[-1] if len(d) > 0 else '-'
+            return [mean_d, median_d, std_d, min_d, max_d, last_d]
+
+        if self.type in [Type.CURRENT, Type.DURATION, Type.ENERGY, Type.POWER, Type.VOLTAGE]:
+            mean_d   = '%.4f' % np.mean(d)
+            median_d = '%.4f' % np.median(d)
+            std_d    = '%.4f' % np.std(d)
+            min_d    = '%.4f' % np.min(d)
+            max_d    = '%.4f' % np.max(d)
+            last_d   = '%.4f' % d[-1] if len(d) > 0 else '-'
+            return [mean_d, median_d, std_d, min_d, max_d, last_d]
+
+        return ['-', '-', '-', '-', '-', '-']
+
+
 
 param_key_list = [
     'Sequence name',
@@ -34,6 +144,8 @@ param_key_list = [
     'Rendering rate',
     'Output render file']
 
+
+
 def read_parameter(result_file):
     file = open(result_file, 'r')
     lines = file.readlines()
@@ -41,7 +153,7 @@ def read_parameter(result_file):
     param_dict = {}
     for line in lines:
         if len(line.split()) > 0:
-            if line.split()[0] == 'frame':
+            if line == 'RESULT DATA\n':
                 break
             param = line.split(':', 1)
             param_key = param[0]
@@ -51,14 +163,43 @@ def read_parameter(result_file):
 
     return param_dict
 
+
+
+def read_result(result_file):
+    file = open(result_file, 'r')
+    lines = file.readlines()
+
+    result_dict = {}
+    # Find line idx at which the results start (i.e. line after 'RESULT DATA\n')
+    for idx, line in enumerate(lines):
+        if line == 'RESULT DATA\n':
+            result_header_idx = idx + 1
+            break;
+
+    result_header = lines[result_header_idx].split('\t')
+    for idx, var in enumerate(result_header):
+        var_name_unit_pair = var.split()
+        if len(var_name_unit_pair) == 2:
+            var_name = var_name_unit_pair[0]
+            var_unit = var_name_unit_pair[1]
+            var_type = typeStringToType(var_unit)
+            result_dict[var_name] = Stats(var_type)
+
+    result_data_lines =  lines[result_header_idx + 1:]
+    for result_data_line in result_data_lines:
+        result_iter_data = result_data_line.split('\t')
+        for idx, var in enumerate(result_dict.values()):
+            var_iter_data = var.stringToData(result_iter_data[idx])
+            var.data += [var_iter_data];
+
+    return result_dict
+
 if __name__ == '__main__':
 
     # Parse command line
-    parser = argparse.ArgumentParser(description='''
-    This script a test summary . 
-    ''')
-    parser.add_argument('--result-file', help='supereight result file [result.txt]')
-    parser.add_argument('--summary-file', help='The file the summary is written to [summary]')
+    parser = argparse.ArgumentParser(description='''This script a test summary .''')
+    parser.add_argument('result_file', metavar='RESULT_IN', help='supereight result file [result.txt]')
+    parser.add_argument('summary_file', metavar='PDF_OUT', help='The file the summary is written to [summary]')
     args = parser.parse_args()
 
     # Set document margins
@@ -118,107 +259,37 @@ if __name__ == '__main__':
         # with doc.create(Subsection('System Description')):
         #     doc.append('Some regular text and some')
 
-        # Read the result data
-        result_data = (SEStats(args.result_file))
-        for line in fileinput.input(args.result_file):
-            result_data.append_line(line)
+
+        # Create new page for stats
+        doc.append(NewPage())
+
+        result_dict = read_result(args.result_file)
 
         # Write the computation time and memory stats
         with doc.create(Subsection('Stats')):
             # Computation time
-            raws = "l l l l l l l l l"
-            table_header = [" ", "Acq [s]", "Pre [s]", "Track [s]", "Int [s]", "Ray [s]", "Rend [s]", "Total [s]",
-                            "RAM [MB]"]
-            # ['BLANK', 'Acquisition', 'Preprocessing', 'Tracking', 'Integration', 'Raycasting', 'Rendering', 'Total']
-            condition = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-
-            # Remove Tracking stats if ground truth is enabled -> Tracking is deactivated
-            if enable_ground_truth:
-                raws = raws[:-2]
-                table_header.remove("Track [s]")
-                condition.remove(3)
-            # Remove Rendering stats if rendering is disabled -> Rendering is deactivated
-            if not enable_render:
-                raws = raws[:-2]
-                table_header.remove("Rend [s]")
-                condition.remove(6)
-            # Remove Raycasting stats if ground truth is enabled and rendering disabled -> Raycasting is deactivated
-            if enable_ground_truth and not enable_render:
-                raws = raws[:-2]
-                table_header.remove("Ray [s]")
-                condition.remove(5)
+            raws = "l l l l l l l"
+            table_header = [" ", "mean", "median", "std", "min", "max", "last"]
 
             with doc.create(LongTable(raws)) as result_table:
                 result_table.add_hline()
                 result_table.add_row(table_header)
-
-                # Skip the first frames as they drastically impact the min/max values
-                start_frame = 4;
-                acquisition_time   = result_data.acquisition_time[start_frame:]
-                preprocessing_time = result_data.preprocessing_time[start_frame:]
-                tracking_time      = result_data.tracking_time[start_frame:]
-                integration_time   = result_data.integration_time[start_frame:]
-                raycasting_time    = result_data.raycasting_time[start_frame:]
-                rendering_time     = result_data.rendering_time[start_frame:]
-                total_time         = result_data.total_time[start_frame:]
-
-                result_mean   = [["Mean",
-                                  '%.4f' % np.mean(acquisition_time),
-                                  '%.4f' % np.mean(preprocessing_time),
-                                  '%.4f' % np.mean(tracking_time),
-                                  '%.4f' % np.mean(integration_time),
-                                  '%.4f' % np.mean(raycasting_time),
-                                  '%.4f' % np.mean(rendering_time),
-                                  '%.4f' % np.mean(total_time),
-                                  ''][i] for i in condition]
-                result_median = [["Median",
-                                  '%.4f' % np.median(acquisition_time),
-                                  '%.4f' % np.median(preprocessing_time),
-                                  '%.4f' % np.median(tracking_time),
-                                  '%.4f' % np.median(integration_time),
-                                  '%.4f' % np.median(raycasting_time),
-                                  '%.4f' % np.median(rendering_time),
-                                  '%.4f' % np.median(total_time),
-                                  ''][i] for i in condition]
-                result_std    = [["Std",
-                                  '%.4f' % np.std(acquisition_time),
-                                  '%.4f' % np.std(preprocessing_time),
-                                  '%.4f' % np.std(tracking_time),
-                                  '%.4f' % np.std(integration_time),
-                                  '%.4f' % np.std(raycasting_time),
-                                  '%.4f' % np.std(rendering_time),
-                                  '%.4f' % np.std(total_time),
-                                  ''][i] for i in condition]
-                result_min    = [["Min",
-                                  str('%.4f' % np.min(acquisition_time)) + " | " + str(np.where(result_data.acquisition_time == np.min(acquisition_time))[0][0]),
-                                  str('%.4f' % np.min(preprocessing_time)) + " | " + str(np.where(result_data.preprocessing_time == np.min(preprocessing_time))[0][0]),
-                                  str('%.4f' % np.min(tracking_time)) + " | " + str(np.where(result_data.tracking_time == np.min(tracking_time))[0][0]),
-                                  str('%.4f' % np.min(integration_time)) + " | " + str(np.where(result_data.integration_time == np.min(integration_time))[0][0]),
-                                  str('%.4f' % np.min(raycasting_time)) + " | " + str(np.where(result_data.raycasting_time == np.min(raycasting_time))[0][0]),
-                                  str('%.4f' % np.min(rendering_time)) + " | " + str(np.where(result_data.rendering_time == np.min(rendering_time))[0][0]),
-                                  str('%.4f' % np.min(total_time)) + " | " + str(np.where(result_data.total_time == np.min(total_time))[0][0]),
-                                  ''][i] for i in condition]
-                result_max    = [["Max",
-                                  str('%.4f' % np.max(acquisition_time)) + " | " + str(np.where(result_data.acquisition_time == np.max(acquisition_time))[0][0]),
-                                  str('%.4f' % np.max(preprocessing_time)) + " | " + str(np.where(result_data.preprocessing_time == np.max(preprocessing_time))[0][0]),
-                                  str('%.4f' % np.max(tracking_time)) + " | " + str(np.where(result_data.tracking_time == np.max(tracking_time))[0][0]),
-                                  str('%.4f' % np.max(integration_time)) + " | " + str(np.where(result_data.integration_time == np.max(integration_time))[0][0]),
-                                  str('%.4f' % np.max(raycasting_time)) + " | " + str(np.where(result_data.raycasting_time == np.max(raycasting_time))[0][0]),
-                                  str('%.4f' % np.max(rendering_time)) + " | " + str(np.where(result_data.rendering_time == np.max(rendering_time))[0][0]),
-                                  str('%.4f' % np.max(total_time)) + " | " + str(np.where(result_data.total_time == np.max(total_time))[0][0]),
-                                  '%.2f' % np.max(result_data.ram_usage)][i] for i in condition]
-
                 result_table.add_hline()
                 result_table.add_hline()
-                result_table.add_row(result_mean)
-                result_table.add_row(result_median)
-                result_table.add_row(result_std)
-                result_table.add_row(result_min)
-                result_table.add_row(result_max)
-                result_table.add_hline()
+                for var_name, var_data in result_dict.items():
+                    var_data_summary = var_data.summariseData()
+                    var_table_line = [var_name] + var_data_summary
+                    result_table.add_row(var_table_line)
+                    result_table.add_hline()
 
         # Create new page for plots
         doc.append(NewPage())
+
+        result_data = PerfStats(args.result_file)
+        result_file = fileinput.input(args.result_file)
+        for line in result_file:
+            if result_file.lineno() > result_data.result_header_idx + 1:
+                result_data.append_line(line)
 
         fig, axis = plt.subplots(1, 1, constrained_layout=True)
         axis.set_title('Computation time box plot')
@@ -236,6 +307,15 @@ if __name__ == '__main__':
         if enable_ground_truth and not enable_render:
             condition.remove(4)
 
+        start_frame = 4;
+        acquisition_time = result_data.acquisition_time[start_frame:]
+        preprocessing_time = result_data.preprocessing_time[start_frame:]
+        tracking_time = result_data.tracking_time[start_frame:]
+        integration_time = result_data.integration_time[start_frame:]
+        raycasting_time = result_data.raycasting_time[start_frame:]
+        rendering_time = result_data.rendering_time[start_frame:]
+        total_time = result_data.total_time[start_frame:]
+
         axis.boxplot([[acquisition_time, preprocessing_time, tracking_time, integration_time,
                       raycasting_time, rendering_time, total_time][i] for i in condition])
         axis.set_xticklabels([['Acq', 'Pre', 'Track', 'Int',
@@ -243,13 +323,15 @@ if __name__ == '__main__':
         with doc.create(Figure(position='h!')) as time_plot:
             time_plot.add_plot(width=NoEscape( r'0.7\linewidth'))
 
-        # Plot the result_data.
-        fig, axes = plt.subplots(2, 1, constrained_layout=True)
+        doc.append(NewPage())
 
+        # Plot the result_data.
+        num_subplts = result_data.num_subplts
+        fig, axes = plt.subplots(num_subplts, 1, constrained_layout=True)
         # Add a second y axis to each lower subplot.
-        axes = axes.reshape(2, 1)
-        axes = np.vstack((axes, np.zeros([1, 1])))
-        axes[2, 0] = axes[1, 0].twinx()
+        axes = axes.reshape(num_subplts, 1)
+        axes = np.vstack((axes, 1))
+        axes[num_subplts, 0] = axes[num_subplts - 1, 0].twinx()
         # Plot the result data from each file.
         result_data.plot(axes[:, 0])
         with warnings.catch_warnings():
@@ -258,7 +340,7 @@ if __name__ == '__main__':
 
         with doc.create(Figure(position='h!')) as stats_plot:
             figure = plt.gcf()
-            figure.set_size_inches(12, 9)
+            figure.set_size_inches(15, 20)
             stats_plot.add_plot(width=NoEscape(r'\linewidth'), dpi = 300)
 
         # Write ATE data if ground truth is disabled -> Tracking activated
@@ -296,7 +378,7 @@ if __name__ == '__main__':
                         for sub_frame in [frame, min(frame + saving_rate, max_frame)]:
                             file_ending = "_frame_" + str(sub_frame).zfill(4) + ".png"
                             output_render_file = output_render_file_base + file_ending
-                            if os.exists(output_render_file):
+                            if os.path.exists(output_render_file):
                                 with doc.create(SubFigure(
                                         position='b',
                                         width=NoEscape(r'0.5\linewidth'))) as volume_render:

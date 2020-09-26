@@ -4,7 +4,6 @@ include(CMakeFindDependencyMacro)
 find_dependency(Eigen3)
 find_dependency(LodePNG)
 find_dependency(SRLProjection)
-find_dependency(Sophus)
 find_dependency(octomap)
 find_dependency(yaml-cpp)
 

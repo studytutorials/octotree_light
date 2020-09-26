@@ -18,10 +18,38 @@ import numpy as np
 
 
 
-class SEStats:
+class PerfStats:
     """Statistics for a single run of supereight"""
     def __init__(self, filename: str="") -> None:
         self.filename = filename
+        self.result_header_idx = None
+
+        file = open(filename, 'r')
+        lines = file.readlines()
+        # Find line idx at which the results start (i.e. line after 'RESULT DATA\n')
+        for idx, line in enumerate(lines):
+            if line == 'RESULT DATA\n':
+                self.result_header_idx = idx + 1
+                break;
+
+        result_header = lines[self.result_header_idx].split('\t')
+        self.frame_idx = result_header.index('frame [#]')
+        self.acquisition_time_idx = result_header.index('ACQUISITION [ds]')
+        self.preprocessing_time_idx = result_header.index('PREPROCESSING [ds]')
+        self.tracking_time_idx = result_header.index('TRACKING [ds]') if 'TRACKING [ds]' in result_header else None
+        self.integration_time_idx = result_header.index('INTEGRATION [ds]')
+        self.raycasting_time_idx = result_header.index('RAYCASTING [ds]') if 'RAYCASTING [ds]' in result_header else None
+        self.rendering_time_idx = result_header.index('RENDERING [ds]') if 'RENDERING [ds]' in result_header else None
+        self.computation_time_idx = result_header.index('COMPUTATION [ds]')
+        self.total_time_idx = result_header.index('TOTAL [ds]')
+        self.ram_usage_idx = result_header.index('RAM [MB]')
+        self.num_nodes_idx = result_header.index('num_nodes [count]') if 'num_nodes [count]' in result_header else None
+        self.num_blocks_t_idx = result_header.index('num_blocks [count]') if 'num_blocks [count]' in result_header else None
+        self.num_blocks_0_idx = result_header.index('num_blocks_s0 [count]') if 'num_blocks_s0 [count]' in result_header else None
+        self.num_blocks_1_idx = result_header.index('num_blocks_s1 [count]') if 'num_blocks_s1 [count]' in result_header else None
+        self.num_blocks_2_idx = result_header.index('num_blocks_s2 [count]') if 'num_blocks_s2 [count]' in result_header else None
+        self.num_blocks_3_idx = result_header.index('num_blocks_s3 [count]') if 'num_blocks_s3 [count]' in result_header else None
+
         self.frames = []
         self.acquisition_time = []
         self.preprocessing_time = []
@@ -32,11 +60,14 @@ class SEStats:
         self.computation_time = []
         self.total_time = []
         self.ram_usage = []
-        self.x = []
-        self.y = []
-        self.z = []
-        self.tracked = []
-        self.integrated = []
+        self.num_nodes = []
+        self.num_blocks_t= []
+        self.num_blocks_0= []
+        self.num_blocks_1= []
+        self.num_blocks_2= []
+        self.num_blocks_3= []
+
+        self.num_subplts = 3 if self.num_nodes_idx else 2
 
     def append_line(self, line: str) -> None:
         # Ignore lines not starting with whitespace or digits
@@ -44,29 +75,53 @@ class SEStats:
             return
         # Split the line at whitespace
         columns = line.replace("\t", " ").split()
-        # Ignore line with the wrong number of columns
-        if len(columns) != 15:
-            return
-        # Append the data
-        self.frames.append(int(columns[0]))
-        self.acquisition_time.append(float(columns[1]))
-        self.preprocessing_time.append(float(columns[2]))
-        self.tracking_time.append(float(columns[3]))
-        self.integration_time.append(float(columns[4]))
-        self.raycasting_time.append(float(columns[5]))
-        self.rendering_time.append(float(columns[6]))
-        self.computation_time.append(float(columns[7]))
-        self.total_time.append(float(columns[8]))
-        self.ram_usage.append(float(columns[9]))
-        self.x.append(float(columns[10]))
-        self.y.append(float(columns[11]))
-        self.z.append(float(columns[12]))
-        self.tracked.append(bool(columns[13]))
-        self.integrated.append(bool(columns[14]))
 
-    def last_frame(self) -> 'SEStats':
-        # Create an SEStats object containing the data of the last frame
-        d = SEStats(self.filename)
+        # Append the data
+        self.frames.append(
+            int(columns[self.frame_idx]) if columns[self.frame_idx] != '*' else 0)
+        self.acquisition_time.append(
+            float(columns[self.acquisition_time_idx]) if columns[self.acquisition_time_idx] != '*' else 0)
+        self.preprocessing_time.append(
+            float(columns[self.preprocessing_time_idx]) if columns[self.preprocessing_time_idx] != '*' else 0)
+        self.tracking_time.append(
+            (float(columns[self.tracking_time_idx]) if columns[self.tracking_time_idx] != '*' else 0) if
+            self.tracking_time_idx else 0)
+        self.integration_time.append(
+            float(columns[self.integration_time_idx]) if columns[self.integration_time_idx] != '*' else 0)
+        self.raycasting_time.append(
+            (float(columns[self.raycasting_time_idx]) if columns[self.raycasting_time_idx] != '*' else 0)
+            if self.raycasting_time_idx else 0)
+        self.rendering_time.append(
+            (float(columns[self.rendering_time_idx]) if columns[self.rendering_time_idx] != '*' else 0)
+            if self.rendering_time_idx else 0)
+        self.computation_time.append(
+            float(columns[self.computation_time_idx]) if columns[self.computation_time_idx] != '*' else 0)
+        self.total_time.append(
+            float(columns[self.total_time_idx]) if columns[self.total_time_idx] != '*' else 0)
+        self.ram_usage.append(
+            float(columns[self.ram_usage_idx]) if columns[self.ram_usage_idx] != '*' else 0)
+        self.num_nodes.append(
+            (float(columns[self.num_nodes_idx]) if columns[self.num_nodes_idx] != '*' else 0) if
+            self.num_nodes_idx else 0)
+        self.num_blocks_t.append(
+            (float(columns[self.num_blocks_t_idx]) if columns[self.num_blocks_t_idx] != '*' else 0) if
+            self.num_blocks_t_idx else 0)
+        self.num_blocks_0.append(
+            (float(columns[self.num_blocks_0_idx]) if columns[self.num_blocks_0_idx] != '*' else 0) if
+            self.num_blocks_0_idx else 0)
+        self.num_blocks_1.append(
+            (float(columns[self.num_blocks_1_idx]) if columns[self.num_blocks_1_idx] != '*' else 0) if
+            self.num_blocks_1_idx else 0)
+        self.num_blocks_2.append(
+            (float(columns[self.num_blocks_2_idx]) if columns[self.num_blocks_2_idx] != '*' else 0) if
+            self.num_blocks_2_idx else 0)
+        self.num_blocks_3.append(
+            (float(columns[self.num_blocks_3_idx]) if columns[self.num_blocks_3_idx] != '*' else 0) if
+            self.num_blocks_3_idx else 0)
+
+    def last_frame(self) -> 'PerfStats':
+        # Create an PerfStats object containing the data of the last frame
+        d = PerfStats(self.filename)
         if self.frames:
             d.frames.append(self.frames[-1])
             d.acquisition_time.append(self.acquisition_time[-1])
@@ -78,18 +133,19 @@ class SEStats:
             d.computation_time.append(self.computation_time[-1])
             d.total_time.append(self.total_time[-1])
             d.ram_usage.append(self.ram_usage[-1])
-            d.x.append(self.x[-1])
-            d.y.append(self.y[-1])
-            d.z.append(self.z[-1])
-            d.tracked.append(self.tracked[-1])
-            d.integrated.append(self.integrated[-1])
+            d.num_nodes.append(self.num_nodes[-1])
+            d.num_blocks_t.append(self.num_blocks_t[-1])
+            d.num_blocks_0.append(self.num_blocks_0[-1])
+            d.num_blocks_1.append(self.num_blocks_1[-1])
+            d.num_blocks_2.append(self.num_blocks_2[-1])
+            d.num_blocks_3.append(self.num_blocks_3[-1])
         return d
 
     def plot(self, axes=None) -> None:
         # Create a new subplot only if an existing one wasn't provided.
         if axes is None:
-            _, axes = plt.subplots(2, 1)
-            axes = np.append(axes, axes[1].twinx())
+            _, axes = plt.subplots(self.num_subplts, 1)
+            axes = np.append(axes, axes[self.num_subplts - 1].twinx())
 
         # Compute the basename of the file the data came from.
         file_basename = os.path.basename(self.filename)
@@ -109,15 +165,47 @@ class SEStats:
         axes[0].set_ylabel('Time (ms)')
         axes[0].set_title('Computation time')
 
+        if self.num_subplts == 3:
+          num_labels=['Blocks S=0', 'Blocks S=1', 'Blocks S=2',
+                      'Blocks S=3', 'Blocks S=-1', ]
+
+          num_blocks_zip = zip(self.num_blocks_t,
+                               self.num_blocks_0,
+                               self.num_blocks_1,
+                               self.num_blocks_2,
+                               self.num_blocks_3)
+          num_blocks_d = [t - s0 - s1 - s2 - s3 for
+                          (t, s0, s1, s2, s3) in num_blocks_zip]
+
+          axes[1].stackplot(self.frames,
+                            self.num_blocks_0,
+                            self.num_blocks_1,
+                            self.num_blocks_2,
+                            self.num_blocks_3,
+                            num_blocks_d,
+                            labels=num_labels)
+
+          axes[1].set_xlabel('Frame')
+          axes[1].set_ylabel('Number')
+          axes[1].set_title('Number of nodes and blocks')
+
+          num_nodes_colour = 'tab:cyan'
+          axes[1].plot(self.frames, self.num_nodes, color=num_nodes_colour, label="Nodes [total]")
+          num_blocks_colour = 'tab:grey'
+          axes[1].plot(self.frames, self.num_blocks_t, color=num_blocks_colour, label="Blocks [total]")
+          axes[1].legend(loc='upper left')
+
+        ram_a_idx  = self.num_subplts - 1
+        time_a_idx = self.num_subplts
         ram_colour = 'tab:blue'
-        axes[1].stackplot(self.frames, self.ram_usage, color=ram_colour)
-        axes[1].set_xlabel('Frame')
-        axes[1].set_ylabel('RAM (MiB)', color=ram_colour)
-        axes[1].set_title('Resource usage')
+        axes[ram_a_idx].stackplot(self.frames, self.ram_usage, color=ram_colour)
+        axes[ram_a_idx].set_xlabel('Frame')
+        axes[ram_a_idx].set_ylabel('RAM (MiB)', color=ram_colour)
+        axes[ram_a_idx].set_title('Resource usage')
 
         time_colour = 'tab:green'
-        axes[2].plot(self.frames, [1000 * x for x in self.total_time], color=time_colour)
-        axes[2].set_ylabel('Computation time (ms)', color=time_colour)
+        axes[time_a_idx].plot(self.frames, [1000 * x for x in self.total_time], color=time_colour)
+        axes[time_a_idx].set_ylabel('Computation time (ms)', color=time_colour)
         return axes
 
 
@@ -170,18 +258,21 @@ if __name__ == "__main__":
 
         # Read the data
         data = []
-        for file in args.files:
-            data.append(SEStats(file))
-            for line in fileinput.input(file):
+        for filename in args.files:
+            data.append(PerfStats(filename))
+            file = open(filename, 'r')
+            lines = file.readlines()[data[-1].result_header_idx + 1:]
+            for line in lines:
                 data[-1].append_line(line)
 
         # Plot the data.
-        fig, axes = plt.subplots(2, len(data), constrained_layout=True)
+        num_subplts = data[-1].num_subplts
+        fig, axes = plt.subplots(num_subplts, len(data), constrained_layout=True)
         # Add a second y axis to each lower subplot.
-        axes = axes.reshape(2, len(data))
+        axes = axes.reshape(num_subplts, len(data))
         axes = np.vstack((axes, np.zeros([1, len(data)])))
         for i in range(len(data)):
-            axes[2, i] = axes[1, i].twinx()
+            axes[num_subplts, i] = axes[num_subplts - 1, i].twinx()
         # Plot the data from each file.
         for i, d in enumerate(data):
             d.plot(axes[:, i])
@@ -189,14 +280,14 @@ if __name__ == "__main__":
         if args.equalize_axes:
             equalize_y_axes(axes)
         with warnings.catch_warnings():
-            # Hide warnings due to the multiline title in SEStats.plot()
+            # Hide warnings due to the multiline title in PerfStats.plot()
             warnings.simplefilter('ignore', category=UserWarning)
         if args.plot_file:
             figure = plt.gcf()
-            figure.set_size_inches(16, 12)
+            figure.set_size_inches(15, 20)
             plt.savefig(args.plot_file, dpi = 300, bbox_inches='tight')
         if args.show_plot:
-            file_basename = os.path.basename(file)
+            file_basename = os.path.basename(filename)
             if file_basename:
                 plt.figure(1).suptitle(file_basename)
             plt.show()

@@ -64,6 +64,31 @@ void Node<T>::operator=(const Node<T>& node) {
 }
 
 template <typename T>
+const typename T::VoxelData& Node<T>::data() const {
+  // Used so we can return a reference to invalid data
+  static const typename T::VoxelData invalid = T::invalid();
+  // Return invalid data if this is the root node
+  if (parent_ptr_ == nullptr) {
+    return invalid;
+  }
+  // Find the child index of this node in its parent
+  // TODO this is not the most efficient way but computing the child index directly requires the
+  // octree dimensions
+  int child_idx = 0;
+  for (; child_idx < 8; child_idx++) {
+    if (parent_ptr_->child(child_idx) == this) {
+      break;
+    }
+  }
+  if (child_idx < 8) {
+    return parent_ptr_->childData(child_idx);
+  } else {
+    // The parent does not contain a pointer to this node, broken octree
+    return invalid;
+  }
+}
+
+template <typename T>
 void Node<T>::initFromNode(const se::Node<T>& node) {
   code_           = node.code();
   size_           = node.size_;
@@ -105,10 +130,11 @@ Eigen::Vector3i Node<T>::childCentreCoord(const int child_idx) const {
 // Voxel block base implementation
 
 template <typename T>
-VoxelBlock<T>::VoxelBlock() :
+VoxelBlock<T>::VoxelBlock(const int current_scale,
+                          const int min_scale) :
     coordinates_(Eigen::Vector3i::Constant(0)),
-    current_scale_(0),
-    min_scale_(-1) {}
+    current_scale_(current_scale),
+    min_scale_(min_scale) {}
 
 template <typename T>
 VoxelBlock<T>::VoxelBlock(const VoxelBlock<T>& block) {
@@ -182,10 +208,101 @@ void VoxelBlock<T>::initFromBlock(const VoxelBlock<T>& block) {
 
 
 
+// Voxel block finest scale allocation implementation
+
+template <typename T>
+VoxelBlockFinest<T>::VoxelBlockFinest(const typename T::VoxelData init_data) : VoxelBlock<T>(0, 0) {
+  for (unsigned int voxel_idx = 0; voxel_idx < num_voxels_in_block; voxel_idx++) {
+    block_data_[voxel_idx] = init_data;
+  }
+}
+
+template <typename T>
+VoxelBlockFinest<T>::VoxelBlockFinest(const VoxelBlockFinest<T>& block) {
+  initFromBlock(block);
+}
+
+template <typename T>
+void VoxelBlockFinest<T>::operator=(const VoxelBlockFinest<T>& block) {
+  initFromBlock(block);
+}
+
+template <typename T>
+inline typename VoxelBlock<T>::VoxelData
+VoxelBlockFinest<T>::data(const Eigen::Vector3i& voxel_coord) const {
+  Eigen::Vector3i voxel_offset = voxel_coord - this->coordinates_;
+  return block_data_[voxel_offset.x() +
+                     voxel_offset.y() * this->size_li +
+                     voxel_offset.z() * this->size_sq];
+}
+
+template <typename T>
+inline typename VoxelBlock<T>::VoxelData
+VoxelBlockFinest<T>::data(const Eigen::Vector3i& voxel_coord,
+                          const int              /* scale */) const {
+  return data(voxel_coord);
+}
+
+template <typename T>
+inline void VoxelBlockFinest<T>::setData(const Eigen::Vector3i& voxel_coord,
+                                         const VoxelData&       voxel_data){
+  Eigen::Vector3i voxel_offset = voxel_coord - this->coordinates_;
+  block_data_[voxel_offset.x() +
+              voxel_offset.y() * this->size_li +
+              voxel_offset.z() * this->size_sq] = voxel_data;
+}
+
+template <typename T>
+inline void VoxelBlockFinest<T>::setData(const Eigen::Vector3i& voxel_coord,
+                                         const int              /* scale */,
+                                         const VoxelData&       voxel_data){
+  setData(voxel_coord, voxel_data);
+}
+
+template <typename T>
+inline typename VoxelBlock<T>::VoxelData
+VoxelBlockFinest<T>::data(const int voxel_idx) const {
+  return block_data_[voxel_idx];
+}
+
+template <typename T>
+inline void VoxelBlockFinest<T>::setData(const int voxel_idx, const VoxelData& voxel_data) {
+  block_data_[voxel_idx] = voxel_data;
+}
+
+template <typename T>
+inline typename VoxelBlock<T>::VoxelData
+VoxelBlockFinest<T>::data(const int voxel_idx, const int /* scale */) const {
+  return block_data_[voxel_idx];
+}
+
+template <typename T>
+inline void VoxelBlockFinest<T>::setData(const int        voxel_idx,
+                                         const int        /* scale */,
+                                         const VoxelData& voxel_data) {
+  block_data_[voxel_idx] = voxel_data;
+}
+
+template <typename T>
+void VoxelBlockFinest<T>::initFromBlock(const VoxelBlockFinest<T>& block) {
+  this->code_          = block.code();
+  this->size_          = block.size_;
+  this->children_mask_ = block.children_mask();
+  this->timestamp_     = block.timestamp();
+  this->active_        = block.active();
+  this->coordinates_   = block.coordinates();
+  this->min_scale_     = block.min_scale();
+  this->current_scale_ = block.current_scale();
+  std::copy(block.childrenData(), block.childrenData() + 8, this->children_data_);
+  std::copy(block.blockData(), block.blockData() + num_voxels_in_block, blockData());
+}
+
+
+
 // Voxel block full scale allocation implementation
 
 template <typename T>
-VoxelBlockFull<T>::VoxelBlockFull(const typename T::VoxelData init_data) {
+VoxelBlockFull<T>::VoxelBlockFull(const typename T::VoxelData init_data) : VoxelBlock<T>(0, -1) {
   for (unsigned int voxel_idx = 0; voxel_idx < num_voxels_in_block; voxel_idx++) {
     block_data_[voxel_idx] = init_data;
   }
@@ -296,7 +413,13 @@ void VoxelBlockFull<T>::initFromBlock(const VoxelBlockFull<T>& block) {
   std::copy(block.blockData(), block.blockData() + num_voxels_in_block, blockData());
 }
 
+
+
 // Voxel block single scale allocation implementation
+
+template <typename T>
+VoxelBlockSingle<T>::VoxelBlockSingle(const typename T::VoxelData init_data)
+    : VoxelBlock<T>(0, -1) , init_data_(init_data) {}
 
 template <typename T>
 VoxelBlockSingle<T>::VoxelBlockSingle(const VoxelBlockSingle<T>& block) {

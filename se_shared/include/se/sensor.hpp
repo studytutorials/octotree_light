@@ -9,9 +9,7 @@
 #include <Eigen/Dense>
 #include "se/image_utils.hpp"
 #include "se/image/image.hpp"
-#include <srl/projection/NoDistortion.hpp>
-#include <srl/projection/OusterLidar.hpp>
-#include <srl/projection/PinholeCamera.hpp>
+#include "se/projection.hpp"
 
 
 
@@ -73,6 +71,27 @@ namespace se {
       }
       return true;
     }
+
+
+
+    template <typename ValidPredicate>
+    bool getPixelValue(const Eigen::Vector2f&  pixel_f,
+                       const se::Image<float>& image,
+                       float&                  image_value,
+                       ValidPredicate          valid_predicate) const {
+      if (!model.isInImage(pixel_f)) {
+        return false;
+      }
+      Eigen::Vector2i pixel = se::round_pixel(pixel_f);
+      image_value = image(pixel.x(), pixel.y());
+      // Return false for invalid depth measurement
+      if (!valid_predicate(image_value)) {
+        return false;
+      }
+      return true;
+    }
+
+
 
     /**
      * \brief Computes the scale corresponding to the back-projected pixel size
@@ -181,6 +200,10 @@ namespace se {
     float near_plane;
     float far_plane;
     float scaled_pixel;
+    /** \brief The horizontal field of view in radians. */
+    float horizontal_fov;
+    /** \brief The vertical field of view in radians. */
+    float vertical_fov;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -333,7 +356,6 @@ namespace se {
     bool sphereInFrustumInf(const Eigen::Vector3f& center_C,
                             const float            radius) const;
 
-
     static std::string type() { return "ousterlidar"; }
 
     srl::projection::OusterLidar model;
@@ -341,6 +363,10 @@ namespace se {
     float near_plane;
     float far_plane;
     float min_ray_angle;
+    /** \brief The horizontal field of view in radians. */
+    float horizontal_fov;
+    /** \brief The vertical field of view in radians. */
+    float vertical_fov;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };

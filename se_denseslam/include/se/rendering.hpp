@@ -72,14 +72,14 @@ namespace se {
 
 
 
-template<typename T>
-void raycastKernel(const se::Octree<typename T::VoxelType>& map,
-                   se::Image<Eigen::Vector3f>&              surface_point_cloud_M,
-                   se::Image<Eigen::Vector3f>&              surface_normals_M,
-                   const Eigen::Matrix4f&                   raycast_T_MC,
-                   const SensorImpl&                        sensor) {
+template<typename VoxelImplT>
+void raycastKernel(const se::Octree<typename VoxelImplT::VoxelType>& map,
+                   se::Image<Eigen::Vector3f>&                       surface_point_cloud_M,
+                   se::Image<Eigen::Vector3f>&                       surface_normals_M,
+                   const Eigen::Matrix4f&                            raycast_T_MC,
+                   const SensorImpl&                                 sensor) {
 
-  TICK();
+  TICKD("raycastKernel");
 #pragma omp parallel for
   for (int y = 0; y < surface_point_cloud_M.height(); y++) {
 #pragma omp simd
@@ -93,18 +93,19 @@ void raycastKernel(const se::Octree<typename T::VoxelType>& map,
       const Eigen::Vector3f ray_dir_M = (se::math::to_rotation(raycast_T_MC) * ray_dir_C.normalized()).head(3);
       const Eigen::Vector3f t_MC = se::math::to_translation(raycast_T_MC);
 
-      surface_intersection_M = T::raycast(map, t_MC, ray_dir_M, sensor.nearDist(ray_dir_C), sensor.farDist(ray_dir_C));
+      surface_intersection_M = VoxelImplT::raycast(map, t_MC, ray_dir_M, sensor.nearDist(ray_dir_C), sensor.farDist(ray_dir_C));
       if (surface_intersection_M.w() >= 0.f) {
         surface_point_cloud_M[x + y * surface_point_cloud_M.width()] = surface_intersection_M.head<3>();
         Eigen::Vector3f surface_normal = map.gradAtPoint(surface_intersection_M.head<3>(),
-            [](const auto& data){ return data.x; },
-            static_cast<int>(surface_intersection_M.w() + 0.5f));
+                                                         VoxelImplT::VoxelType::selectNodeValue,
+                                                         VoxelImplT::VoxelType::selectVoxelValue,
+                                                         static_cast<int>(surface_intersection_M.w() + 0.5f));
         se::internal::scale_image(x, y) = static_cast<int>(surface_intersection_M.w());
         if (surface_normal.norm() == 0.f) {
           surface_normals_M[pixel.x() + pixel.y() * surface_normals_M.width()] = Eigen::Vector3f(INVALID, 0.f, 0.f);
         } else {
           // Invert surface normals for TSDF representations.
-          surface_normals_M[pixel.x() + pixel.y() * surface_normals_M.width()] = T::invert_normals
+          surface_normals_M[pixel.x() + pixel.y() * surface_normals_M.width()] = VoxelImplT::invert_normals
               ? (-1.f * surface_normal).normalized()
               : surface_normal.normalized();
         }
@@ -114,7 +115,7 @@ void raycastKernel(const se::Octree<typename T::VoxelType>& map,
       }
     }
   }
-  TOCK("raycastKernel", surface_point_cloud_M.width() * surface_point_cloud_M.height());
+  TOCK("raycastKernel");
 }
 
 
@@ -139,20 +140,22 @@ void renderTrackKernel(uint32_t*              tracking_RGBA_image_data,
 
 
 
-template <typename T>
+template <typename VoxelImplT>
 void renderVolumeKernel(uint32_t*                         volume_RGBA_image_data,
                         const Eigen::Vector2i&            volume_RGBA_image_res,
                         const Eigen::Vector3f&            light_M,
                         const Eigen::Vector3f&            ambient_M,
                         const se::Image<Eigen::Vector3f>& surface_point_cloud_M,
                         const se::Image<Eigen::Vector3f>& surface_normals_M) {
-  TICK();
+  TICKD("renderVolumeKernel");
+  const int h = volume_RGBA_image_res.y(); // clang complains if this is inside the for loop
+  const int w = volume_RGBA_image_res.x(); // clang complains if this is inside the for loop
 #pragma omp parallel for
-  for (int y = 0; y < volume_RGBA_image_res.y(); y++) {
+  for (int y = 0; y < h; y++) {
 #pragma omp simd
-    for (int x = 0; x < volume_RGBA_image_res.x(); x++) {
+    for (int x = 0; x < w; x++) {
 
-      const size_t pixel_idx = x + volume_RGBA_image_res.x() * y;
+      const size_t pixel_idx = x + w * y;
 
       const Eigen::Vector3f surface_point_M = surface_point_cloud_M[pixel_idx];
       const Eigen::Vector3f surface_normal_M = surface_normals_M[pixel_idx];
@@ -170,7 +173,7 @@ void renderVolumeKernel(uint32_t*                         volume_RGBA_image_data
       }
     }
   }
-  TOCK("renderVolumeKernel", volume_RGBA_image_res.prod());
+  TOCK("renderVolumeKernel");
 }
 
 
@@ -181,9 +184,9 @@ inline void printNormals(const se::Image<Eigen::Vector3f>& normals,
 
 
 // Find ALL the intersection along a ray till the far_plane.
-template <typename T>
+template <typename VoxelT>
 void raycast_full(
-    const se::Octree<typename T::VoxelType>&                                 map,
+    const se::Octree<VoxelT>&                                                map,
     std::vector<Eigen::Vector4f, Eigen::aligned_allocator<Eigen::Vector4f>>& surface_points_M,
     const Eigen::Vector3f&                                                   ray_origin_M,
     const Eigen::Vector3f&                                                   ray_dir_M,
@@ -200,8 +203,11 @@ void raycast_full(
   for (; t < far_plane; t += step_size) {
     f_tt = map.interpAtPoint(ray_origin_M + ray_dir_M * t, [](const auto& data){ return data.x;}).first;
     if (f_tt < 0.f && f_t > 0.f && std::abs(f_tt - f_t) < 0.5f) {     // got it, jump out of inner loop
-      const auto data_t  = map.getFineAtPoint(ray_origin_M + ray_dir_M * (t - step_size));
-      const auto data_tt = map.getFineAtPoint(ray_origin_M + ray_dir_M * t);
+      typename VoxelT::VoxelData data_t;
+      map.getAtPoint(ray_origin_M + ray_dir_M * (t - step_size), data_t);
+      typename VoxelT::VoxelData data_tt;
+      map.getAtPoint(ray_origin_M + ray_dir_M * t, data_tt);
+
       if (f_t == 1.0 || f_tt == 1.0 || data_t.y == 0 || data_tt.y == 0 ) {
         f_t = f_tt;
         continue;

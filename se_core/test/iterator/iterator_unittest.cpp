@@ -30,6 +30,10 @@ struct TestVoxel {
   static inline VoxelData invalid(){ return {0.0f, 0.0f}; }
   static inline VoxelData initData(){ return {1.0f, 0.0f}; }
 
+  static bool isValid(const VoxelData& data) {
+    return (data.y > 0);
+  };
+
   using VoxelBlockType = se::VoxelBlockFull<TestVoxel>;
   using MemoryPoolType = se::PagedMemoryPool<TestVoxel>;
   template <typename BufferT>

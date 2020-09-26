@@ -35,10 +35,10 @@
 #ifdef SE_GLUT
 #include "draw.h"
 #endif
+#include <thread>
+#include <signal.h>
 
 
-
-PerfStats stats;
 PowerMonitor* power_monitor = nullptr;
 static uint32_t* rgba_render = nullptr;
 static uint32_t* depth_render = nullptr;
@@ -100,26 +100,17 @@ struct ProgressBar {
 ProgressBar* progress_bar;
 
 void storeStats(
-    int                                                              frame,
-    std::vector<std::chrono::time_point<std::chrono::steady_clock>>& timings,
+    const size_t                                                     frame,
     const Eigen::Vector3f&                                           t_WC,
-    bool                                                             tracked,
-    bool                                                             integrated) {
-
-  stats.sample("frame", frame, PerfStats::FRAME);
-  stats.sample("acquisition",   std::chrono::duration<double>(timings[1] - timings[0]).count(), PerfStats::TIME);
-  stats.sample("preprocessing", std::chrono::duration<double>(timings[2] - timings[1]).count(), PerfStats::TIME);
-  stats.sample("tracking",      std::chrono::duration<double>(timings[3] - timings[2]).count(), PerfStats::TIME);
-  stats.sample("integration",   std::chrono::duration<double>(timings[4] - timings[3]).count(), PerfStats::TIME);
-  stats.sample("raycasting",    std::chrono::duration<double>(timings[5] - timings[4]).count(), PerfStats::TIME);
-  stats.sample("rendering",     std::chrono::duration<double>(timings[6] - timings[5]).count(), PerfStats::TIME);
-  stats.sample("computation",   std::chrono::duration<double>(timings[5] - timings[1]).count(), PerfStats::TIME);
-  stats.sample("total",         std::chrono::duration<double>(timings[6] - timings[0]).count(), PerfStats::TIME);
-  stats.sample("X", t_WC.x(), PerfStats::DISTANCE);
-  stats.sample("Y", t_WC.y(), PerfStats::DISTANCE);
-  stats.sample("Z", t_WC.z(), PerfStats::DISTANCE);
-  stats.sample("tracked", tracked, PerfStats::INT);
-  stats.sample("integrated", integrated, PerfStats::INT);
+    const bool                                                       tracked,
+    const bool                                                       integrated) {
+  se::perfstats.sample("frame", frame, PerfStats::FRAME);
+  se::perfstats.sample("t_WC.x", t_WC.x(), PerfStats::POSITION);
+  se::perfstats.sample("t_WC.y", t_WC.y(), PerfStats::POSITION);
+  se::perfstats.sample("t_WC.z", t_WC.z(), PerfStats::POSITION);
+  se::perfstats.sample("RAM",  se::ram_usage_self() / 1024.0 / 1024.0, PerfStats::MEMORY);
+  se::perfstats.sample("tracked", tracked, PerfStats::BOOL);
+  se::perfstats.sample("integrated", integrated, PerfStats::BOOL);
 }
 
 /***
@@ -165,7 +156,7 @@ int main(int argc, char** argv) {
       Eigen::Vector3i::Constant(config.map_size.x()),
       Eigen::Vector3f::Constant(config.map_dim.x()),
       t_MW,
-      config.pyramid, config);
+      config.pyramid, config, config.voxel_impl_yaml);
 
   // ========= UPDATE INIT POSE =========
   se::ReaderStatus read_ok = se::ReaderStatus::ok;
@@ -183,7 +174,7 @@ int main(int argc, char** argv) {
   }
 
   //  =========  PRINT CONFIGURATION  =========
-
+//  config.log_file = "";
   if (config.log_file != "") {
     log_file_stream.open(config.log_file.c_str());
     log_stream = &log_file_stream;
@@ -193,6 +184,8 @@ int main(int argc, char** argv) {
   *log_stream << reader;
   *log_stream << VoxelImpl::printConfig() << std::endl;
 
+  se::perfstats.includeDetailed(true);
+  se::perfstats.setFilestream(&log_file_stream);
   //temporary fix to test rendering fullsize
   config.render_volume_fullsize = false;
 
@@ -210,9 +203,6 @@ int main(int argc, char** argv) {
       std::cerr << "No valid input file specified\n";
       exit(1);
     }
-    *log_stream << "frame\tacquisition\tpreprocessing\ttracking\tintegration"
-                      << "\traycasting\trendering\tcomputation\ttotal    \tRAM usage (MB)"
-                      << "\tX          \tY          \tZ         \ttracked   \tintegrated\n";
 
     while (processAll(reader, true, config.enable_render, &config, false) == 0) {}
   } else {
@@ -234,10 +224,9 @@ int main(int argc, char** argv) {
     }
 #endif
   }
-
   if (power_monitor && power_monitor->isActive()) {
     std::ofstream powerStream("power.rpt");
-    power_monitor->powerStats.print_all_data(powerStream);
+    power_monitor->powerStats.writeSummaryToOStream(powerStream);
     powerStream.close();
   }
 
@@ -245,7 +234,7 @@ int main(int argc, char** argv) {
     progress_bar->end();
   } else {
     std::cout << "{";
-    stats.print_all_data(std::cout, false);
+    se::perfstats.writeSummaryToOStream(std::cout, false);
     std::cout << "}\n";
   }
 
@@ -258,12 +247,14 @@ int main(int argc, char** argv) {
   delete[] volume_render;
 }
 
+
 int processAll(se::Reader*        reader,
                bool               process_frame,
                bool               render_images,
                se::Configuration* config,
                bool               reset) {
-
+  TICK("TOTAL");
+  TICK("COMPUTATION")
   static int frame_offset = 0;
   static bool first_frame = true;
   bool tracked = false;
@@ -283,8 +274,8 @@ int processAll(se::Reader*        reader,
                            config->near_plane, config->far_plane,
                            config->sensor_intrinsics[0] / config->sensor_downsampling_factor,
                            config->sensor_intrinsics[1] / config->sensor_downsampling_factor,
-                           config->sensor_intrinsics[2] / config->sensor_downsampling_factor,
-                           config->sensor_intrinsics[3] / config->sensor_downsampling_factor,
+                           ((config->sensor_intrinsics[2] + 0.5f) / config->sensor_downsampling_factor - 0.5f),
+                           ((config->sensor_intrinsics[3] + 0.5f) / config->sensor_downsampling_factor - 0.5f),
                            azimuth_angles, elevation_angles});
 
   static se::Image<float> input_depth_image (input_image_res.x(), input_image_res.y());
@@ -303,12 +294,10 @@ int processAll(se::Reader*        reader,
     }
     if (read_ok != se::ReaderStatus::ok) {
       std::cerr << "Couldn't read pose\n";
+      TOCK("COMPUTATION")
+      TOCK("TOTAL")
       return true;
     }
-  }
-
-  if (process_frame) {
-    stats.start();
   }
 
   const std::chrono::time_point<std::chrono::steady_clock> now = std::chrono::steady_clock::now();
@@ -317,38 +306,46 @@ int processAll(se::Reader*        reader,
   if (process_frame) {
     // Read frames and ground truth data if set
     se::ReaderStatus read_ok;
+    TICK("ACQUISITION")
     if (config->enable_ground_truth) {
       read_ok = reader->nextData(input_depth_image, input_rgba_image, T_WB);
     } else {
       read_ok = reader->nextData(input_depth_image, input_rgba_image);
     }
-    frame = reader->frame() - frame_offset;
+    size_t reader_frame = reader->frame();
+    se::perfstats.setIter(reader_frame);
+    frame = reader_frame - frame_offset;
+    TOCK("ACQUISITION")
 
     if (read_ok == se::ReaderStatus::ok) {
       // Continue normally
     } else if (read_ok == se::ReaderStatus::skip) {
       // Skip this frame
+      TOCK("COMPUTATION")
+      TOCK("TOTAL")
       return false;
     } else {
       // Finish processing if the next frame could not be read
       timings[0] = std::chrono::steady_clock::now();
+      TOCK("COMPUTATION")
+      TOCK("TOTAL")
       return true;
     }
 
     if (config->max_frame != -1 && frame > config->max_frame) {
       timings[0] = std::chrono::steady_clock::now();
+      TOCK("COMPUTATION")
+      TOCK("TOTAL")
       return true;
     }
     if (power_monitor != nullptr && !first_frame)
       power_monitor->start();
 
-    timings[1] = std::chrono::steady_clock::now();
-
+    TICK("PREPROCESSING")
     pipeline->preprocessDepth(input_depth_image.data(), input_image_res,
         config->bilateral_filter);
     pipeline->preprocessColor(input_rgba_image.data(), input_image_res);
-
-    timings[2] = std::chrono::steady_clock::now();
+    TOCK("PREPROCESSING")
 
     if (track) {
       // No ground truth used, call track every tracking_rate frames.
@@ -363,7 +360,7 @@ int processAll(se::Reader*        reader,
       tracked = true;
     }
 
-    timings[3] = std::chrono::steady_clock::now();
+
 
     // Integrate only if tracking was successful every integration_rate frames
     // or it is one of the first 4 frames.
@@ -373,20 +370,18 @@ int processAll(se::Reader*        reader,
       integrated = false;
     }
 
-    timings[4] = std::chrono::steady_clock::now();
-
     if (raycast && frame > 2) {
       pipeline->raycast(sensor);
     }
-
-    timings[5] = std::chrono::steady_clock::now();
   }
 
   bool render_volume = false;
   if (render_images) {
+
+    TICK("RENDERING")
     if (frame == config->max_frame) {
       render_volume = true;
-    } else if (!config->rendering_rate == 0) {
+    } else if (!(config->rendering_rate == 0)) {
       render_volume = (config->rendering_rate < 0) ?
           frame == std::abs(config->rendering_rate) : frame % config->rendering_rate == 0;
     }
@@ -396,35 +391,13 @@ int processAll(se::Reader*        reader,
     if (render_volume) {
       pipeline->renderVolume(volume_render, pipeline->getImageResolution(), sensor);
     }
+    TOCK("RENDERING")
   }
-  timings[6] = std::chrono::steady_clock::now();
 
-  if (power_monitor != nullptr && !first_frame)
+  TOCK("COMPUTATION")
+
+  if (power_monitor != nullptr && !first_frame) {
     power_monitor->sample();
-
-  const Eigen::Vector3f t_WC = pipeline->t_WC();
-  storeStats(frame, timings, t_WC, tracked, integrated);
-
-  if (config->enable_benchmark || !config->enable_render) {
-    if (config->enable_benchmark) {
-      if (frame % 10 == 0) {
-        progress_bar->update(frame);
-      }
-    }
-    const Eigen::Vector3f t_WC = pipeline->t_WC();
-    *log_stream << frame << "\t"
-        << std::chrono::duration<double>(timings[1] - timings[0]).count() << "\t" // acquisition
-        << std::chrono::duration<double>(timings[2] - timings[1]).count() << "\t" // preprocessing
-        << std::chrono::duration<double>(timings[3] - timings[2]).count() << "\t" // tracking
-        << std::chrono::duration<double>(timings[4] - timings[3]).count() << "\t" // integration
-        << std::chrono::duration<double>(timings[5] - timings[4]).count() << "\t" // raycasting
-        << std::chrono::duration<double>(timings[6] - timings[5]).count() << "\t" // rendering
-        << std::chrono::duration<double>(timings[5] - timings[1]).count() << "\t" // computation
-        << std::chrono::duration<double>(timings[6] - timings[0]).count() << "\t" // total
-        << se::ram_usage_self() / 1024.0 / 1024.0 << "\t" // RAM usage (MB)
-        << t_WC.x() << "\t" << t_WC.y() << "\t" << t_WC.z() << "\t" // position
-        << tracked << "\t" << integrated // tracked and integrated flags
-        << std::endl;
   }
 
   //  =========  SAVE VOLUME RENDER  =========
@@ -445,25 +418,64 @@ int processAll(se::Reader*        reader,
   if (config->enable_meshing) {
     if (frame == config->max_frame) {
       mesh_volume = true;
-    } else if (!config->meshing_rate == 0) {
+    } else if (!(config->meshing_rate == 0)) {
       mesh_volume = (config->meshing_rate < 0) ?
           frame == std::abs(config->meshing_rate) :frame % config->meshing_rate == 0;
     }
   }
+
   if (mesh_volume && config->output_mesh_file != "") {
     std::stringstream output_mesh_file_ss;
     output_mesh_file_ss << config->output_mesh_file << "_frame_"
                           << std::setw(4) << std::setfill('0') << frame << ".vtk";
-
-    const auto start = std::chrono::steady_clock::now();
     pipeline->dumpMesh(output_mesh_file_ss.str().c_str(), !config->enable_benchmark);
-    const auto end = std::chrono::steady_clock::now();
-    stats.sample("meshing",
-                 std::chrono::duration<double>(end - start).count(),
-                 PerfStats::TIME);
+  }
+
+  //  ===  SAVE OCTREE STRUCTURE AND SLICE ===
+  bool save_structure = false;
+  if (config->enable_structure && config->output_structure_file != "") {
+    save_structure = true;
+  }
+  if (save_structure && (mesh_volume || frame == config->max_frame)) {
+    std::stringstream output_structure_file_ss;
+    output_structure_file_ss << config->output_structure_file << "_frame_"
+                             << std::setw(4) << std::setfill('0') << frame;
+    pipeline->saveStructure(output_structure_file_ss.str().c_str());
+  }
+
+  bool add_structure_stats = true;
+  if (add_structure_stats) {
+    size_t num_nodes;
+    size_t num_blocks;
+    std::vector<size_t> num_blocks_per_scale(VoxelImpl::VoxelBlockType::max_scale + 1, 0);
+    pipeline->structureStats(num_nodes, num_blocks, num_blocks_per_scale);
+    se::perfstats.sample("num_nodes", num_nodes, PerfStats::COUNT);
+    se::perfstats.sample("num_blocks", num_blocks, PerfStats::COUNT);
+    se::perfstats.sample("num_blocks_s0", num_blocks_per_scale[0], PerfStats::COUNT);
+    se::perfstats.sample("num_blocks_s1", num_blocks_per_scale[1], PerfStats::COUNT);
+    se::perfstats.sample("num_blocks_s2", num_blocks_per_scale[2], PerfStats::COUNT);
+    se::perfstats.sample("num_blocks_s3", num_blocks_per_scale[3], PerfStats::COUNT);
+  }
+
+  const Eigen::Vector3f t_WC = pipeline->t_WC();
+  storeStats(frame, t_WC, tracked, integrated);
+
+  TOCK("TOTAL")
+
+  if (config->enable_benchmark || !config->enable_render) {
+    if (config->enable_benchmark) {
+      if (frame % 10 == 0) {
+        progress_bar->update(frame);
+      }
+    }
+
+    if (config->log_file != "") {
+      se::perfstats.writeToFilestream();
+    } else {
+      se::perfstats.writeToOStream(*log_stream);
+    }
   }
 
   first_frame = false;
-
   return false;
 }

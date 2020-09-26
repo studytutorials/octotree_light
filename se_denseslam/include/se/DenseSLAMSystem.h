@@ -40,6 +40,7 @@
 #include <iostream>
 #include <memory>
 
+#include <yaml-cpp/yaml.h>
 #include <Eigen/Dense>
 
 #include "se/commons.h"
@@ -116,7 +117,8 @@ class DenseSLAMSystem {
                     const Eigen::Vector3f&   map_dim,
                     const Eigen::Vector3f&   t_MW,
                     std::vector<int> &       pyramid,
-                    const se::Configuration& config);
+                    const se::Configuration& config,
+                    const std::string        voxel_impl_yaml_path = "");
     /**
      * Constructor using the initial camera position.
      *
@@ -134,7 +136,8 @@ class DenseSLAMSystem {
                     const Eigen::Vector3f&   map_dim,
                     const Eigen::Matrix4f&   T_MW,
                     std::vector<int> &       pyramid,
-                    const se::Configuration& config);
+                    const se::Configuration& config,
+                    const std::string        voxel_impl_yaml_path = "");
 
     /**
      * Preprocess a single depth frame and add it to the pipeline.
@@ -221,6 +224,19 @@ class DenseSLAMSystem {
      * \param[in] print_path Print the filename to stdout before saving.
      */
     void dumpMesh(const std::string filename, const bool print_path = false);
+
+    /** \brief Export the octree structure and slices.
+     *
+     * \param[in] base_filename   The base name of the file without suffix.
+     */
+    void saveStructure(const std::string base_filename);
+
+    /*
+     * TODO Document this.
+     */
+    void structureStats(size_t&              num_nodes,
+                        size_t&              num_blocks,
+                        std::vector<size_t>& num_blocks_per_scale);
 
     /** \brief Render the current 3D reconstruction.
      * This function performs raycasting if needed, otherwise it uses the point

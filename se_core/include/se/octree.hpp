@@ -133,21 +133,61 @@ public:
    * \param[in] voxel_coord The coordinates of the voxel.
    * \return    True if each voxel coordinate is in the interval [0, size - 1]; False otherwise.
    */
-  inline bool contains(Eigen::Vector3i& voxel_coord) const;
+  inline bool contains(const Eigen::Vector3i& voxel_coord) const;
 
   /*! \brief Verify if each voxel coordinate is in the interval [0, size)
    *
    * \param[in] voxel_coord_f The coordinates of the voxel.
    * \return    True if each voxel coordinate is in the interval [0, size); False otherwise.
    */
-  inline bool contains(Eigen::Vector3f& voxel_coord_f) const;
+  inline bool contains(const Eigen::Vector3f& voxel_coord_f) const;
 
   /*! \brief Verify if each point coordinate is in the interval [0, dim)
    *
    * \param[in] point_M The coordinates of the point.
    * \return    True if each point coordinate is in the interval [0, dim); False otherwise.
    */
-  inline bool containsPoint(Eigen::Vector3f& point_M) const;
+  inline bool containsPoint(const Eigen::Vector3f& point_M) const;
+
+  /*! \brief Return the data at the supplied voxel coordinates and scale.
+   *
+   * \param[in]  x        The voxel x coordinate in the interval [0, size - 1].
+   * \param[in]  y        The voxel y coordinate in the interval [0, size - 1].
+   * \param[in]  z        The voxel z coordinate in the interval [0, size - 1].
+   * \param[out] data     The data contained in the voxel. If the octree hasn't been
+   *                      allocated up to the supplied scale, return the data at the lowest
+   *                      allocated scale.
+   * \param[in] min_scale The minimum octree scale to get the data at.
+   *
+   * \return The scale the data was extracted from.
+   */
+  int get(const int x, const int y, const int z, VoxelData& data, const int min_scale = 0) const;
+
+  /*! \brief Return the data at the supplied voxel coordinates and scale.
+   *
+   * \param[in] voxel_coord The coordinates of the voxel. Each component must
+   *                        be in the interval [0, size - 1].
+   * \param[out] data       The data contained in the voxel. If the octree hasn't been
+   *                        allocated up to the supplied scale, return the data at the lowest
+   *                        allocated scale.
+   * \param[in] min_scale   The minimum octree scale to get the data at.
+   *
+   * \return The scale the data was extracted from.
+   */
+  int get(const Eigen::Vector3i& voxel_coord, VoxelData& data, const int min_scale = 0) const;
+
+  /*! \brief Return the data at the supplied 3D point and scale.
+   *
+   * \param[in] point_M   The coordinates of the point. Each component must be in
+   *                      the interval [0, dim).
+   * \param[out] data     The data contained in the voxel. If the octree hasn't been
+   *                      allocated up to the supplied scale, return the data at the lowest
+   *                      allocated scale.
+   * \param[in] min_scale The minimum octree scale to get the data at.
+   *
+   * \return The scale the data was extracted from.
+   */
+  int getAtPoint(const Eigen::Vector3f& point_M, VoxelData& data, const int min_scale = 0) const;
 
   /*! \brief Set the data at the supplied voxel coordinates.
    * If the voxel hasn't been allocated, no action is performed.
@@ -176,71 +216,6 @@ public:
    * \param[in] data The data to store in the voxel.
    */
   void setAtPoint(const Eigen::Vector3f& point_M, const VoxelData& data);
-
-  /*! \brief Return the data at the supplied voxel coordinates.
-   *
-   * \param[in] x The voxel x coordinate in the interval [0, size - 1].
-   * \param[in] y The voxel y coordinate in the interval [0, size - 1].
-   * \param[in] z The voxel z coordinate in the interval [0, size - 1].
-   * \return The data contained in the voxel. If the octree hasn't been
-   *         allocated up to the voxel level at this region return the value
-   *         stored at the lowest allocated octant.
-   */
-  VoxelData get(const int x, const int y, const int z) const;
-
-  /*! \brief Return the data at the supplied voxel coordinates.
-   *
-   * \param[in] voxel_coord The coordinates of the voxel. Each component must
-   *                        be in the interval [0, size - 1].
-   * \return The data contained in the voxel. If the octree hasn't been
-   *         allocated up to the voxel level at this region return the value
-   *         stored at the lowest allocated octant.
-   */
-  VoxelData get(const Eigen::Vector3i& voxel_coord) const;
-
-  /*! \brief Return the data at the supplied 3D point.
-   *
-   * \param[in] point_M The coordinates of the point. Each component must be in
-   *                    the interval [0, dim).
-   * \return The data contained in the corresponding voxel. If the octree
-   *         hasn't been allocated up to the voxel level at this region return
-   *         the value stored at the lowest allocated octant.
-   */
-  VoxelData getAtPoint(const Eigen::Vector3f& point_M) const;
-
-  /*! \brief Return the data at the supplied voxel coordinates and scale.
-   *
-   * \param[in] x     The voxel x coordinate in the interval [0, size - 1].
-   * \param[in] y     The voxel y coordinate in the interval [0, size - 1].
-   * \param[in] z     The voxel z coordinate in the interval [0, size - 1].
-   * \param[in] scale The octree scale to get the data at.
-   * \return The data contained in the voxel. If the octree hasn't been
-   *         allocated up to the supplied scale, return the data at the lowest
-   *         allocated scale.
-   */
-  VoxelData getFine(const int x, const int y, const int z, const int scale = 0) const;
-
-  /*! \brief Return the data at the supplied voxel coordinates and scale.
-   *
-   * \param[in] voxel_coord The coordinates of the voxel. Each component must
-   *                        be in the interval [0, size - 1].
-   * \param[in] scale The octree scale to get the data at.
-   * \return The data contained in the voxel. If the octree hasn't been
-   *         allocated up to the supplied scale, return the data at the lowest
-   *         allocated scale.
-   */
-  VoxelData getFine(const Eigen::Vector3i& voxel_coord, const int scale = 0) const;
-
-  /*! \brief Return the data at the supplied 3D point and scale.
-   *
-   * \param[in] point_M The coordinates of the point. Each component must be in
-   *                    the interval [0, dim).
-   * \param[in] scale   The octree scale to get the data at.
-   * \return The data contained in corresponding the voxel. If the octree
-   *         hasn't been allocated up to the supplied scale, return the data
-   *         at the lowest allocated scale.
-   */
-  VoxelData getFineAtPoint(const Eigen::Vector3f& point_M, const int scale = 0) const;
 
   /*! \brief Convert voxel coordinates to the coordinates of the correspoinding
    * 3D point in metres.
@@ -299,39 +274,47 @@ public:
    * used in interp_gather should be used.
    */
   template <bool safe>
-  std::array<VoxelData, 6> get_face_neighbors(const int x,
-                                              const int y,
-                                              const int z) const;
+  std::array<VoxelData, 6> getFaceNeighbours(const int x, const int y, const int z) const;
 
   /*! \brief Fetch the voxel block which contains voxel (x,y,z)
-   * \param x x coordinate in interval [0, size - 1]
-   * \param y y coordinate in interval [0, size - 1]
-   * \param z z coordinate in interval [0, size - 1]
+   *
+   * \param x The x coordinate in interval [0, size - 1]
+   * \param y The y coordinate in interval [0, size - 1]
+   * \param z The z coordinate in interval [0, size - 1]
+   *
+   * \return The fetched voxel block. If the voxel block is not allocated a nullptr is returned.
    */
   VoxelBlockType* fetch(const int x, const int y, const int z) const;
 
   /*! \brief Fetch the voxel block which contains voxel (x,y,z)
    * \param[in] voxel_coord The coordinates of the voxel. Each component must
    *                        be in the interval [0, size).
+   *
+   * \return The fetched voxel block. If the voxel block is not allocated a nullptr is returned.
    */
   VoxelBlockType* fetch(const Eigen::Vector3i& voxel_coord) const;
 
   /*! \brief Fetch the node (x,y,z) at depth
-   * \param x x coordinate in interval [0, size - 1]
-   * \param y y coordinate in interval [0, size - 1]
-   * \param z z coordinate in interval [0, size - 1]
-   * \param depth depth to be searched
+   *
+   * \param x     The x coordinate in interval [0, size - 1]
+   * \param y     The y coordinate in interval [0, size - 1]
+   * \param z     The z coordinate in interval [0, size - 1]
+   * \param depth The depth to be searched.
+   *
+   * \return The fetched node. If the node at depth is not allocated a nullptr is returned.
    */
-  Node<T>* fetch_node(const int x, const int y, const int z,
-      const int depth) const;
+  Node<T>* fetchNode(const int x, const int y, const int z, const int depth) const;
 
   /*! \brief Fetch the node (x,y,z) at depth
+   *
    * \param[in] voxel_coord The coordinates of the voxel. Each component must
    *                        be in the interval [0, size).
-   * \param[in] depth depth to be searched
+   * \param[in] depth       The depth to be searched.
+   *
+   * \return The fetched node. If the node at depth is not allocated a nullptr is returned.
    */
-  Node<T>* fetch_node(const Eigen::Vector3i& voxel_coord,
-                      const int depth) const;
+  Node<T>* fetchNode(const Eigen::Vector3i& voxel_coord,
+                     const int              depth) const;
 
   /*! \brief Insert the octant at (x,y,z). Not thread safe.
    * \param x x coordinate in interval [0, size - 1]
@@ -509,8 +492,8 @@ public:
                                       const int              min_scale,
                                       bool&                  is_valid) const;
 
-
-  /*! \brief Compute the gradient of a voxel value at the supplied voxel
+  /**
+   * \brief Compute the gradient of a voxel value at the supplied voxel
    * coordinates.
    *
    * \param[in] voxel_coord_f The coordinates of the voxel. Each component must
@@ -522,9 +505,79 @@ public:
    *                          can't be computed from a single point.
    * \return The gradient of the selected value.
    */
-  template <typename FieldSelect>
+  template <typename ValueSelector>
   Eigen::Vector3f grad(const Eigen::Vector3f& voxel_coord_f,
-                       FieldSelect            select_value,
+                       ValueSelector          select_value,
+                       const int              min_scale = 1) const;
+
+  /**
+   * \brief Compute the gradient of a voxel value at the supplied voxel
+   * coordinates.
+   *
+   * \param[in]  voxel_coord_f  The coordinates of the voxel. Each component must
+   *                            be in the interval [0, size).
+   * \param[in]  select_value   Lambda value to select the value to compute the
+   *                            gradient for from the voxel data.
+   * \param[in]  check_is_valid Lambda function to varify if the data is valid.
+   * \param[out] is_valid       False when the gradient uses data from
+   *                            voxels which haven't been integrated into.
+   * \param[in]  min_scale      The minimum scale at which the gradient is
+   *                            computed. Must be at least 1 because the gradient
+   *                            can't be computed from a single point.
+   * \return The gradient of the selected value.
+   */
+  template <typename ValueSelector, typename ValidChecker>
+  Eigen::Vector3f grad(const Eigen::Vector3f& voxel_coord_f,
+                       ValueSelector          select_value,
+                       ValidChecker           check_is_valid,
+                       bool&                  is_valid,
+                       const int              min_scale = 1) const;
+
+  /**
+   * \brief Compute the gradient of a voxel value at the supplied voxel
+   * coordinates.
+   *
+   * \param[in] voxel_coord_f      The coordinates of the voxel. Each component must
+   *                               be in the interval [0, size).
+   * \param[in] select_node_value  Lambda value to select the value to compute
+   *                               the gradient for from the voxel data.
+   * \param[in] select_voxel_value Lambda value to select the value to compute
+   *                               the gradient for from the node data.
+   * \param[in] min_scale          The minimum scale at which the gradient is
+   *                               computed. Must be at least 1 because the gradient
+   *                               can't be computed from a single point.
+   * \return The gradient of the selected value.
+   */
+  template <typename NodeValueSelector, typename VoxelValueSelector>
+  Eigen::Vector3f grad(const Eigen::Vector3f& voxel_coord_f,
+                       NodeValueSelector      select_node_value,
+                       VoxelValueSelector     select_voxel_value,
+                       const int              min_scale = 1) const;
+
+  /**
+   * \brief Compute the gradient of a voxel value at the supplied voxel
+   * coordinates.
+   *
+   * \param[in]  voxel_coord_f      The coordinates of the voxel. Each component must
+   *                                be in the interval [0, size).
+   * \param[in]  select_node_value  Lambda value to select the value to compute
+   *                                the gradient for from the voxel data.
+   * \param[in]  select_voxel_value Lambda value to select the value to compute
+   *                                the gradient for from the node data.
+   * \param[in]  check_is_valid     Lambda function to varify if the data is valid.
+   * \param[out] is_valid           False when the gradient uses data from
+   *                                voxels which haven't been integrated into.
+   * \param[in]  min_scale          The minimum scale at which the gradient is
+   *                                computed. Must be at least 1 because the gradient
+   *                                can't be computed from a single point.
+   * \return The gradient of the selected value.
+   */
+  template <typename NodeValueSelector, typename VoxelValueSelector, typename ValidChecker>
+  Eigen::Vector3f grad(const Eigen::Vector3f& voxel_coord_f,
+                       NodeValueSelector      select_node_value,
+                       VoxelValueSelector     select_voxel_value,
+                       ValidChecker           check_is_valid,
+                       bool&                  is_valid,
                        const int              min_scale = 1) const;
 
   /*! \brief Compute the gradient of a voxel value at the supplied 3D point.
@@ -537,9 +590,70 @@ public:
    *                          can't be computed from a single point.
    * \return The gradient of the selected value.
    */
-  template <typename FieldSelect>
+  template <typename ValueSelector>
   Eigen::Vector3f gradAtPoint(const Eigen::Vector3f& point_M,
-                              FieldSelect            select_value,
+                              ValueSelector          select_value,
+                              const int              min_scale = 1) const;
+
+  /*! \brief Compute the gradient of a voxel value at the supplied 3D point.
+   *
+   * \param[in]  point_M        The coordinates of the 3D point in metres.
+   * \param[in]  select_value   Lambda value to select the value to compute the
+   *                            gradient for from the voxel data.
+   * \param[in]  check_is_valid Lambda function to varify if the data is valid.
+   * \param[out] is_valid       False when the gradient uses data from
+   *                            voxels which haven't been integrated into.
+   * \param[in]  min_scale      The minimum scale at which the gradient is
+   *                            computed. Must be at least 1 because the gradient
+   *                            can't be computed from a single point.
+   * \return The gradient of the selected value.
+   */
+  template <typename ValueSelector, typename ValidChecker>
+  Eigen::Vector3f gradAtPoint(const Eigen::Vector3f& point_M,
+                              ValueSelector          select_value,
+                              ValidChecker           check_is_valid,
+                              bool&                  is_valid,
+                              const int              min_scale = 1) const;
+
+  /*! \brief Compute the gradient of a voxel value at the supplied 3D point.
+   *
+   * \param[in]  point_M            The coordinates of the 3D point in metres.
+   * \param[in]  select_node_value  Lambda value to select the value to compute
+   *                                the gradient for from the voxel data.
+   * \param[in]  select_voxel_value Lambda value to select the value to compute
+   *                                the gradient for from the node data.
+   * \param[in]  min_scale          The minimum scale at which the gradient is
+   *                                computed. Must be at least 1 because the gradient
+   *                                can't be computed from a single point.
+   * \return The gradient of the selected value.
+   */
+  template <typename NodeValueSelector, typename VoxelValueSelector>
+  Eigen::Vector3f gradAtPoint(const Eigen::Vector3f& point_M,
+                              NodeValueSelector      select_node_value,
+                              VoxelValueSelector     select_voxel_value,
+                              const int              min_scale = 1) const;
+
+  /*! \brief Compute the gradient of a voxel value at the supplied 3D point.
+   *
+   * \param[in]  point_M            The coordinates of the 3D point in metres.
+   * \param[in]  select_node_value  Lambda value to select the value to compute
+   *                                the gradient for from the voxel data.
+   * \param[in]  select_voxel_value Lambda value to select the value to compute
+   *                                the gradient for from the node data.
+   * \param[in]  check_is_valid     Lambda function to varify if the data is valid.
+   * \param[out] is_valid           False when the gradient uses data from
+   *                                voxels which haven't been integrated into.
+   * \param[in]  min_scale          The minimum scale at which the gradient is
+   *                                computed. Must be at least 1 because the gradient
+   *                                can't be computed from a single point.
+   * \return The gradient of the selected value.
+   */
+  template <typename NodeValueSelector, typename VoxelValueSelector, typename ValidChecker>
+  Eigen::Vector3f gradAtPoint(const Eigen::Vector3f& point_M,
+                              NodeValueSelector      select_node_value,
+                              VoxelValueSelector     select_voxel_value,
+                              ValidChecker           check_is_valid,
+                              bool&                  is_valid,
                               const int              min_scale = 1) const;
 
   /*! \brief Get the list of allocated block. If the active switch is set to
@@ -612,13 +726,27 @@ private:
   int reserved_ = 0;
 
   // Private implementation of cached methods
-  VoxelData get(const int x, const int y, const int z, VoxelBlockType* cached) const;
-  VoxelData getAtPoint(const Eigen::Vector3f& point_M, VoxelBlockType* cached) const;
+  int get(const int       x,
+          const int       y,
+          const int       z,
+          VoxelBlockType* cached_block,
+          VoxelData&      data,
+          const int       min_scale = 0) const;
 
-  VoxelData get(const int x, const int y, const int z,
-      int&  scale, VoxelBlockType* cached) const;
-  VoxelData getAtPoint(const Eigen::Vector3f& point_M, int& scale,
-      VoxelBlockType* cached) const;
+  int get(const Eigen::Vector3i& voxel_coord,
+          VoxelBlockType*        cached_block,
+          VoxelData&             data,
+          const int              min_scale = 0) const;
+
+  int getAtPoint(const Eigen::Vector3f& point_M,
+                 VoxelBlockType*        cached_block,
+                 VoxelData&             data,
+                 const int              min_scale = 0) const;
+
+  template <typename ValuesGetter>
+  Eigen::Vector3f gradImpl(const Eigen::Vector3f& voxel_coord_f,
+                           ValuesGetter           get_values,
+                           const int              min_scale) const;
 
   // Parallel allocation of a given tree depth for a set of input keys.
   // Pre: depth above target_depth must have been already allocated

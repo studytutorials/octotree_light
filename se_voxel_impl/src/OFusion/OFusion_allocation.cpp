@@ -124,7 +124,7 @@ size_t OFusion::buildAllocationList(OctreeType&             map,
             && (voxel_coord.x() >= 0)
             && (voxel_coord.y() >= 0)
             && (voxel_coord.z() >= 0)) {
-          auto node_ptr = map.fetch_node(
+          auto node_ptr = map.fetchNode(
               voxel_coord.x(), voxel_coord.y(), voxel_coord.z(), depth);
           if (node_ptr == nullptr) {
             const se::key_t voxel_key = map.hash(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(),

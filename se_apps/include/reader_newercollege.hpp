@@ -11,10 +11,10 @@
 #include <fstream>
 #include <string>
 
-#include <srl/projection/OusterLidar.hpp>
 #include <Eigen/Dense>
 
 #include "se/image/image.hpp"
+#include "se/projection.hpp"
 #include "reader_base.hpp"
 
 

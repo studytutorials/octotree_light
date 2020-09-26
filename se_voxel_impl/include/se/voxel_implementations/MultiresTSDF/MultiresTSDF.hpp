@@ -58,8 +58,24 @@ struct MultiresTSDF {
       bool operator!=(const VoxelData& other) const;
     };
 
-    static inline VoxelData invalid()     { return {1.f, 1.f, 0, 0}; }
+    static inline VoxelData invalid()  { return {1.f, 1.f, 0, 0}; }
     static inline VoxelData initData() { return {1.f, 1.f, 0, 0}; }
+
+    static float selectNodeValue(const VoxelData& /* data */) {
+      return VoxelType::initData().x;
+    };
+
+    static float selectVoxelValue(const VoxelData& data) {
+      return data.x;
+    };
+
+    static bool isInside(const VoxelData& data) {
+      return data.x < 0.f;
+    };
+
+    static bool isValid(const VoxelData& data) {
+      return (data.y > 0);
+    };
 
     using VoxelBlockType = se::VoxelBlockFull<MultiresTSDF::VoxelType>;
 

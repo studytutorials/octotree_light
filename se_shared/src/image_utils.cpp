@@ -37,7 +37,7 @@ int se::save_depth_png(const uint16_t*        depth_image_data,
       LCT_GREY,
       16);
 
-  delete depth_big_endian;
+  delete[] depth_big_endian;
   return ret;
 }
 

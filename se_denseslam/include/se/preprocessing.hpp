@@ -79,9 +79,16 @@ void pointCloudToNormalKernel(se::Image<Eigen::Vector3f>&       out,
 
 
 
-void mm2metersKernel(se::Image<float>&      out,
-                     const float*           in,
-                     const Eigen::Vector2i& input_res);
+/**
+ * Downsample the input depth to match the resolution of the output depth.
+ * The ration between the resolutions must be a power of 2. Median downsampling
+ * is used to prevent creating new depth which create artifacts behind object
+ * edges. Depth values of 0 are considered invalid and are ignored when
+ * computing the median.
+ */
+void downsampleDepthKernel(const float*           input_depth,
+                           const Eigen::Vector2i& input_res,
+                           se::Image<float>&      output_depth);
 
 
 

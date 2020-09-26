@@ -204,9 +204,9 @@ void Viewer::setOptionMenu() {
 
 		PerfStats::Type lastType = PerfStats::UNDEFINED;
 		for (std::map<int, std::string>::const_iterator kt =
-				stats->order.begin(); kt != stats->order.end(); kt++) {
+				stats->order_.begin(); kt != stats->order_.end(); kt++) {
 			std::map<std::string, PerfStats::Stats>::const_iterator it =
-					stats->stats.find(kt->second);
+					stats->stats_.find(kt->second);
 
 			if (optionMenu == NULL) {
 				optionMenu = new QMenu(optionButton);
@@ -221,10 +221,10 @@ void Viewer::setOptionMenu() {
 			action->setCheckable(true);
 			action->setChecked(true);
 
-			if (it->second.type != lastType) {
+			if (it->second.type_ != lastType) {
 				QAction *tmpAction = optionMenu->insertSeparator(action);
 				tmpAction->setText("Different Type");
-				lastType = it->second.type;
+				lastType = it->second.type_;
 			}
 
 			connect(action, SIGNAL(changed()), this,
@@ -413,9 +413,7 @@ void Viewer::update() {
 						QString name =
 								optionButton->menu()->actions().at(i)->text();
 
-						_stream->statistics->getSampleTime(
-								name.toStdString().c_str());
-						double value = _stream->statistics->getLastData(
+						double value = _stream->statistics->getLastDataMerged(
 								name.toStdString().c_str());
 
 						if (_stream->statistics->getType(
