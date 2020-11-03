@@ -1,0 +1,43 @@
+general:
+  # File path
+  sequence_name:              "icl_nuim_livingroom_trj2"
+  sequence_path:              "./living_room_traj2_loop/scene.raw"
+  enable_ground_truth:        false
+  ground_truth_file:          ""
+  enable_benchmark:           false
+  log_path:                   ""
+  enable_render:              true
+  output_render_path:         ""
+  enable_meshing:             false
+  output_mesh_file:           ""
+
+  # Rates
+  tracking_rate:              1
+  integration_rate:           2
+  rendering_rate:             4
+  fps:                        0.0
+
+  # Other
+  drop_frames:                false
+  max_frame:                  -1
+  icp_threshold:              1e-5
+  bilateral_filter:           false
+  pyramid:                    [10, 5, 4]
+  render_volume_fullsize:     false
+
+map:
+  size:                       1024
+  dim:                        10.24
+  t_MW_factor:                [0.5, 0.5, 0.5]
+
+sensor:
+  type:                       "pinholecamera"
+  intrinsics:                 [481.2, -480.0, 319.5, 239.5]
+  downsampling_factor:        2
+  T_BC:                       [1, 0, 0, 0,
+                               0, 1, 0, 0,
+                               0, 0, 1, 0,
+                               0, 0, 0, 1]
+  init_T_WB:                  [0, 0, -2.25, 0, 0, 0, 1]
+  near_plane:                 0.4
+  far_plane:                  6.0

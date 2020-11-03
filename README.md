@@ -143,7 +143,7 @@ cd ..
 Then it can be used as input to one of the apps:
 
 ``` bash
-./build/release/se_apps/se-denseslam-multirestsdf-pinholecamera-main --input-file living_room_traj2_loop/scene.raw --init-pose 0.34,0.5,0.3 --image-downsampling-factor 2 --integration-rate 1 --camera 481.2,-480,320,240 --map-dim 5.12 --map-size 256
+./build/release/se_apps/se-denseslam-tsdf-pinholecamera-main --yaml ./config_files/config_icl_nuim_trj2.yaml --yaml ./config_files/config_tsdf.yaml
 ```
 
 To learn more about the command line options run:
