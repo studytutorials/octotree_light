@@ -138,7 +138,7 @@ template <typename T>
 inline int Octree<T>::getAtPoint(const Eigen::Vector3f& point_M,
                                  VoxelData&             data,
                                  const int              scale) const {
-  const Eigen::Vector3i voxel_coord = (inverse_voxel_dim_ * point_M).cast<int>();
+  const Eigen::Vector3i voxel_coord = (inverse_voxel_dim_ * point_M).template cast<int>();
   return get(voxel_coord, data, scale);
 }
 
@@ -182,7 +182,7 @@ inline void Octree<T>::set(const Eigen::Vector3i& voxel_coord,
 template <typename T>
 inline void Octree<T>::setAtPoint(const Eigen::Vector3f& point_M,
                                   const VoxelData&       data) {
-  const Eigen::Vector3i voxel_coord = (inverse_voxel_dim_ * point_M).cast<int>();
+  const Eigen::Vector3i voxel_coord = (inverse_voxel_dim_ * point_M).template cast<int>();
   return set(voxel_coord, data);
 }
 
@@ -190,7 +190,7 @@ inline void Octree<T>::setAtPoint(const Eigen::Vector3f& point_M,
 
 template <typename T>
 inline Eigen::Vector3f Octree<T>::voxelToPoint(const Eigen::Vector3i& voxel_coord) const {
-  return voxelToPoint(voxel_coord.cast<float>());
+  return voxelToPoint(voxel_coord.template cast<float>());
 }
 
 
@@ -207,7 +207,7 @@ inline Eigen::Vector3i Octree<T>::pointToVoxel(const Eigen::Vector3f& point_M) c
   // For some reason C++ doesn't like the cast being right after the function
   // call.
   const Eigen::Vector3f voxel_coord = pointToVoxelF(point_M);
-  return voxel_coord.cast<int>();
+  return voxel_coord.template cast<int>();
 }
 
 
@@ -522,7 +522,7 @@ std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& voxel_coord_f,
     const int stride = 1 << target_scale;
     const Eigen::Vector3f scaled_voxel_coord_f = 1.f / stride * voxel_coord_f - sample_offset_frac_;
     factor = math::fracf(scaled_voxel_coord_f);
-    const Eigen::Vector3i base_coord = stride * scaled_voxel_coord_f.cast<int>();
+    const Eigen::Vector3i base_coord = stride * scaled_voxel_coord_f.template cast<int>();
     if ((base_coord.array() < 0).any() ||
         ((base_coord + Eigen::Vector3i::Constant(stride)).array() >= size_).any()) {
       return {select_voxel_value(T::initData()), target_scale};
@@ -578,7 +578,7 @@ std::pair<float, int> Octree<T>::interp(const Eigen::Vector3f& voxel_coord_f,
     const int stride = 1 << target_scale;
     const Eigen::Vector3f scaled_voxel_coord_f = 1.f / stride * voxel_coord_f - sample_offset_frac_;
     factor =  math::fracf(scaled_voxel_coord_f);
-    const Eigen::Vector3i base_coord = stride * scaled_voxel_coord_f.cast<int>();
+    const Eigen::Vector3i base_coord = stride * scaled_voxel_coord_f.template cast<int>();
     if ((base_coord.array() < 0).any() ||
         ((base_coord + Eigen::Vector3i::Constant(stride)).array() >= size_).any()) {
       is_valid = false;
@@ -827,7 +827,7 @@ Eigen::Vector3f Octree<T>::gradImpl(const Eigen::Vector3f& voxel_coord_f,
     const int stride = 1 << scale;
     const Eigen::Vector3f scaled_voxel_coord_f = 1.f / stride * voxel_coord_f - sample_offset_frac_;
     factor =  math::fracf(scaled_voxel_coord_f);
-    const Eigen::Vector3i base_coord = stride * scaled_voxel_coord_f.cast<int>();
+    const Eigen::Vector3i base_coord = stride * scaled_voxel_coord_f.template cast<int>();
     Eigen::Vector3i lower_lower_coord = (base_coord - stride * Eigen::Vector3i::Constant(1)).cwiseMax(Eigen::Vector3i::Constant(0));
     Eigen::Vector3i lower_upper_coord = base_coord.cwiseMax(Eigen::Vector3i::Constant(0));
     Eigen::Vector3i upper_lower_coord = (base_coord + stride * Eigen::Vector3i::Constant(1)).cwiseMin(
