@@ -38,60 +38,7 @@
 
 #include <cstring>
 
-
-
-inline uint32_t gray_to_RGBA(double h) {
-  constexpr double v = 0.75;
-  double r = 0, g = 0, b = 0;
-  if (v > 0) {
-    constexpr double m = 0.25;
-    constexpr double sv = 0.6667;
-    h *= 6.0;
-    const int sextant = static_cast<int>(h);
-    const double fract = h - sextant;
-    const double vsf = v * sv * fract;
-    const double mid1 = m + vsf;
-    const double mid2 = v - vsf;
-    switch (sextant) {
-      case 0:
-        r = v;
-        g = mid1;
-        b = m;
-        break;
-      case 1:
-        r = mid2;
-        g = v;
-        b = m;
-        break;
-      case 2:
-        r = m;
-        g = v;
-        b = mid1;
-        break;
-      case 3:
-        r = m;
-        g = mid2;
-        b = v;
-        break;
-      case 4:
-        r = mid1;
-        g = m;
-        b = v;
-        break;
-      case 5:
-        r = v;
-        g = m;
-        b = mid2;
-        break;
-      default:
-        r = 0;
-        g = 0;
-        b = 0;
-        break;
-    }
-  }
-  return se::pack_rgba(r * 255, g * 255, b * 255, 255);
-}
+#include "se/image_utils.hpp"
 
 
 
@@ -114,26 +61,8 @@ void renderDepthKernel(uint32_t*              depth_RGBA_image_data,
                        const float            far_plane) {
 
   TICKD("renderDepthKernel");
-
-  const float range_scale = 1.f / (far_plane - near_plane);
-
-#pragma omp parallel for
-  for (int y = 0; y < depth_RGBA_image_res.y(); y++) {
-    const int row_offset = y * depth_RGBA_image_res.x();
-    for (int x = 0; x < depth_RGBA_image_res.x(); x++) {
-
-      const unsigned int pixel_idx = row_offset + x;
-
-      if (depth_image_data[pixel_idx] < near_plane) {
-        depth_RGBA_image_data[pixel_idx] = 0xFFFFFFFF;
-      } else if (depth_image_data[pixel_idx] > far_plane) {
-        depth_RGBA_image_data[pixel_idx] = 0xFF000000;
-      } else {
-        const float depth_value = (depth_image_data[pixel_idx] - near_plane) * range_scale;
-        depth_RGBA_image_data[pixel_idx] = gray_to_RGBA(depth_value);
-      }
-    }
-  }
+  se::depth_to_rgba(depth_RGBA_image_data, depth_image_data, depth_RGBA_image_res,
+      near_plane, far_plane);
   TOCK("renderDepthKernel");
 }
 

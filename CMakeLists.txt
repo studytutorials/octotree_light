@@ -111,13 +111,17 @@ write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Con
   COMPATIBILITY SameMajorVersion
 )
 
-
-
 # Install the Config and ConfigVersion files
 install(FILES
   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
   "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
   DESTINATION "${CMAKE_INSTALL_CMAKEDIR}"
+)
+
+# Install the package.xml needed by ROS
+install(FILES
+  package.xml
+  DESTINATION share/cmake/${PROJECT_NAME}
 )
 
 # Create an uninstall target

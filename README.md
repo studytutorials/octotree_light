@@ -45,20 +45,20 @@ git submodule update --init --recursive
 
 The following packages are required to build the `se-denseslam` library:
 
-* CMake >= 3.5
+* CMake >= 3.10
 * Eigen3
 * OpenCV
+* yaml-cpp >= 5.2
 * OctoMap (optional, for OctoMap output)
 * OpenMP (optional, for improved performance)
 * googletest (optional, for unit tests, must be compiled from source)
 
 The benchmarking and GUI apps additionally require:
 
-* OpenGL
 * GLut (for the simple GUI)
 * PkgConfig/Qt5 (for the Qt GUI)
 * OpenNI2 (for Microsoft Kinect/Asus Xtion input)
-* Python2/Numpy (for the evaluation scripts)
+* Python3/Numpy/Matplotlib (for the evaluation scripts)
 
 To install the dependencies on Debian/Ubuntu run
 

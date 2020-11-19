@@ -8,7 +8,7 @@ set -eu
 IFS="$(printf '%b_' '\t\n')" ; IFS="${IFS%_}"
 
 # Required dependencies
-sudo apt-get --yes install build-essential git cmake libeigen3-dev libopencv-dev
+sudo apt-get --yes install g++ make cmake git libeigen3-dev libopencv-dev libyaml-cpp-dev
 
 # Optional dependencies
 sudo apt-get --yes install freeglut3-dev libopenni2-dev libpapi-dev \

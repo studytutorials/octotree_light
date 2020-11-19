@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>supereight</name>
+  <version>0.1.0</version>
+  <description>
+    The ROS package for supereight.
+  </description>
+  <maintainer email="s.papatheodorou18@imperial.ac.uk">Sotiris Papatheodorou</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <author>Emanuele Vespa</author>
+  <author>Nils Funk</author>
+  <author>Sotiris Papatheodorou</author>
+  <author>Marija Popović</author>
+  <author>Yiduo Wang</author>
+  <author>Stefan Leutenegger</author>
+
+  <buildtool_depend>cmake</buildtool_depend>
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+
+  <build_depend>eigen3</build_depend>
+  <build_export_depend>eigen3</build_export_depend>
+
+  <doc_depend>doxygen</doc_depend>
+</package>
+

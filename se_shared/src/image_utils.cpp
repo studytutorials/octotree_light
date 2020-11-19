@@ -6,8 +6,107 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
 
 #include "lodepng.h"
+
+
+
+uint32_t gray_to_rgba(double h) {
+  constexpr double v = 0.75;
+  double r = 0, g = 0, b = 0;
+  if (v > 0) {
+    constexpr double m = 0.25;
+    constexpr double sv = 0.6667;
+    h *= 6.0;
+    const int sextant = static_cast<int>(h);
+    const double fract = h - sextant;
+    const double vsf = v * sv * fract;
+    const double mid1 = m + vsf;
+    const double mid2 = v - vsf;
+    switch (sextant) {
+      case 0:
+        r = v;
+        g = mid1;
+        b = m;
+        break;
+      case 1:
+        r = mid2;
+        g = v;
+        b = m;
+        break;
+      case 2:
+        r = m;
+        g = v;
+        b = mid1;
+        break;
+      case 3:
+        r = m;
+        g = mid2;
+        b = v;
+        break;
+      case 4:
+        r = mid1;
+        g = m;
+        b = v;
+        break;
+      case 5:
+        r = v;
+        g = m;
+        b = mid2;
+        break;
+      default:
+        r = 0;
+        g = 0;
+        b = 0;
+        break;
+    }
+  }
+  return se::pack_rgba(r * 255, g * 255, b * 255, 255);
+}
+
+
+
+void se::depth_to_rgba(uint32_t*              depth_RGBA_image_data,
+                       const float*           depth_image_data,
+                       const Eigen::Vector2i& depth_image_res,
+                       const float            min_depth,
+                       const float            max_depth) {
+
+  const float range_scale = 1.0f / (max_depth - min_depth);
+#pragma omp parallel for
+  for (int y = 0; y < depth_image_res.y(); y++) {
+    const int row_offset = y * depth_image_res.x();
+    for (int x = 0; x < depth_image_res.x(); x++) {
+      const int pixel_idx = row_offset + x;
+      if (depth_image_data[pixel_idx] < min_depth) {
+        depth_RGBA_image_data[pixel_idx] = 0xFFFFFFFF; // White
+      } else if (depth_image_data[pixel_idx] > max_depth) {
+        depth_RGBA_image_data[pixel_idx] = 0xFF000000; // Black
+      } else {
+        const float depth_value = (depth_image_data[pixel_idx] - min_depth) * range_scale;
+        depth_RGBA_image_data[pixel_idx] = gray_to_rgba(depth_value);
+      }
+    }
+  }
+}
+
+
+
+int se::save_depth_png(const float*           depth_image_data,
+                       const Eigen::Vector2i& depth_image_res,
+                       const std::string&     filename,
+                       const float            scale) {
+  // Scale the depth data and convert to uint16_t
+  const size_t num_pixels = depth_image_res.prod();
+  std::unique_ptr<uint16_t> depth_image_data_scaled (new uint16_t[num_pixels]);
+#pragma omp parallel for
+  for (size_t i = 0; i < num_pixels; ++i) {
+    depth_image_data_scaled.get()[i] = std::roundf(scale * depth_image_data[i]);
+  }
+  // Save the uint16_t depth image
+  return se::save_depth_png(depth_image_data_scaled.get(), depth_image_res, filename);
+}
 
 
 
@@ -17,27 +116,47 @@ int se::save_depth_png(const uint16_t*        depth_image_data,
 
   // Allocate a new image buffer to use for changing the image data from little
   // endian (used in x86 and ARM CPUs) to big endian order (used in PNG).
-  const size_t num_pixels = depth_image_res.x() * depth_image_res.y();
-  uint16_t* depth_big_endian = new uint16_t[num_pixels];
+  const size_t num_pixels = depth_image_res.prod();
+  std::unique_ptr<uint16_t> depth_big_endian (new uint16_t[num_pixels]);
 #pragma omp parallel for
   for (size_t i = 0; i < num_pixels; ++i) {
     // Swap the byte order.
     const uint16_t depth_value = depth_image_data[i];
     const uint16_t low_byte = depth_value & 0x00FF;
     const uint16_t high_byte = (depth_value & 0xFF00) >> 8;
-    depth_big_endian[i] = low_byte << 8 | high_byte;
+    depth_big_endian.get()[i] = low_byte << 8 | high_byte;
   }
 
   // Save the image to file.
   const unsigned ret = lodepng_encode_file(
       filename.c_str(),
-      reinterpret_cast<const unsigned char*>(depth_big_endian),
+      reinterpret_cast<const unsigned char*>(depth_big_endian.get()),
       depth_image_res.x(),
       depth_image_res.y(),
       LCT_GREY,
       16);
 
-  delete[] depth_big_endian;
+  return ret;
+}
+
+
+
+int se::load_depth_png(float**            depth_image_data,
+                       Eigen::Vector2i&   depth_image_res,
+                       const std::string& filename,
+                       const float        inverse_scale) {
+  // Load the 16-bit depth data
+  uint16_t* depth_image_data_scaled;
+  const int ret = se::load_depth_png(&depth_image_data_scaled, depth_image_res,
+      filename);
+  // Remove the scaling from the 16-bit depth data and convert to float
+  const size_t num_pixels = depth_image_res.prod();
+  *depth_image_data = static_cast<float*>(malloc(num_pixels * sizeof(float)));
+#pragma omp parallel for
+  for (size_t i = 0; i < num_pixels; ++i) {
+    (*depth_image_data)[i] = inverse_scale * depth_image_data_scaled[i];
+  }
+  free(depth_image_data_scaled);
   return ret;
 }
 
@@ -58,7 +177,7 @@ int se::load_depth_png(uint16_t**         depth_image_data,
 
   // Change the image data from little endian (used in x86 and ARM CPUs) to big
   // endian order (used in PNG).
-  const size_t num_pixels = depth_image_res.x() * depth_image_res.y();
+  const size_t num_pixels = depth_image_res.prod();
 #pragma omp parallel for
   for (size_t i = 0; i < num_pixels; ++i) {
     // Swap the byte order.
@@ -69,6 +188,23 @@ int se::load_depth_png(uint16_t**         depth_image_data,
   }
 
   return ret;
+}
+
+
+
+int se::save_depth_pgm(const float*           depth_image_data,
+                       const Eigen::Vector2i& depth_image_res,
+                       const std::string&     filename,
+                       const float            scale) {
+  // Scale the depth data and convert to uint16_t
+  const size_t num_pixels = depth_image_res.prod();
+  std::unique_ptr<uint16_t> depth_image_data_scaled (new uint16_t[num_pixels]);
+#pragma omp parallel for
+  for (size_t i = 0; i < num_pixels; ++i) {
+    depth_image_data_scaled.get()[i] = std::roundf(scale * depth_image_data[i]);
+  }
+  // Save the uint16_t depth image
+  return se::save_depth_pgm(depth_image_data_scaled.get(), depth_image_res, filename);
 }
 
 
@@ -106,6 +242,27 @@ int se::save_depth_pgm(const uint16_t*        depth_image_data,
   file.close();
 
   return 0;
+}
+
+
+
+int se::load_depth_pgm(float**            depth_image_data,
+                       Eigen::Vector2i&   depth_image_res,
+                       const std::string& filename,
+                       const float        inverse_scale) {
+  // Load the 16-bit depth data
+  uint16_t* depth_image_data_scaled;
+  const int ret = se::load_depth_pgm(&depth_image_data_scaled, depth_image_res,
+      filename);
+  // Remove the scaling from the 16-bit depth data and convert to float
+  const size_t num_pixels = depth_image_res.prod();
+  *depth_image_data = static_cast<float*>(malloc(num_pixels * sizeof(float)));
+#pragma omp parallel for
+  for (size_t i = 0; i < num_pixels; ++i) {
+    (*depth_image_data)[i] = inverse_scale * depth_image_data_scaled[i];
+  }
+  free(depth_image_data_scaled);
+  return ret;
 }
 
 

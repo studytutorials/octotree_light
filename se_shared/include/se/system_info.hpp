@@ -18,7 +18,7 @@ namespace se {
    *
    * This function depends on the underlying OS. It's implemented for the
    * following:
-   * - Linux: It parses /proc/self/status for the RAM usage (VmRSS).
+   * - Linux: It parses /proc/self/status for the RAM usage (VmRSS + VmSwap).
    * - Other: Always returns 0.
    *
    * \return The RAM usage in bytes.
@@ -33,10 +33,12 @@ namespace se {
     }
 
     // Read the file line-by-line
+    size_t usage = 0;
     char line[512];
     while (fgets(line, sizeof(line), file) != NULL) {
-      // Find the line containing the virtual memory resident set size
-      if (strncmp(line, "VmRSS", 5) == 0) {
+      // Find the line containing the virtual memory resident set size or the
+      // virtual memory swap size
+      if (strncmp(line, "VmRSS", 5) == 0 || strncmp(line, "VmSwap", 6) == 0) {
         // Find the substring that contains the number
         char *number_str = strpbrk(line, "0123456789");
         const size_t number_str_len = strcspn(number_str, " ");
@@ -67,17 +69,15 @@ namespace se {
             scale = 1024;
             break;
         }
-        fclose(file);
-        return number * scale;
+        usage += number * scale;
       } else {
         continue;
       }
     }
 
     fclose(file);
-    // The VmRSS line was not found
 #endif
-    return 0;
+    return usage;
   }
 
 } // namespace se
