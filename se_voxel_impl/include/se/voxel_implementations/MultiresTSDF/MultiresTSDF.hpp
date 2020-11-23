@@ -134,7 +134,9 @@ struct MultiresTSDF {
                                     const SensorImpl&       sensor,
                                     se::key_t*              allocation_list,
                                     size_t                  reserved);
-
+  static size_t buildAllocationListFromRangeMeasurements(
+      OctreeType& map, const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
+      const Eigen::Matrix4f&  T_MC, se::key_t* allocation_list, size_t reserved);
 
 
   /**

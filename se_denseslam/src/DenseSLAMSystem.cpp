@@ -49,7 +49,6 @@
 #include "se/perfstats.h"
 #include "se/rendering.hpp"
 
-
 extern PerfStats stats;
 
 DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i&   image_res,
@@ -241,7 +240,39 @@ bool DenseSLAMSystem::integrate(const SensorImpl&  sensor,
   return true;
 }
 
+bool DenseSLAMSystem::integrateRangeMeasurements(
+    const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges) {
+  TICK("INTEGRATION")
+  const int num_blocks_per_pixel = map_->size()
+    / ((VoxelBlockType::size_li));
+  const size_t num_blocks_total = num_blocks_per_pixel
+    * image_res_.x() * image_res_.y();
+  allocation_list_.reserve(num_blocks_total);
 
+  const Eigen::Matrix4f T_CM = se::math::to_inverse_transformation(T_MC_); // TODO:
+  /*const size_t num_voxel = VoxelImpl::buildAllocationList(
+      *map_,
+      depth_image_,
+      T_MC_,
+      sensor,
+      allocation_list_.data(),
+      allocation_list_.capacity());
+
+  if (num_voxel > 0) {
+    TICKD("allocate")
+    map_->allocate(allocation_list_.data(), num_voxel);
+    TOCK("allocate")
+  }
+
+  VoxelImpl::integrate(
+      *map_,
+      depth_image_,
+      T_CM,
+      sensor,
+      frame);
+  TOCK("INTEGRATION")*/
+  return false;
+}
 
 bool DenseSLAMSystem::raycast(const SensorImpl& sensor) {
 
