@@ -5,7 +5,6 @@
 #include <cstdio>
 
 #include <se/octree_iterator.hpp>
-#include <se/voxel_implementations/MultiresOFusion/MultiresOFusion.hpp>
 #include <se/voxel_implementations/MultiresTSDF/MultiresTSDF.hpp>
 #include <se/voxel_implementations/OFusion/OFusion.hpp>
 #include <se/voxel_implementations/TSDF/TSDF.hpp>
