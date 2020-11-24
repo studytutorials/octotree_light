@@ -2,11 +2,11 @@ image: sotirisp/supereight-ci:18.04
 
 pipelines:
   branches:
-    '{master, devel}':
+    '{devel}':
     - step:
         script:
           - git submodule update --init --recursive
-          - GTEST_ROOT=/usr/local/src/googletest/googletest/ make test
+          - make test
           - make install
           - make test-install
 

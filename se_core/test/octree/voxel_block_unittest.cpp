@@ -59,15 +59,15 @@ TEST(VoxelBlock, InitData) {
   octree.insert(voxel_coord_2.x(), voxel_coord_2.y(), voxel_coord_2.z());
 
   TestVoxelT::VoxelBlockType* block_1 = octree.fetch(voxel_coord_1.x(), voxel_coord_1.y(), voxel_coord_1.z());
-  ASSERT_EQ(0.f, block_1->initData());
+  EXPECT_FLOAT_EQ(0.f, block_1->initData());
 
   TestVoxelT::VoxelBlockType* block_2 = octree.fetch(voxel_coord_2.x(), voxel_coord_2.y(), voxel_coord_2.z());
   block_2->setInitData(2.f);
-  ASSERT_EQ(2.f, block_2->initData());
+  EXPECT_FLOAT_EQ(2.f, block_2->initData());
 
   TestVoxelT::VoxelBlockType* block_3 = new TestVoxelT::VoxelBlockType(3.f);
-  ASSERT_EQ(3.f, block_3->initData());
-  delete(block_3);
+  EXPECT_FLOAT_EQ(3.f, block_3->initData());
+  delete block_3;
 }
 
 TEST(VoxelBlock, DataIOEigen) {

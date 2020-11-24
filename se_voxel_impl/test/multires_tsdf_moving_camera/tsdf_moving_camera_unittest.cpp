@@ -98,6 +98,7 @@ private:
 
 struct obstacle {
   virtual float intersect(const ray& ray) = 0;
+  virtual ~obstacle() {};
 };
 
 struct sphere_obstacle : obstacle {
@@ -542,7 +543,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereTranslation) {
   }
 
   for (std::vector<obstacle*>::iterator sphere = spheres.begin(); sphere != spheres.end(); ++sphere) {
-    free(*sphere);
+    delete *sphere;
   }
   free(depth_image_data_);
 
@@ -594,7 +595,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereRotation) {
   }
 
   for (std::vector<obstacle*>::iterator sphere = spheres.begin(); sphere != spheres.end(); ++sphere) {
-    free(*sphere);
+    delete *sphere;
   }
   free(depth_image_data_);
 
@@ -639,7 +640,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, BoxTranslation) {
   }
 
   for (std::vector<obstacle*>::iterator box = boxes.begin(); box != boxes.end(); ++box) {
-    free(*box);
+    delete *box;
   }
   free(depth_image_data_);
 
@@ -683,7 +684,7 @@ TEST_F(MultiscaleTSDFMovingCameraTest, SphereBoxTranslation) {
   }
 
   for (std::vector<obstacle*>::iterator obstacle = obstacles.begin(); obstacle != obstacles.end(); ++obstacle) {
-    free(*obstacle);
+    delete *obstacle;
   }
   free(depth_image_data_);
 }

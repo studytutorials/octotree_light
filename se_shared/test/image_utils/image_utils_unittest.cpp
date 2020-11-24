@@ -118,8 +118,8 @@ TEST(RGBABlending, Blend) {
 class RGBAImageConversion : public ::testing::Test {
   protected:
     virtual void SetUp() {
-      rgb_ = std::unique_ptr<uint8_t>(new uint8_t[3 * num_pixels_]());
-      rgba_ = std::unique_ptr<uint32_t>(new uint32_t[num_pixels_]());
+      rgb_ = std::unique_ptr<uint8_t[]>(new uint8_t[3 * num_pixels_]());
+      rgba_ = std::unique_ptr<uint32_t[]>(new uint32_t[num_pixels_]());
 
       // Initialize the test images with a pattern.
       for (size_t p = 0; p < num_pixels_; ++p) {
@@ -133,8 +133,8 @@ class RGBAImageConversion : public ::testing::Test {
       }
     }
 
-    std::unique_ptr<uint8_t> rgb_;
-    std::unique_ptr<uint32_t> rgba_;
+    std::unique_ptr<uint8_t[]> rgb_;
+    std::unique_ptr<uint32_t[]> rgba_;
     const size_t width_  = 64;
     const size_t height_ = 64;
     const size_t num_pixels_ = width_ * height_;
@@ -145,7 +145,7 @@ class RGBAImageConversion : public ::testing::Test {
 
 
 TEST_F(RGBAImageConversion, RGBToRGBA) {
-  std::unique_ptr<uint32_t> rgba (new uint32_t[num_pixels_]());
+  std::unique_ptr<uint32_t[]> rgba (new uint32_t[num_pixels_]());
   se::rgb_to_rgba(rgb_.get(), rgba.get(), num_pixels_);
   EXPECT_EQ(memcmp(rgba.get(), rgba_.get(), rgba_size_bytes_), 0);
 }
@@ -153,7 +153,7 @@ TEST_F(RGBAImageConversion, RGBToRGBA) {
 
 
 TEST_F(RGBAImageConversion, RGBAToRGB) {
-  std::unique_ptr<uint8_t> rgb (new uint8_t[3 * num_pixels_]());
+  std::unique_ptr<uint8_t[]> rgb (new uint8_t[3 * num_pixels_]());
   se::rgba_to_rgb(rgba_.get(), rgb.get(), num_pixels_);
   EXPECT_EQ(memcmp(rgb.get(), rgb_.get(), rgb_size_bytes_), 0);
 }

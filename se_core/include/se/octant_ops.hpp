@@ -1,5 +1,5 @@
 /*
-    Copyright 2016 Emanuele Vespa, Imperial College London 
+    Copyright 2016 Emanuele Vespa, Imperial College London
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions are met:
 
@@ -23,7 +23,7 @@
     SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
     CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
     OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #ifndef OCTANT_OPS_HPP
@@ -46,7 +46,7 @@ namespace se {
       return octant_key & SCALE_MASK;
 }
 
-    inline se::key_t encode(const int x, const int y, const int z, 
+    inline se::key_t encode(const int x, const int y, const int z,
         const int depth, const int voxel_depth) {
       const int offset = MAX_BITS - voxel_depth + depth - 1;
       return (compute_morton(x, y, z) & MASK[offset] & ~SCALE_MASK) | depth;
@@ -61,7 +61,7 @@ namespace se {
  * Algorithm 5 of p4est paper: https://epubs.siam.org/doi/abs/10.1137/100791634
  */
 inline Eigen::Vector3i face_neighbour(const se::key_t octant_key,
-    const unsigned int face, const unsigned int l, 
+    const unsigned int face, const unsigned int l,
     const unsigned int voxel_depth) {
   Eigen::Vector3i octant_coord = se::keyops::decode(octant_key);
   const unsigned int octant_size = 1 << (voxel_depth - l);
@@ -73,17 +73,22 @@ inline Eigen::Vector3i face_neighbour(const se::key_t octant_key,
 
 /*
  * \brief Return true if node is a descendant of ancestor
- * \param octant_key
- * \param ancestor_key
- * \param voxel_depth max depth of the tree on which the voxel lives
+ * \param[in] octant_key
+ * \param[in] ancestor_key
+ * \param[in] voxel_depth  Max/voxel depth of the tree the keys refer to.
+ * \return True if octant_key is a descendant of the ancestor_key or if
+ *         they are equal.
  */
-inline bool descendant(se::key_t octant_key, se::key_t ancestor_key,
-    const int voxel_depth) {
-  const int depth = se::keyops::depth(ancestor_key);
-  const int idx = MAX_BITS - voxel_depth + depth - 1;
-  ancestor_key = se::keyops::code(ancestor_key);
-  octant_key = se::keyops::code(octant_key) & MASK[idx];
-  return (ancestor_key ^ octant_key) == 0;
+inline bool descendant(const se::key_t octant_key,
+                       const se::key_t ancestor_key,
+                       const int       voxel_depth) {
+  const int depth = se::keyops::depth(octant_key);
+  const int ancestor_depth = se::keyops::depth(ancestor_key);
+  // MAX_BITS is used for the maximum voxel depth given the size of the se::key_t
+  const int idx = MAX_BITS - voxel_depth + ancestor_depth - 1;
+  const se::key_t ancestor_key_code = se::keyops::code(ancestor_key);
+  const se::key_t octant_key_code = se::keyops::code(octant_key) & MASK[idx];
+  return (depth >= ancestor_depth) && (ancestor_key_code ^ octant_key_code) == 0;
 }
 
 /*
@@ -142,14 +147,14 @@ inline Eigen::Vector3i far_corner(const se::key_t octant_key, const int depth,
 
 /*
  * \brief Computes the non-sibling neighbourhood around an octants. In the
- * special case in which the octant lies on an edge, neighbour are duplicated 
+ * special case in which the octant lies on an edge, neighbour are duplicated
  * as movement outside the enclosing cube is forbidden.
  * \param result 7-vector containing the neighbours
  * \param octant_key
  * \param depth of octant
  * \param voxel_depth max depth of the tree on which the octant lives
  */
-inline void exterior_neighbours(se::key_t result[7], 
+inline void exterior_neighbours(se::key_t result[7],
     const se::key_t octant_key, const int depth, const int voxel_depth) {
 
   const int child_idx = se::child_idx(octant_key, depth, voxel_depth);
@@ -179,10 +184,10 @@ inline void exterior_neighbours(se::key_t result[7],
 
 /*
  * \brief Computes the six face neighbours of an octant. These are stored in an
- * 4x6 matrix in which each column represents the homogeneous coordinates of a 
+ * 4x6 matrix in which each column represents the homogeneous coordinates of a
  * neighbouring octant. The neighbours along the x axis come first, followed by
- * neighbours along the y axis and finally along the z axis. All coordinates are 
- * clamped to be in the range between [0, max_size] where max size is given 
+ * neighbours along the y axis and finally along the z axis. All coordinates are
+ * clamped to be in the range between [0, max_size] where max size is given
  * by pow(2, voxel_depth).
  * \param res 4x6 matrix containing the neighbours
  * \param octant_coord octant coordinates
@@ -190,13 +195,13 @@ inline void exterior_neighbours(se::key_t result[7],
  * \param voxel_depth max depth of the tree on which the octant lives
  */
 
-static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res, 
+static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res,
     const Eigen::Vector3i& octant_coord, const int depth, const int voxel_depth) {
   const Eigen::Vector3i base_coord = octant_coord;
   const int size = 1 << voxel_depth;
   const int step = 1 << (voxel_depth - depth);
   Eigen::Matrix<int, 4, 6> cross;
-  res << 
+  res <<
     -step, step,     0,    0,     0,    0,
         0,    0, -step, step,     0,    0,
         0,    0,     0,    0, -step, step,
@@ -205,25 +210,25 @@ static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res,
     res = res.unaryExpr([size](const int a) {
         return std::max(std::min(a, size-1), 0);
         });
-} 
+}
 
 /*
  * \brief Computes the six face neighbours of an octant. These are stored in an
- * 4x6 matrix in which each column represents the homogeneous coordinates of a 
+ * 4x6 matrix in which each column represents the homogeneous coordinates of a
  * neighbouring octant. The neighbours along the x axis come first, followed by
- * neighbours along the y axis and finally along the z axis. All coordinates are 
- * clamped to be in the range between [0, max_size] where max size is given 
+ * neighbours along the y axis and finally along the z axis. All coordinates are
+ * clamped to be in the range between [0, max_size] where max size is given
  * by pow(2, voxel_depth).
  * \param res 4x6 matrix containing the neighbours
  * \param octant octant key
  * \param voxel_depth max depth of the tree on which the octant lives
  */
 
-static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res, 
+static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res,
     const se::key_t octant_key, const int voxel_depth) {
   one_neighbourhood(res, se::keyops::decode(octant_key), se::keyops::depth(octant_key),
       voxel_depth);
-} 
+}
 
 /*
  * \brief Computes the morton number of all siblings around an octant,
@@ -232,7 +237,7 @@ static inline void one_neighbourhood(Eigen::Ref<Eigen::Matrix<int, 4, 6>> res,
  * \param octant
  * \param voxel_depth max depth of the tree on which the octant lives
  */
-inline void siblings(se::key_t result[8], 
+inline void siblings(se::key_t result[8],
     const se::key_t octant_key, const int voxel_depth) {
   const int depth = (octant_key & SCALE_MASK);
   const int shift = 3 * (voxel_depth - depth);

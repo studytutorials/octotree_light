@@ -68,16 +68,45 @@ TEST(Octree, OctantFaceNeighbours) {
 }
 
 TEST(Octree, OctantDescendant) {
-  const unsigned voxel_depth = 8;
-  Eigen::Vector3i octant_coord = {110, 80, 159};
-  se::key_t octant_key =
-    se::keyops::encode(octant_coord.x(), octant_coord.y(), octant_coord.z(), 5, voxel_depth);
-  se::key_t ancestor_key =
-    se::keyops::encode(96, 64, 128, 3, voxel_depth);
-  ASSERT_EQ(true , se::descendant(octant_key, ancestor_key, voxel_depth));
+  // First octant
+  unsigned voxel_depth = 8;
+  unsigned block_depth = voxel_depth - 3;
+  se::key_t octant_key = se::keyops::encode(110, 80, 159, block_depth, voxel_depth);
+  EXPECT_TRUE(se::descendant(octant_key, octant_key, voxel_depth));
+
+  se::key_t ancestor_key = se::keyops::encode(96, 64, 128, 3, voxel_depth);
+  EXPECT_TRUE(se::descendant(octant_key, ancestor_key, voxel_depth));
+  EXPECT_FALSE(se::descendant(ancestor_key, octant_key, voxel_depth));
+
+  ancestor_key = se::keyops::encode(110, 80, 159, 3, voxel_depth);
+  EXPECT_TRUE(se::descendant(octant_key, ancestor_key, voxel_depth));
+  EXPECT_FALSE(se::descendant(ancestor_key, octant_key, voxel_depth));
+
+  ancestor_key = se::keyops::encode(110, 80, 159, 4, voxel_depth);
+  EXPECT_TRUE(se::descendant(octant_key, ancestor_key, voxel_depth));
+  EXPECT_FALSE(se::descendant(ancestor_key, octant_key, voxel_depth));
 
   ancestor_key = se::keyops::encode(128, 64, 64, 3, voxel_depth);
-  ASSERT_FALSE(se::descendant(octant_key, ancestor_key, voxel_depth));
+  EXPECT_FALSE(se::descendant(octant_key, ancestor_key, voxel_depth));
+  EXPECT_FALSE(se::descendant(ancestor_key, octant_key, voxel_depth));
+
+  // Second octant
+  voxel_depth = 7;
+  block_depth = voxel_depth - 3;
+  octant_key = se::keyops::encode(80, 64, 48, block_depth, voxel_depth);
+  EXPECT_TRUE(se::descendant(octant_key, octant_key, voxel_depth));
+
+  ancestor_key = se::keyops::encode(80, 64, 48, block_depth - 1, voxel_depth);
+  EXPECT_TRUE(se::descendant(octant_key, ancestor_key, voxel_depth));
+  EXPECT_FALSE(se::descendant(ancestor_key, octant_key, voxel_depth));
+
+  ancestor_key = se::keyops::encode(81, 65, 49, block_depth - 1, voxel_depth);
+  EXPECT_TRUE(se::descendant(octant_key, ancestor_key, voxel_depth));
+  EXPECT_FALSE(se::descendant(ancestor_key, octant_key, voxel_depth));
+
+  ancestor_key = se::keyops::encode(80, 64, 48, block_depth - 2, voxel_depth);
+  EXPECT_TRUE(se::descendant(octant_key, ancestor_key, voxel_depth));
+  EXPECT_FALSE(se::descendant(ancestor_key, octant_key, voxel_depth));
 }
 
 TEST(Octree, OctantParent) {

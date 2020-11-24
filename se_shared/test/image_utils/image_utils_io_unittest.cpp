@@ -18,9 +18,9 @@
 
 class DepthImageIO : public ::testing::Test {
   protected:
-    virtual void SetUp() {
-      depth_image_data_16_ = new uint16_t[num_pixels_]();
-      depth_image_data_f_ = new float[num_pixels_]();
+    DepthImageIO() {
+      depth_image_data_16_ = std::unique_ptr<uint16_t[]>(new uint16_t[num_pixels_]());
+      depth_image_data_f_ = std::unique_ptr<float[]>(new float[num_pixels_]());
 
       // Initialize the test images (one in scaled uint16_t, the other in float
       // metres) with a black (B), white (W) and gray (G) pattern.
@@ -44,8 +44,8 @@ class DepthImageIO : public ::testing::Test {
       }
     }
 
-    uint16_t* depth_image_data_16_;
-    float* depth_image_data_f_;
+    std::unique_ptr<uint16_t[]> depth_image_data_16_;
+    std::unique_ptr<float[]> depth_image_data_f_;
     const size_t depth_image_width_  = 64;
     const size_t depth_image_height_ = 64;
     const float depth_scale_ = 5000.0f;
@@ -63,7 +63,7 @@ class DepthImageIO : public ::testing::Test {
 
 TEST_F(DepthImageIO, PNGSave16Load16) {
   // Save the image.
-  const int save_ok = se::save_depth_png(depth_image_data_16_, depth_image_res_, "/tmp/depth_16.png");
+  const int save_ok = se::save_depth_png(depth_image_data_16_.get(), depth_image_res_, "/tmp/depth_16.png");
   EXPECT_EQ(save_ok, 0);
 
   // Load the image.
@@ -75,7 +75,7 @@ TEST_F(DepthImageIO, PNGSave16Load16) {
   // Compare the loaded image with the saved one.
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.x()), depth_image_width_);
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.y()), depth_image_height_);
-  EXPECT_EQ(memcmp(loaded_depth_16, depth_image_data_16_, depth_16_size_bytes_), 0);
+  EXPECT_EQ(memcmp(loaded_depth_16, depth_image_data_16_.get(), depth_16_size_bytes_), 0);
 
   free(loaded_depth_16);
 }
@@ -84,7 +84,7 @@ TEST_F(DepthImageIO, PNGSave16Load16) {
 
 TEST_F(DepthImageIO, PNGSaveFLoad16) {
   // Save the image.
-  const int save_ok = se::save_depth_png(depth_image_data_f_, depth_image_res_, "/tmp/depth_f.png", depth_scale_);
+  const int save_ok = se::save_depth_png(depth_image_data_f_.get(), depth_image_res_, "/tmp/depth_f.png", depth_scale_);
   EXPECT_EQ(save_ok, 0);
 
   // Load the image.
@@ -96,7 +96,7 @@ TEST_F(DepthImageIO, PNGSaveFLoad16) {
   // Compare the loaded image with the saved one.
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.x()), depth_image_width_);
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.y()), depth_image_height_);
-  EXPECT_EQ(memcmp(loaded_depth_16, depth_image_data_16_, depth_16_size_bytes_), 0);
+  EXPECT_EQ(memcmp(loaded_depth_16, depth_image_data_16_.get(), depth_16_size_bytes_), 0);
 
   free(loaded_depth_16);
 }
@@ -105,7 +105,7 @@ TEST_F(DepthImageIO, PNGSaveFLoad16) {
 
 TEST_F(DepthImageIO, PNGSave16LoadF) {
   // Save the image.
-  const int save_ok = se::save_depth_png(depth_image_data_16_, depth_image_res_, "/tmp/depth_16.png");
+  const int save_ok = se::save_depth_png(depth_image_data_16_.get(), depth_image_res_, "/tmp/depth_16.png");
   EXPECT_EQ(save_ok, 0);
 
   // Load the image.
@@ -117,7 +117,7 @@ TEST_F(DepthImageIO, PNGSave16LoadF) {
   // Compare the loaded image with the saved one.
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.x()), depth_image_width_);
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.y()), depth_image_height_);
-  EXPECT_EQ(memcmp(loaded_depth_f, depth_image_data_f_, depth_f_size_bytes_), 0);
+  EXPECT_EQ(memcmp(loaded_depth_f, depth_image_data_f_.get(), depth_f_size_bytes_), 0);
 
   free(loaded_depth_f);
 }
@@ -126,7 +126,7 @@ TEST_F(DepthImageIO, PNGSave16LoadF) {
 
 TEST_F(DepthImageIO, PNGSaveFLoadF) {
   // Save the image.
-  const int save_ok = se::save_depth_png(depth_image_data_f_, depth_image_res_, "/tmp/depth_f.png", depth_scale_);
+  const int save_ok = se::save_depth_png(depth_image_data_f_.get(), depth_image_res_, "/tmp/depth_f.png", depth_scale_);
   EXPECT_EQ(save_ok, 0);
 
   // Load the image.
@@ -138,7 +138,7 @@ TEST_F(DepthImageIO, PNGSaveFLoadF) {
   // Compare the loaded image with the saved one.
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.x()), depth_image_width_);
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.y()), depth_image_height_);
-  EXPECT_EQ(memcmp(loaded_depth_f, depth_image_data_f_, depth_f_size_bytes_), 0);
+  EXPECT_EQ(memcmp(loaded_depth_f, depth_image_data_f_.get(), depth_f_size_bytes_), 0);
 
   free(loaded_depth_f);
 }
@@ -147,7 +147,7 @@ TEST_F(DepthImageIO, PNGSaveFLoadF) {
 
 TEST_F(DepthImageIO, PGMSave16Load16) {
   // Save the image.
-  const int save_ok = se::save_depth_pgm(depth_image_data_16_, depth_image_res_, "/tmp/depth_16.pgm");
+  const int save_ok = se::save_depth_pgm(depth_image_data_16_.get(), depth_image_res_, "/tmp/depth_16.pgm");
   EXPECT_EQ(save_ok, 0);
 
   // Load the image.
@@ -159,7 +159,7 @@ TEST_F(DepthImageIO, PGMSave16Load16) {
   // Compare the loaded image with the saved one.
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.x()), depth_image_width_);
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.y()), depth_image_height_);
-  EXPECT_EQ(memcmp(loaded_depth_16, depth_image_data_16_, depth_16_size_bytes_), 0);
+  EXPECT_EQ(memcmp(loaded_depth_16, depth_image_data_16_.get(), depth_16_size_bytes_), 0);
 
   free(loaded_depth_16);
 }
@@ -168,7 +168,7 @@ TEST_F(DepthImageIO, PGMSave16Load16) {
 
 TEST_F(DepthImageIO, PGMSaveFLoad16) {
   // Save the image.
-  const int save_ok = se::save_depth_pgm(depth_image_data_f_, depth_image_res_, "/tmp/depth_f.pgm", depth_scale_);
+  const int save_ok = se::save_depth_pgm(depth_image_data_f_.get(), depth_image_res_, "/tmp/depth_f.pgm", depth_scale_);
   EXPECT_EQ(save_ok, 0);
 
   // Load the image.
@@ -180,7 +180,7 @@ TEST_F(DepthImageIO, PGMSaveFLoad16) {
   // Compare the loaded image with the saved one.
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.x()), depth_image_width_);
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.y()), depth_image_height_);
-  EXPECT_EQ(memcmp(loaded_depth_16, depth_image_data_16_, depth_16_size_bytes_), 0);
+  EXPECT_EQ(memcmp(loaded_depth_16, depth_image_data_16_.get(), depth_16_size_bytes_), 0);
 
   free(loaded_depth_16);
 }
@@ -189,7 +189,7 @@ TEST_F(DepthImageIO, PGMSaveFLoad16) {
 
 TEST_F(DepthImageIO, PGMSave16LoadF) {
   // Save the image.
-  const int save_ok = se::save_depth_pgm(depth_image_data_16_, depth_image_res_, "/tmp/depth_16.pgm");
+  const int save_ok = se::save_depth_pgm(depth_image_data_16_.get(), depth_image_res_, "/tmp/depth_16.pgm");
   EXPECT_EQ(save_ok, 0);
 
   // Load the image.
@@ -201,7 +201,7 @@ TEST_F(DepthImageIO, PGMSave16LoadF) {
   // Compare the loaded image with the saved one.
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.x()), depth_image_width_);
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.y()), depth_image_height_);
-  EXPECT_EQ(memcmp(loaded_depth_f, depth_image_data_f_, depth_f_size_bytes_), 0);
+  EXPECT_EQ(memcmp(loaded_depth_f, depth_image_data_f_.get(), depth_f_size_bytes_), 0);
 
   free(loaded_depth_f);
 }
@@ -210,7 +210,7 @@ TEST_F(DepthImageIO, PGMSave16LoadF) {
 
 TEST_F(DepthImageIO, PGMSaveFLoadF) {
   // Save the image.
-  const int save_ok = se::save_depth_pgm(depth_image_data_f_, depth_image_res_, "/tmp/depth_f.pgm", depth_scale_);
+  const int save_ok = se::save_depth_pgm(depth_image_data_f_.get(), depth_image_res_, "/tmp/depth_f.pgm", depth_scale_);
   EXPECT_EQ(save_ok, 0);
 
   // Load the image.
@@ -222,7 +222,7 @@ TEST_F(DepthImageIO, PGMSaveFLoadF) {
   // Compare the loaded image with the saved one.
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.x()), depth_image_width_);
   EXPECT_EQ(static_cast<unsigned>(loaded_depth_image_res.y()), depth_image_height_);
-  EXPECT_EQ(memcmp(loaded_depth_f, depth_image_data_f_, depth_f_size_bytes_), 0);
+  EXPECT_EQ(memcmp(loaded_depth_f, depth_image_data_f_.get(), depth_f_size_bytes_), 0);
 
   free(loaded_depth_f);
 }

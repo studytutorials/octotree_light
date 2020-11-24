@@ -123,7 +123,7 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i&   image_res,
     }
 
     // Initialize the map
-    map_ = std::make_shared<se::Octree<VoxelImpl::VoxelType> >();
+    map_ = std::shared_ptr<se::Octree<VoxelImpl::VoxelType> >(new se::Octree<VoxelImpl::VoxelType>());
     map_->init(map_size_.x(), map_dim_.x());
 }
 
