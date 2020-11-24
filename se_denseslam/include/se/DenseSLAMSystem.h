@@ -207,7 +207,8 @@ class DenseSLAMSystem {
      * \return true (does not fail).
      */
     bool integrateRangeMeasurements(
-        const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges);
+        const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
+        const unsigned frame);
 
     /**
      * Raycast the map from the current pose to create a point cloud (point cloud

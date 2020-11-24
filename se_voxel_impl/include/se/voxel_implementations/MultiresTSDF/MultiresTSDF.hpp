@@ -148,6 +148,9 @@ struct MultiresTSDF {
                         const SensorImpl&       sensor,
                         const unsigned          frame);
 
+  static void integrateRangeMeasurements(
+      OctreeType& map, const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
+      const Eigen::Matrix4f& T_CM, const unsigned frame);
 
 
   /**

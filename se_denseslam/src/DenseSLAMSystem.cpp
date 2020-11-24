@@ -241,7 +241,7 @@ bool DenseSLAMSystem::integrate(const SensorImpl&  sensor,
 }
 
 bool DenseSLAMSystem::integrateRangeMeasurements(
-    const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges) {
+    const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges, const unsigned     frame) {
   TICK("INTEGRATION")
   const int num_blocks_per_pixel = map_->size()
     / ((VoxelBlockType::size_li));
@@ -250,11 +250,10 @@ bool DenseSLAMSystem::integrateRangeMeasurements(
   allocation_list_.reserve(num_blocks_total);
 
   const Eigen::Matrix4f T_CM = se::math::to_inverse_transformation(T_MC_); // TODO:
-  /*const size_t num_voxel = VoxelImpl::buildAllocationList(
+  const size_t num_voxel = VoxelImpl::buildAllocationListFromRangeMeasurements(
       *map_,
-      depth_image_,
+      ranges,
       T_MC_,
-      sensor,
       allocation_list_.data(),
       allocation_list_.capacity());
 
@@ -264,13 +263,12 @@ bool DenseSLAMSystem::integrateRangeMeasurements(
     TOCK("allocate")
   }
 
-  VoxelImpl::integrate(
+  VoxelImpl::integrateRangeMeasurements(
       *map_,
-      depth_image_,
+      ranges,
       T_CM,
-      sensor,
       frame);
-  TOCK("INTEGRATION")*/
+  TOCK("INTEGRATION")
   return false;
 }
 

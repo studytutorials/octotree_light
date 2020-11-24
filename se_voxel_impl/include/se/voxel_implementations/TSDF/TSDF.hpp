@@ -61,19 +61,19 @@ struct TSDF {
 
     static float selectNodeValue(const VoxelData& /* data */) {
       return VoxelType::initData().x;
-    };
+    }
 
     static float selectVoxelValue(const VoxelData& data) {
       return data.x;
-    };
+    }
 
     static bool isInside(const VoxelData& data) {
       return data.x < 0.f;
-    };
+    }
 
     static bool isValid(const VoxelData& data) {
       return (data.y > 0);
-    };
+    }
 
     using VoxelBlockType = se::VoxelBlockFinest<TSDF::VoxelType>;
 
@@ -132,7 +132,9 @@ struct TSDF {
                                     se::key_t*              allocation_list,
                                     size_t                  reserved);
 
-
+  static size_t buildAllocationListFromRangeMeasurements(
+      OctreeType& map, const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
+      const Eigen::Matrix4f&  T_MC, se::key_t* allocation_list, size_t reserved) {return 0;}
 
   /**
    * Integrate a depth image into the map.
@@ -143,7 +145,11 @@ struct TSDF {
                         const SensorImpl&       sensor,
                         const unsigned          frame);
 
+  static void integrateRangeMeasurements(
+      OctreeType& map, const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
+      const Eigen::Matrix4f& T_CM, const unsigned frame) {
 
+  }
 
   /**
    * Cast a ray and return the point where the surface was hit.

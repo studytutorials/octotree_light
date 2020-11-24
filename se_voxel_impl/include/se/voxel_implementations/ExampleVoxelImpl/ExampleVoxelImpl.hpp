@@ -93,19 +93,19 @@ struct ExampleVoxelImpl {
 
     static float selectNodeValue(VoxelData& data) {
       return data.x;
-    };
+    }
 
     static float selectVoxelValue(VoxelData& data) {
       return data.x;
-    };
+    }
 
     static bool isInside(VoxelData& data) {
       return true; // if inside
-    };
+    }
 
     static bool isValid(VoxelData& data) {
       return true; // if valid
-    };
+    }
 
     using VoxelBlockType = se::VoxelBlockFull<ExampleVoxelImpl::VoxelType>;
 
@@ -156,7 +156,9 @@ struct ExampleVoxelImpl {
                                     se::key_t*              allocation_list,
                                     size_t                  reserved);
 
-
+  static size_t buildAllocationListFromRangeMeasurements(
+      OctreeType& map, const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
+      const Eigen::Matrix4f&  T_MC, se::key_t* allocation_list, size_t reserved) {return 0;}
 
   /**
    * Integrate a depth image into the map.
@@ -169,7 +171,11 @@ struct ExampleVoxelImpl {
                         const SensorImpl&       sensor,
                         const unsigned          frame);
 
+  static void integrateRangeMeasurements(
+      OctreeType& map, const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
+      const Eigen::Matrix4f& T_CM, const unsigned frame) {
 
+  }
 
   /**
    * Cast a ray and return the point where the surface was hit.
