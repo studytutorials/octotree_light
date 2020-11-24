@@ -16,8 +16,7 @@
 #define VOXEL_IMPLS \
   X(TSDF) \
   X(OFusion) \
-  X(MultiresTSDF) \
-  X(MultiresOFusion)
+  X(MultiresTSDF)
 
 // The length of the longest voxel implementation name, used for alignment when
 // printing
