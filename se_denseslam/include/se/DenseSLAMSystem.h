@@ -204,6 +204,7 @@ class DenseSLAMSystem {
      * existing reconstruction. This is an alternative to the 1s1-3rd stage of the pipeline.
      *
      * \param[in] ranges Range vectors (in camera coordinate frame).
+     * \param[in] frame The index of the current frame (starts from 0).
      * \return true (does not fail).
      */
     bool integrateRangeMeasurements(
