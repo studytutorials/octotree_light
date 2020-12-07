@@ -373,8 +373,9 @@ namespace se {
 
   /// \brief A simple struct for raw range measurments as an alternative to projective sensors.
   struct RangeMeasurement {
-    Eigen::Vector3f range; ///< 3D range vector (in camera coordinates).
+    Eigen::Vector3f range; ///< 3D range vector [m] (in camera coordinates).
     float beamDivergence; ///< [rad] range measurement beam divergence (half cone angle).
+    float weight = 1.0f; ///< [-] weight of the measurement, must be in [0.0, 1.0].
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
 
