@@ -200,6 +200,18 @@ class DenseSLAMSystem {
                    const unsigned    frame);
 
     /**
+     * Integrate the 3D reconstruction resulting from the current frame to the
+     * existing reconstruction. This is an alternative to the 1s1-3rd stage of the pipeline.
+     *
+     * \param[in] ranges Range vectors (in camera coordinate frame).
+     * \param[in] frame The index of the current frame (starts from 0).
+     * \return true (does not fail).
+     */
+    bool integrateRangeMeasurements(
+        const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
+        const unsigned frame);
+
+    /**
      * Raycast the map from the current pose to create a point cloud (point cloud
      * map) and respective normal vectors (normal map). The point cloud and normal
      * maps are then used to track the next frame in DenseSLAMSystem::tracking.

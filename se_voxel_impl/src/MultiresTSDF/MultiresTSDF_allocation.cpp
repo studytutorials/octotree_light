@@ -123,3 +123,75 @@ size_t MultiresTSDF::buildAllocationList(OctreeType&             map,
   }
   return (size_t) voxel_count >= reserved ? reserved : (size_t) voxel_count;
 }
+
+/**
+ * \brief Given a depth map and camera matrix it computes the list of
+ * voxels intersected but not allocated by the rays around the measurement m in
+ * a region comprised between m +/- band.
+ * \param map indexing structure used to index voxel blocks
+ * \param T_wc camera to world frame transformation
+ * \param sensor model
+ * \param size discrete extent of the map, in number of voxels
+ * \param allocation_list output list of keys corresponding to voxel blocks to
+ * be allocated
+ * \param reserved allocated size of allocation_list
+ */
+size_t MultiresTSDF::buildAllocationListFromRangeMeasurements(
+    OctreeType& map, const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
+    const Eigen::Matrix4f&  T_MC, se::key_t* allocation_list, size_t reserved) {
+
+  //const Eigen::Vector2i depth_image_res(depth_image.width(), depth_image.height());
+  const int map_size = map.size();
+  const float voxel_dim = map.dim() / map_size;
+  const float inverse_voxel_dim = 1.f / voxel_dim;
+  const float band = 2.f * MultiresTSDF::mu;
+
+#ifdef _OPENMP
+  std::atomic<unsigned int> voxel_count (0);
+#else
+  unsigned int voxel_count = 0;
+#endif
+
+  const Eigen::Vector3f t_MC = se::math::to_translation(T_MC);
+  const int num_steps = ceil(band * inverse_voxel_dim);
+#pragma omp parallel for
+  for (size_t i=0; i<ranges.size(); ++i) {
+    /// \todo sleutene: pass min/max ranges as alternative to near/far plane?
+    const Eigen::Vector3f point_M = (T_MC * (ranges[i].range).homogeneous()).head<3>();
+
+    const Eigen::Vector3f reverse_ray_dir_M = (t_MC - point_M).normalized();
+    const Eigen::Vector3f ray_origin_M = point_M - (band * 0.5f) * reverse_ray_dir_M;
+    const Eigen::Vector3f step = (reverse_ray_dir_M * band) / num_steps;
+
+    Eigen::Vector3f ray_pos_M = ray_origin_M;
+    for (int i = 0; i < num_steps; i++) {
+
+      const Eigen::Vector3f voxel_coord_f = (ray_pos_M * inverse_voxel_dim).array().floor();
+
+      if (   (voxel_coord_f.x() < map_size)
+          && (voxel_coord_f.y() < map_size)
+          && (voxel_coord_f.z() < map_size)
+          && (voxel_coord_f.x() >= 0)
+          && (voxel_coord_f.y() >= 0)
+          && (voxel_coord_f.z() >= 0)) {
+        const Eigen::Vector3i voxel_coord = voxel_coord_f.cast<int>();
+        VoxelBlockType* block = map.fetch(
+            voxel_coord.x(), voxel_coord.y(), voxel_coord.z());
+        if (block == nullptr) {
+          const se::key_t k = map.hash(voxel_coord.x(), voxel_coord.y(), voxel_coord.z(),
+              map.blockDepth());
+          const unsigned int idx = voxel_count++;
+          if (idx < reserved) {
+            allocation_list[idx] = k;
+          } else {
+            break;
+          }
+        } else {
+          block->active(true);
+        }
+      }
+      ray_pos_M += step;
+    }
+  }
+  return (size_t) voxel_count >= reserved ? reserved : (size_t) voxel_count;
+}
