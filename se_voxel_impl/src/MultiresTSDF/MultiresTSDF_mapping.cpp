@@ -676,8 +676,8 @@ struct MultiresTSDFUpdateRangeMeasurements {
                     (static_cast<float>(voxel_data.y) * voxel_data.x + tsdf_value) /
                     (static_cast<float>(voxel_data.y) + 1.f),
                     -1.f, 1.f);
-                voxel_data.y = fminf(voxel_data.y +int(range.weight*100), MultiresTSDF::max_weight);
-                voxel_data.delta_y+=int(range.weight*100);
+                voxel_data.y = fminf(voxel_data.y + range.weight, MultiresTSDF::max_weight);
+                voxel_data.delta_y+=range.weight;
                 block->setData(voxel_coord, scale, voxel_data);
               }
             }

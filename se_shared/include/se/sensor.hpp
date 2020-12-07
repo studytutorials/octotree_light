@@ -375,7 +375,7 @@ namespace se {
   struct RangeMeasurement {
     Eigen::Vector3f range; ///< 3D range vector [m] (in camera coordinates).
     float beamDivergence; ///< [rad] range measurement beam divergence (half cone angle).
-    float weight = 1.0f; ///< [-] weight of the measurement, must be in [0.0, 1.0].
+    int weight = 1; ///< [-] weight of the measurement, must be in [0, 100].
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
 
