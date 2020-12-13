@@ -313,8 +313,7 @@ bool DenseSLAMSystem::raycast(const SensorImpl& sensor) {
 
   TICK("RAYCASTING")
   if(sensor.model.imageWidth()!=image_res_[0] || sensor.model.imageHeight()!=image_res_[1]) {
-    std::cout << "wrong resolution" << std::endl;
-    return false;
+    changeResolution(Eigen::Vector2i(sensor.model.imageWidth(), sensor.model.imageHeight()));
   }
   raycast_T_MC_ = T_MC_;
   raycastKernel<VoxelImpl>(*map_, surface_point_cloud_M_, surface_normals_M_,
@@ -330,8 +329,7 @@ void DenseSLAMSystem::renderVolume(uint32_t*              volume_RGBA_image_data
                                    const SensorImpl&      sensor) {
 
   if(sensor.model.imageWidth()!=image_res_[0] || sensor.model.imageHeight()!=image_res_[1]) {
-    std::cout << "wrong resolution" << std::endl;
-    return;
+    changeResolution(Eigen::Vector2i(sensor.model.imageWidth(), sensor.model.imageHeight()));
   }
   se::Image<Eigen::Vector3f> render_surface_point_cloud_M (image_res_.x(), image_res_.y());
   se::Image<Eigen::Vector3f> render_surface_normals_M (image_res_.x(), image_res_.y());
@@ -361,6 +359,9 @@ void DenseSLAMSystem::renderTrack(uint32_t*              tracking_RGBA_image_dat
                                   const Eigen::Vector2i& tracking_RGBA_image_res) {
 
   TICKD("renderTrack")
+  if(tracking_RGBA_image_res[0]!=image_res_[0] || tracking_RGBA_image_res[1]!=image_res_[1]) {
+    changeResolution(tracking_RGBA_image_res);
+  }
   renderTrackKernel(tracking_RGBA_image_data, tracking_result_.data(), tracking_RGBA_image_res);
   TOCK("renderTrack")
 }
@@ -373,8 +374,7 @@ void DenseSLAMSystem::renderDepth(uint32_t*              depth_RGBA_image_data,
 
   TICKD("renderDepth")
   if(sensor.model.imageWidth()!=image_res_[0] || sensor.model.imageHeight()!=image_res_[1]) {
-    std::cout << "wrong resolution" << std::endl;
-    return;
+    changeResolution(Eigen::Vector2i(sensor.model.imageWidth(), sensor.model.imageHeight()));
   }
   renderDepthKernel(depth_RGBA_image_data, depth_image_.data(), depth_RGBA_image_res,
       sensor.near_plane, sensor.far_plane);
@@ -388,8 +388,7 @@ void DenseSLAMSystem::renderRGBA(uint32_t*              output_RGBA_image_data,
 
   TICKD("renderRGBA")
   if(output_RGBA_image_res[0]!=image_res_[0] || output_RGBA_image_res[1]!=image_res_[1]) {
-    std::cout << "wrong resolution" << std::endl;
-    return;
+    changeResolution(output_RGBA_image_res);
   }
   renderRGBAKernel(output_RGBA_image_data, output_RGBA_image_res, rgba_image_);
   TOCK("renderRGBA")
