@@ -139,6 +139,8 @@ class DenseSLAMSystem {
                     const se::Configuration& config,
                     const std::string        voxel_impl_yaml_path = "");
 
+    void changeResolution(const Eigen::Vector2i& imageRes);
+
     /**
      * Preprocess a single depth frame and add it to the pipeline.
      * This is the first stage of the pipeline.
