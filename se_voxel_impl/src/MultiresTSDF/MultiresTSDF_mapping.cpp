@@ -378,13 +378,18 @@ struct MultiresTSDFUpdateRangeMeasurements {
       ranges_(ranges),
       T_CM_(T_CM),
       voxel_dim_(voxel_dim),
-      sample_offset_frac_(map.sample_offset_frac_) {}
+      sample_offset_frac_(map.sample_offset_frac_) {
+    for(const se::RangeMeasurement & range : ranges_) {
+      max_range_ = std::max(range.range.norm(), max_range_);
+    }
+  }
 
   const OctreeType& map_;
   const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges_;
   const Eigen::Matrix4f& T_CM_;
   const float voxel_dim_;
   const Eigen::Vector3f& sample_offset_frac_;
+  float max_range_ = 0.0f;
 
   /**
    * Update the subgrids of a voxel block starting from a given scale up
@@ -549,6 +554,18 @@ struct MultiresTSDFUpdateRangeMeasurements {
 
     const Eigen::Vector3i block_coord = block->coordinates();
 
+    // sleutene: early abort if whole block too far away
+    const Eigen::Vector3f voxel_centre_coord_f =
+                    se::get_sample_coord(block_coord + Eigen::Vector3i(block_size/2, block_size/2, block_size/2), voxel_stride, sample_offset_frac_);
+    const Eigen::Vector3f voxel_centre_coord_C = (T_CM_ * (voxel_dim_ * voxel_centre_coord_f).homogeneous()).head(3);
+    const float block_angle = atan(voxel_dim_*sqrt(3.0f)/2.0f/voxel_centre_coord_C.norm());
+    std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>> ranges;
+    for(const se::RangeMeasurement & range : ranges_) {
+      if(voxel_centre_coord_C.normalized().dot(range.range.normalized())>cos(range.beamDivergence + block_angle)) {
+        ranges.push_back(range); // only consider active ones later
+      }
+    }
+
     for (unsigned int z = 0; z < block_size; z += parent_stride) {
       for (unsigned int y = 0; y < block_size; y += parent_stride) {
         for (unsigned int x = 0; x < block_size; x += parent_stride) {
@@ -582,7 +599,7 @@ struct MultiresTSDFUpdateRangeMeasurements {
                 // find corresponding range measurement.
                 /// \todo sleutene: this will be slow. Think about different algorithms here
                 /// (e.g. pre-computed 2d spherical association map).
-                for(const se::RangeMeasurement & range : ranges_) {
+                for(const se::RangeMeasurement & range : ranges) {
                   if(point_C.normalized().dot(range.range.normalized())>cos(range.beamDivergence)) {
                     // inside the cone.
                     is_visible = true;
@@ -596,8 +613,8 @@ struct MultiresTSDFUpdateRangeMeasurements {
                       voxel_data.x = se::math::clamp(
                           (static_cast<float>(voxel_data.y) * voxel_data.x + tsdf_value) /
                           (static_cast<float>(voxel_data.y) + 1.f), -1.f, 1.f);
-                      voxel_data.y = fminf(voxel_data.y + 1, MultiresTSDF::max_weight);
-                      voxel_data.delta_y++;
+                      voxel_data.y = fminf(voxel_data.y + range.weight, MultiresTSDF::max_weight);
+                      voxel_data.delta_y+=range.weight;
                     }
                     block->setData(voxel_coord, voxel_scale, voxel_data);
                   }
@@ -626,6 +643,11 @@ struct MultiresTSDFUpdateRangeMeasurements {
     const Eigen::Vector3f block_centre_point_C = (T_CM_ * (voxel_dim_ * block_centre_coord_f).homogeneous()).head(3);
     const int last_scale = block->current_scale();
 
+    // sleutene: some more early aborting
+    if(block_centre_point_C.norm() > max_range_) {
+      return;
+    }
+
     // compute scale
     int r=0;
     float max_cos_angle = 0.0;
@@ -647,6 +669,16 @@ struct MultiresTSDFUpdateRangeMeasurements {
       propagateUpdate(block, scale);
       return;
     }
+
+    // sleutene: early abort if whole block too far away
+    const float block_angle = atan(voxel_dim_*sqrt(3.0f)/2.0f/block_centre_point_C.norm());
+    std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>> ranges;
+    for(const se::RangeMeasurement & range : ranges_) {
+      if(block_centre_point_C.normalized().dot(range.range.normalized())>cos(range.beamDivergence + block_angle)) {
+        ranges.push_back(range); // only consider active ones later
+      }
+    }
+
     bool is_visible = false;
     block->current_scale(scale);
     const int stride = 1 << scale;
@@ -662,7 +694,7 @@ struct MultiresTSDFUpdateRangeMeasurements {
           // find corresponding range measurement.
           /// \todo sleutene: this will be slow. Think about different algorithms here
           /// (e.g. pre-computed 2d spherical association map).
-          for(const se::RangeMeasurement & range : ranges_) {
+          for(const se::RangeMeasurement & range : ranges) {
             if(point_C.normalized().dot(range.range.normalized())>cos(range.beamDivergence)) {
               // inside the cone.
               is_visible = true;
