@@ -688,7 +688,7 @@ struct MultiresTSDFUpdateRangeMeasurements {
     }
 
     // sleutene: early abort if whole block too far away
-    const float block_angle = atan(block_size*sqrt(3.0f)/2.0f/block_centre_point_C.norm());
+    const float block_angle = atan(block_size*voxel_dim_*sqrt(3.0f)/2.0f/block_centre_point_C.norm());
     std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>> ranges;
     for(const se::RangeMeasurement & range : ranges_) {
       if(block_centre_point_C.normalized().dot(range.range.normalized())>cos(range.beamDivergence + block_angle)) {
