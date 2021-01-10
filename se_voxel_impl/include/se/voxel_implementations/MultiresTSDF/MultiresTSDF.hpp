@@ -53,6 +53,7 @@ struct MultiresTSDF {
       float x_last;
       int   y;
       int   delta_y;
+      int   frame=0; // sleutenegger: store when updated for more efficient publishing
 
       bool operator==(const VoxelData& other) const;
       bool operator!=(const VoxelData& other) const;

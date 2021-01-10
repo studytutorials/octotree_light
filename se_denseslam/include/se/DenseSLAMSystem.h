@@ -330,6 +330,9 @@ class DenseSLAMSystem {
     std::shared_ptr<se::Octree<VoxelImpl::VoxelType> > getMap() {
       return map_;
     }
+    std::shared_ptr<const se::Octree<VoxelImpl::VoxelType> > getMap() const {
+      return map_;
+    }
 
     /**
      * Get the translation of the world frame to the map frame.

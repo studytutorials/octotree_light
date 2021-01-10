@@ -52,13 +52,15 @@ struct MultiresTSDFUpdate {
                      const se::Image<float>& depth_image,
                      const Eigen::Matrix4f&  T_CM,
                      const SensorImpl        sensor,
-                     const float             voxel_dim) :
+                     const float             voxel_dim,
+                     int frame = 0) :
       map_(map),
       depth_image_(depth_image),
       T_CM_(T_CM),
       sensor_(sensor),
       voxel_dim_(voxel_dim),
-      sample_offset_frac_(map.sample_offset_frac_) {}
+      sample_offset_frac_(map.sample_offset_frac_),
+      frame_(frame) {}
 
   const OctreeType& map_;
   const se::Image<float>& depth_image_;
@@ -66,6 +68,7 @@ struct MultiresTSDFUpdate {
   const SensorImpl sensor_;
   const float voxel_dim_;
   const Eigen::Vector3f& sample_offset_frac_;
+  int frame_;
 
   /**
    * Update the subgrids of a voxel block starting from a given scale up
@@ -74,8 +77,8 @@ struct MultiresTSDFUpdate {
    * \param[in] block VoxelBlock to be updated
    * \param[in] scale scale from which propagate up voxel values
    */
-  static void propagateUp(VoxelBlockType* block,
-                          const int       scale) {
+  void propagateUp(VoxelBlockType* block,
+                          const int       scale) const {
     const Eigen::Vector3i block_coord = block->coordinates();
     const int block_size = VoxelBlockType::size_li;
     for (int voxel_scale = scale; voxel_scale < se::math::log2_const(block_size); ++voxel_scale) {
@@ -112,6 +115,7 @@ struct MultiresTSDFUpdate {
               voxel_data = VoxelType::initData();
             }
             voxel_data.delta_y = 0;
+            voxel_data.frame = frame_;
             block->setData(voxel_coord, voxel_scale + 1, voxel_data);
           }
     }
@@ -119,9 +123,9 @@ struct MultiresTSDFUpdate {
 
 
 
-  static void propagateUp(NodeType*      node,
+  void propagateUp(NodeType*      node,
                           const int      voxel_depth,
-                          const unsigned timestamp) {
+                          const unsigned timestamp) const {
 
     if (!node->parent()) {
       node->timestamp(timestamp);
@@ -163,10 +167,10 @@ struct MultiresTSDFUpdate {
    * \param[in] block VoxelBlock to be updated
    * \param[in] scale scale from which propagate down voxel values
    */
-  static void propagateDown(const OctreeType& map,
+  void propagateDown(const OctreeType& map,
                             VoxelBlockType*   block,
                             const int         scale,
-                            const int         min_scale) {
+                            const int         min_scale) const {
 
     const Eigen::Vector3i block_coord = block->coordinates();
     const int block_size = VoxelBlockType::size_li;
@@ -200,12 +204,14 @@ struct MultiresTSDFUpdate {
                     voxel_data.y = fminf(voxel_data.y + parent_data.delta_y, MultiresTSDF::max_weight);
                     voxel_data.delta_y = parent_data.delta_y;
                   }
+                  voxel_data.frame = frame_;
                   block->setData(voxel_coord, voxel_scale - 1, voxel_data);
                 }
               }
             }
             parent_data.x_last = parent_data.x;
             parent_data.delta_y = 0;
+            parent_data.frame = frame_;
             block->setData(parent_coord, voxel_scale, parent_data);
           }
         }
@@ -284,12 +290,14 @@ struct MultiresTSDFUpdate {
                   voxel_data.y = fminf(voxel_data.y + 1, MultiresTSDF::max_weight);
                   voxel_data.delta_y++;
                 }
+                voxel_data.frame = frame_;
                 block->setData(voxel_coord, voxel_scale, voxel_data);
               }
             }
           }
           parent_data.x_last = parent_data.x;
           parent_data.delta_y = 0;
+          parent_data.frame = frame_;
           block->setData(parent_coord, parent_scale, parent_data);
         }
       }
@@ -352,6 +360,7 @@ struct MultiresTSDFUpdate {
                 -1.f, 1.f);
             voxel_data.y = fminf(voxel_data.y + 1, MultiresTSDF::max_weight);
             voxel_data.delta_y++;
+            voxel_data.frame = frame_;
             block->setData(voxel_coord, scale, voxel_data);
           }
         }
@@ -373,12 +382,14 @@ struct MultiresTSDFUpdateRangeMeasurements {
   MultiresTSDFUpdateRangeMeasurements(const OctreeType&       map,
                      const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
                      const Eigen::Matrix4f&  T_CM,
-                     const float             voxel_dim) :
+                     const float             voxel_dim,
+                     int frame = 0) :
       map_(map),
       ranges_(ranges),
       T_CM_(T_CM),
       voxel_dim_(voxel_dim),
-      sample_offset_frac_(map.sample_offset_frac_) {
+      sample_offset_frac_(map.sample_offset_frac_),
+      frame_(frame) {
     for(const se::RangeMeasurement & range : ranges_) {
       max_range_ = std::max(range.range.norm(), max_range_);
     }
@@ -390,6 +401,7 @@ struct MultiresTSDFUpdateRangeMeasurements {
   const float voxel_dim_;
   const Eigen::Vector3f& sample_offset_frac_;
   float max_range_ = 0.0f;
+  int frame_;
 
   /**
    * Update the subgrids of a voxel block starting from a given scale up
@@ -398,8 +410,8 @@ struct MultiresTSDFUpdateRangeMeasurements {
    * \param[in] block VoxelBlock to be updated
    * \param[in] scale scale from which propagate up voxel values
    */
-  static void propagateUp(VoxelBlockType* block,
-                          const int       scale) {
+  void propagateUp(VoxelBlockType* block,
+                          const int       scale) const {
     const Eigen::Vector3i block_coord = block->coordinates();
     const int block_size = VoxelBlockType::size_li;
     for (int voxel_scale = scale; voxel_scale < se::math::log2_const(block_size); ++voxel_scale) {
@@ -436,6 +448,7 @@ struct MultiresTSDFUpdateRangeMeasurements {
               voxel_data = VoxelType::initData();
             }
             voxel_data.delta_y = 0;
+            voxel_data.frame = frame_;
             block->setData(voxel_coord, voxel_scale + 1, voxel_data);
           }
     }
@@ -443,9 +456,9 @@ struct MultiresTSDFUpdateRangeMeasurements {
 
 
 
-  static void propagateUp(NodeType*      node,
+  void propagateUp(NodeType*      node,
                           const int      voxel_depth,
-                          const unsigned timestamp) {
+                          const unsigned timestamp) const {
 
     if (!node->parent()) {
       node->timestamp(timestamp);
@@ -487,10 +500,10 @@ struct MultiresTSDFUpdateRangeMeasurements {
    * \param[in] block VoxelBlock to be updated
    * \param[in] scale scale from which propagate down voxel values
    */
-  static void propagateDown(const OctreeType& map,
+  void propagateDown(const OctreeType& map,
                             VoxelBlockType*   block,
                             const int         scale,
-                            const int         min_scale) {
+                            const int         min_scale) const {
 
     const Eigen::Vector3i block_coord = block->coordinates();
     const int block_size = VoxelBlockType::size_li;
@@ -524,12 +537,14 @@ struct MultiresTSDFUpdateRangeMeasurements {
                     voxel_data.y = fminf(voxel_data.y + parent_data.delta_y, MultiresTSDF::max_weight);
                     voxel_data.delta_y = parent_data.delta_y;
                   }
+                  voxel_data.frame = frame_;
                   block->setData(voxel_coord, voxel_scale - 1, voxel_data);
                 }
               }
             }
             parent_data.x_last = parent_data.x;
             parent_data.delta_y = 0;
+            parent_data.frame = frame_;
             block->setData(parent_coord, voxel_scale, parent_data);
           }
         }
@@ -556,9 +571,9 @@ struct MultiresTSDFUpdateRangeMeasurements {
 
     // sleutene: early abort if whole block too far away
     const Eigen::Vector3f voxel_centre_coord_f =
-                    se::get_sample_coord(block_coord + Eigen::Vector3i(block_size/2, block_size/2, block_size/2), voxel_stride, sample_offset_frac_);
+                    se::get_sample_coord(block_coord, block_size, sample_offset_frac_);
     const Eigen::Vector3f voxel_centre_coord_C = (T_CM_ * (voxel_dim_ * voxel_centre_coord_f).homogeneous()).head(3);
-    const float block_angle = atan(voxel_dim_*sqrt(3.0f)/2.0f/voxel_centre_coord_C.norm());
+    const float block_angle = atan(voxel_dim_*block_size*sqrt(3.0f)/2.0f/voxel_centre_coord_C.norm());
     std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>> ranges;
     for(const se::RangeMeasurement & range : ranges_) {
       if(voxel_centre_coord_C.normalized().dot(range.range.normalized())>cos(range.beamDivergence + block_angle)) {
@@ -611,11 +626,12 @@ struct MultiresTSDFUpdateRangeMeasurements {
                     if (sdf_value > -MultiresTSDF::mu * (1 << voxel_scale)) {
                       const float tsdf_value = fminf(1.f, sdf_value / MultiresTSDF::mu);
                       voxel_data.x = se::math::clamp(
-                          (static_cast<float>(voxel_data.y) * voxel_data.x + tsdf_value) /
-                          (static_cast<float>(voxel_data.y) + 1.f), -1.f, 1.f);
+                          (static_cast<float>(voxel_data.y) * voxel_data.x + static_cast<float>(range.weight) * tsdf_value) /
+                          (static_cast<float>(voxel_data.y) + static_cast<float>(range.weight)), -1.f, 1.f);
                       voxel_data.y = fminf(voxel_data.y + range.weight, MultiresTSDF::max_weight);
                       voxel_data.delta_y+=range.weight;
                     }
+                    voxel_data.frame = frame_;
                     block->setData(voxel_coord, voxel_scale, voxel_data);
                   }
                 }
@@ -624,6 +640,7 @@ struct MultiresTSDFUpdateRangeMeasurements {
           }
           parent_data.x_last = parent_data.x;
           parent_data.delta_y = 0;
+          parent_data.frame = frame_;
           block->setData(parent_coord, parent_scale, parent_data);
         }
       }
@@ -644,7 +661,7 @@ struct MultiresTSDFUpdateRangeMeasurements {
     const int last_scale = block->current_scale();
 
     // sleutene: some more early aborting
-    if(block_centre_point_C.norm() > max_range_) {
+    if(block_centre_point_C.norm() > max_range_ + voxel_dim_*block_size*sqrt(3.0f)/2.0) {
       return;
     }
 
@@ -671,7 +688,7 @@ struct MultiresTSDFUpdateRangeMeasurements {
     }
 
     // sleutene: early abort if whole block too far away
-    const float block_angle = atan(voxel_dim_*sqrt(3.0f)/2.0f/block_centre_point_C.norm());
+    const float block_angle = atan(block_size*sqrt(3.0f)/2.0f/block_centre_point_C.norm());
     std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>> ranges;
     for(const se::RangeMeasurement & range : ranges_) {
       if(block_centre_point_C.normalized().dot(range.range.normalized())>cos(range.beamDivergence + block_angle)) {
@@ -705,11 +722,12 @@ struct MultiresTSDFUpdateRangeMeasurements {
                 const float tsdf_value = fminf(1.f, sdf_value / MultiresTSDF::mu);
                 VoxelData voxel_data = block->data(voxel_coord, scale);
                 voxel_data.x = se::math::clamp(
-                    (static_cast<float>(voxel_data.y) * voxel_data.x + tsdf_value) /
-                    (static_cast<float>(voxel_data.y) + 1.f),
+                    (static_cast<float>(voxel_data.y) * voxel_data.x + static_cast<float>(range.weight)*tsdf_value) /
+                    (static_cast<float>(voxel_data.y) + static_cast<float>(range.weight)),
                     -1.f, 1.f);
                 voxel_data.y = fminf(voxel_data.y + range.weight, MultiresTSDF::max_weight);
                 voxel_data.delta_y+=range.weight;
+                voxel_data.frame = frame_;
                 block->setData(voxel_coord, scale, voxel_data);
               }
             }
@@ -747,7 +765,7 @@ void MultiresTSDF::integrate(OctreeType&             map,
 
   std::deque<se::Node<VoxelType> *> node_queue;
   struct MultiresTSDFUpdate block_update_funct(
-      map, depth_image, T_CM, sensor, voxel_dim);
+      map, depth_image, T_CM, sensor, voxel_dim, frame);
   se::functor::internal::parallel_for_each(active_list, block_update_funct);
 
   for (const auto& block : active_list) {
@@ -762,7 +780,7 @@ void MultiresTSDF::integrate(OctreeType&             map,
     if (node->timestamp() == frame) {
       continue;
     }
-    MultiresTSDFUpdate::propagateUp(node, map.voxelDepth(), frame);
+    block_update_funct.propagateUp(node, map.voxelDepth(), frame);
     if (node->parent()) {
       node_queue.push_back(node->parent());
     }
@@ -785,7 +803,7 @@ void MultiresTSDF::integrateRangeMeasurements(
 
   std::deque<se::Node<VoxelType> *> node_queue;
   struct MultiresTSDFUpdateRangeMeasurements block_update_funct(
-      map, ranges, T_CM, voxel_dim);
+      map, ranges, T_CM, voxel_dim, frame);
   se::functor::internal::parallel_for_each(active_list, block_update_funct);
 
   for (const auto& block : active_list) {
@@ -800,7 +818,7 @@ void MultiresTSDF::integrateRangeMeasurements(
     if (node->timestamp() == frame) {
       continue;
     }
-    MultiresTSDFUpdateRangeMeasurements::propagateUp(node, map.voxelDepth(), frame);
+    block_update_funct.propagateUp(node, map.voxelDepth(), frame);
     if (node->parent()) {
       node_queue.push_back(node->parent());
     }
