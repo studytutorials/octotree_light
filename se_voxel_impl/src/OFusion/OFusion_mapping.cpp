@@ -169,7 +169,7 @@ void OFusion::integrate(OctreeType&             map,
                         const se::Image<float>& depth_image,
                         const Eigen::Matrix4f&  T_CM,
                         const SensorImpl&       sensor,
-                        const unsigned          frame) {
+                        const unsigned          frame, int) {
 
   const float timestamp = (1.f / 30.f) * frame;
 

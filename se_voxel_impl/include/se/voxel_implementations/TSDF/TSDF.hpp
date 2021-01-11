@@ -143,7 +143,7 @@ struct TSDF {
                         const se::Image<float>& depth_image,
                         const Eigen::Matrix4f&  T_CM,
                         const SensorImpl&       sensor,
-                        const unsigned          frame);
+                        const unsigned          frame, int weight = 1);
 
   static void integrateRangeMeasurements(
       OctreeType& map, const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,

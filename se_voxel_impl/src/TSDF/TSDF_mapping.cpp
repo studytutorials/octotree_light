@@ -83,7 +83,7 @@ void TSDF::integrate(OctreeType&             map,
                      const se::Image<float>& depth_image,
                      const Eigen::Matrix4f&  T_CM,
                      const SensorImpl&       sensor,
-                     const unsigned) {
+                     const unsigned, int) {
 
   struct TSDFUpdate funct(sensor);
 

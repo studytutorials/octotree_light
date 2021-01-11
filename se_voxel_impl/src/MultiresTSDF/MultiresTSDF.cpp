@@ -48,10 +48,12 @@ constexpr bool MultiresTSDF::invert_normals;
 float MultiresTSDF::mu_factor;
 float MultiresTSDF::mu;
 int   MultiresTSDF::max_weight;
+int   MultiresTSDF::stop_weight;
 
 void MultiresTSDF::configure(const float voxel_dim) {
   mu         = 8 * voxel_dim;
   max_weight = 100;
+  stop_weight = -1; // sleutenegger: by default no stop weight
 }
 
 void MultiresTSDF::configure(YAML::Node yaml_config, const float voxel_dim) {

@@ -196,10 +196,12 @@ class DenseSLAMSystem {
      * \param[in] mu TSDF truncation bound. See se::Configuration.mu for more
      * details.
      * \param[in] frame The index of the current frame (starts from 0).
+     * \param[in] weight The weight of the frame, default is 1 for standard/uniform weighting.
      * \return true (does not fail).
      */
     bool integrate(const SensorImpl& sensor,
-                   const unsigned    frame);
+                   const unsigned    frame,
+                   int weight = 1);
 
     /**
      * Integrate the 3D reconstruction resulting from the current frame to the

@@ -239,7 +239,7 @@ bool DenseSLAMSystem::track(const SensorImpl& sensor,
 
 
 bool DenseSLAMSystem::integrate(const SensorImpl&  sensor,
-                                const unsigned     frame) {
+                                const unsigned     frame, int weight) {
 
   TICK("INTEGRATION")
   if(sensor.model.imageWidth()!=image_res_[0] || sensor.model.imageHeight()!=image_res_[1]) {
@@ -272,7 +272,8 @@ bool DenseSLAMSystem::integrate(const SensorImpl&  sensor,
       depth_image_,
       T_CM,
       sensor,
-      frame);
+      frame,
+      weight);
   TOCK("INTEGRATION")
   return true;
 }

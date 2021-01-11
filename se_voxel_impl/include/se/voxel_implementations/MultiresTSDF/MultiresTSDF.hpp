@@ -115,6 +115,12 @@ struct MultiresTSDF {
    */
   static int max_weight;
 
+  /**
+   * The when this values is reached in
+   * MultiresTSDF::VoxelType::VoxelData::y, we stop integrating. -1 (default) will never stop.
+   */
+  static int stop_weight; 
+
   static std::string type() { return "multirestsdf"; }
 
   /**
@@ -147,7 +153,8 @@ struct MultiresTSDF {
                         const se::Image<float>& depth_image,
                         const Eigen::Matrix4f&  T_CM,
                         const SensorImpl&       sensor,
-                        const unsigned          frame);
+                        const unsigned          frame,
+                        int weight = 1);
 
   static void integrateRangeMeasurements(
       OctreeType& map, const std::vector<se::RangeMeasurement, Eigen::aligned_allocator<se::RangeMeasurement>>& ranges,
