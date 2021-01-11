@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.5...3.16)
 
+find_package(yaml-cpp 0.5.2 REQUIRED)
+
 # Create library ##############################################################
 set(LIB_NAME "se-shared")
 add_library(${LIB_NAME} STATIC
@@ -19,7 +21,7 @@ target_link_libraries(${LIB_NAME}
     SE::Core
     SRL::Projection
 	Lode::PNG
-    yaml-cpp
+    ${YAML_CPP_LIBRARIES}
 )
 set_target_properties(${LIB_NAME} PROPERTIES
   CXX_STANDARD 14

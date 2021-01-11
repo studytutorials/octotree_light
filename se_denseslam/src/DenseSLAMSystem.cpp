@@ -126,12 +126,38 @@ DenseSLAMSystem::DenseSLAMSystem(const Eigen::Vector2i&   image_res,
     map_->init(map_size_.x(), map_dim_.x());
 }
 
+// sleutenegger: support for changing resolution ad-hoc (heterogeneous sensors, multi-agent mapping, etc.)
+void DenseSLAMSystem::changeResolution(const Eigen::Vector2i& imageRes) {
+  image_res_ = imageRes;
+  depth_image_ = se::Image<float>(image_res_.x(), image_res_.y());
+  rgba_image_ = se::Image<uint32_t>(image_res_.x(), image_res_.y());
+  tracking_result_ = std::vector<TrackData>(image_res_.prod(), TrackData());
+  surface_point_cloud_M_ = se::Image<Eigen::Vector3f>(image_res_.x(), image_res_.y(), Eigen::Vector3f::Zero());
+  surface_normals_M_= se::Image<Eigen::Vector3f>(image_res_.x(), image_res_.y(), Eigen::Vector3f::Zero());
 
+  // Initialize the scaled images
+  scaled_depth_image_.clear();
+  input_point_cloud_C_.clear();
+  input_normals_C_.clear();
+  for (unsigned int i = 0; i < iterations_.size(); ++i) {
+    const int downsample = 1 << i;
+    const Eigen::Vector2i res = image_res_ / downsample;
+    scaled_depth_image_.emplace_back(res.x(), res.y(), 0.0f);
+    input_point_cloud_C_.emplace_back(res.x(), res.y(), Eigen::Vector3f::Zero());
+    input_normals_C_.emplace_back(res.x(), res.y(), Eigen::Vector3f::Zero());
+  }
+}
 
 bool DenseSLAMSystem::preprocessDepth(const float*           input_depth_image_data,
                                       const Eigen::Vector2i& input_depth_image_res,
                                       const bool             filter_depth){
   TICKD("preprocessDepth")
+
+  // sleutenegger: change internal resolution, if changed:
+  if(input_depth_image_res[0] != image_res_[0] || input_depth_image_res[1] != image_res_[1]) {
+    changeResolution(input_depth_image_res);
+  }
+
   downsampleDepthKernel(input_depth_image_data, input_depth_image_res, depth_image_);
 
   if (filter_depth) {
@@ -151,6 +177,9 @@ bool DenseSLAMSystem::preprocessColor(const uint32_t*        input_RGBA_image_da
                                       const Eigen::Vector2i& input_RGBA_image_res) {
 
   TICKD("preprocessColor")
+  if(input_RGBA_image_res[0] != image_res_[0] || input_RGBA_image_res[1] != image_res_[1]) {
+    changeResolution(input_RGBA_image_res);
+  }
   downsampleImageKernel(input_RGBA_image_data, input_RGBA_image_res, rgba_image_);
   TOCK("preprocessColor")
   return true;
@@ -162,6 +191,10 @@ bool DenseSLAMSystem::track(const SensorImpl& sensor,
                             const float       icp_threshold) {
 
   TICK("TRACKING")
+  if(sensor.model.imageWidth()!=image_res_[0] || sensor.model.imageHeight()!=image_res_[1]) {
+    std::cout << "wrong resolution" << std::endl;
+    return false;
+  }
   // half sample the input depth maps into the pyramid levels
   for (unsigned int i = 1; i < iterations_.size(); ++i) {
     halfSampleRobustImageKernel(scaled_depth_image_[i], scaled_depth_image_[i - 1], e_delta * 3, 1);
@@ -209,6 +242,10 @@ bool DenseSLAMSystem::integrate(const SensorImpl&  sensor,
                                 const unsigned     frame) {
 
   TICK("INTEGRATION")
+  if(sensor.model.imageWidth()!=image_res_[0] || sensor.model.imageHeight()!=image_res_[1]) {
+    std::cout << "wrong resolution" << std::endl;
+    return false;
+  }
   const int num_blocks_per_pixel = map_->size()
     / ((VoxelBlockType::size_li));
   const size_t num_blocks_total = num_blocks_per_pixel
@@ -275,6 +312,9 @@ bool DenseSLAMSystem::integrateRangeMeasurements(
 bool DenseSLAMSystem::raycast(const SensorImpl& sensor) {
 
   TICK("RAYCASTING")
+  if(sensor.model.imageWidth()!=image_res_[0] || sensor.model.imageHeight()!=image_res_[1]) {
+    changeResolution(Eigen::Vector2i(sensor.model.imageWidth(), sensor.model.imageHeight()));
+  }
   raycast_T_MC_ = T_MC_;
   raycastKernel<VoxelImpl>(*map_, surface_point_cloud_M_, surface_normals_M_,
       raycast_T_MC_, sensor);
@@ -288,6 +328,9 @@ void DenseSLAMSystem::renderVolume(uint32_t*              volume_RGBA_image_data
                                    const Eigen::Vector2i& volume_RGBA_image_res,
                                    const SensorImpl&      sensor) {
 
+  if(sensor.model.imageWidth()!=image_res_[0] || sensor.model.imageHeight()!=image_res_[1]) {
+    changeResolution(Eigen::Vector2i(sensor.model.imageWidth(), sensor.model.imageHeight()));
+  }
   se::Image<Eigen::Vector3f> render_surface_point_cloud_M (image_res_.x(), image_res_.y());
   se::Image<Eigen::Vector3f> render_surface_normals_M (image_res_.x(), image_res_.y());
   if (render_T_MC_->isApprox(raycast_T_MC_)) {
@@ -316,6 +359,9 @@ void DenseSLAMSystem::renderTrack(uint32_t*              tracking_RGBA_image_dat
                                   const Eigen::Vector2i& tracking_RGBA_image_res) {
 
   TICKD("renderTrack")
+  if(tracking_RGBA_image_res[0]!=image_res_[0] || tracking_RGBA_image_res[1]!=image_res_[1]) {
+    changeResolution(tracking_RGBA_image_res);
+  }
   renderTrackKernel(tracking_RGBA_image_data, tracking_result_.data(), tracking_RGBA_image_res);
   TOCK("renderTrack")
 }
@@ -327,6 +373,9 @@ void DenseSLAMSystem::renderDepth(uint32_t*              depth_RGBA_image_data,
                                   const SensorImpl&      sensor) {
 
   TICKD("renderDepth")
+  if(sensor.model.imageWidth()!=image_res_[0] || sensor.model.imageHeight()!=image_res_[1]) {
+    changeResolution(Eigen::Vector2i(sensor.model.imageWidth(), sensor.model.imageHeight()));
+  }
   renderDepthKernel(depth_RGBA_image_data, depth_image_.data(), depth_RGBA_image_res,
       sensor.near_plane, sensor.far_plane);
   TOCK("renderDepth")
@@ -338,6 +387,9 @@ void DenseSLAMSystem::renderRGBA(uint32_t*              output_RGBA_image_data,
                                  const Eigen::Vector2i& output_RGBA_image_res) {
 
   TICKD("renderRGBA")
+  if(output_RGBA_image_res[0]!=image_res_[0] || output_RGBA_image_res[1]!=image_res_[1]) {
+    changeResolution(output_RGBA_image_res);
+  }
   renderRGBAKernel(output_RGBA_image_data, output_RGBA_image_res, rgba_image_);
   TOCK("renderRGBA")
 }

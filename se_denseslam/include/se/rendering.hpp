@@ -54,7 +54,7 @@
 
 namespace se {
   namespace internal {
-    static se::Image<int> scale_image(640, 480);
+    static se::Image<int> scale_image(1,1); // sleutenegger: dummy, needs to be sized later
     static std::vector<Eigen::Vector3f, Eigen::aligned_allocator<Eigen::Vector3f>>
       color_map =
       {
@@ -80,6 +80,7 @@ void raycastKernel(const se::Octree<typename VoxelImplT::VoxelType>& map,
                    const SensorImpl&                                 sensor) {
 
   TICKD("raycastKernel");
+  se::internal::scale_image = se::Image<int>(surface_point_cloud_M.width(), surface_point_cloud_M.height());
 #pragma omp parallel for
   for (int y = 0; y < surface_point_cloud_M.height(); y++) {
 #pragma omp simd

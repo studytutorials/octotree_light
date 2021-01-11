@@ -119,6 +119,15 @@ endforeach()
 
 
 
+# Executable showing voxel data sizes
+set(EXE_NAME "se-voxel-size")
+add_executable(${EXE_NAME} "src/voxel_size.cpp")
+target_include_directories(${EXE_NAME} BEFORE PRIVATE ../se_voxel_impl/include)
+target_link_libraries(${EXE_NAME} PRIVATE SE::Shared)
+target_compile_definitions(${EXE_NAME} PUBLIC SE_SENSOR_IMPLEMENTATION=PinholeCamera)
+
+
+
 # Test ########################################################################
 if(SE_BUILD_TESTS)
   add_subdirectory(test)
