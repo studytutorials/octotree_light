@@ -77,8 +77,8 @@ struct MultiresTSDFUpdate {
    * \param[in] block VoxelBlock to be updated
    * \param[in] scale scale from which propagate up voxel values
    */
-  void propagateUp(VoxelBlockType* block,
-                          const int       scale) const {
+  static void propagateUp(VoxelBlockType* block,
+                          const int       scale) {
     const Eigen::Vector3i block_coord = block->coordinates();
     const int block_size = VoxelBlockType::size_li;
     for (int voxel_scale = scale; voxel_scale < se::math::log2_const(block_size); ++voxel_scale) {
@@ -91,6 +91,8 @@ struct MultiresTSDFUpdate {
             float mean = 0;
             int sample_count = 0;
             float weight = 0;
+            VoxelData voxel_data = block->data(voxel_coord, voxel_scale + 1);
+            int frame = voxel_data.frame;
             for (int k = 0; k < stride; k += stride / 2) {
               for (int j = 0; j < stride; j += stride / 2) {
                 for (int i = 0; i < stride; i += stride / 2) {
@@ -99,11 +101,11 @@ struct MultiresTSDFUpdate {
                     mean += child_data.x;
                     weight += child_data.y;
                     sample_count++;
+                    frame = std::max(frame, child_data.frame); // sleutenegger
                   }
                 }
               }
             }
-            VoxelData voxel_data = block->data(voxel_coord, voxel_scale + 1);
 
             if (sample_count != 0) {
               mean /= sample_count;
@@ -115,7 +117,7 @@ struct MultiresTSDFUpdate {
               voxel_data = VoxelType::initData();
             }
             voxel_data.delta_y = 0;
-            voxel_data.frame = frame_;
+            voxel_data.frame = frame; // sleutenegger
             block->setData(voxel_coord, voxel_scale + 1, voxel_data);
           }
     }
@@ -123,9 +125,9 @@ struct MultiresTSDFUpdate {
 
 
 
-  void propagateUp(NodeType*      node,
+  static void propagateUp(NodeType*      node,
                           const int      voxel_depth,
-                          const unsigned timestamp) const {
+                          const unsigned timestamp) {
 
     if (!node->parent()) {
       node->timestamp(timestamp);
@@ -135,12 +137,14 @@ struct MultiresTSDFUpdate {
     float mean = 0;
     int sample_count = 0;
     float weight = 0;
+    int frame = 0;
     for (int child_idx = 0; child_idx < 8; ++child_idx) {
       const VoxelData& child_data = node->childData(child_idx);
       if (child_data.y != 0) {
         mean += child_data.x;
         weight += child_data.y;
         sample_count++;
+        frame = std::max(child_data.frame, frame); // sleutenegger: propagate newest frame update
       }
     }
 
@@ -154,6 +158,7 @@ struct MultiresTSDFUpdate {
       node_data.x_last = mean;
       node_data.y = ceil(weight);
       node_data.delta_y = 0;
+      node_data.frame = std::max(frame, node_data.frame); // sleutenegger: propagate newest frame update
     }
     node->timestamp(timestamp);
   }
@@ -167,10 +172,10 @@ struct MultiresTSDFUpdate {
    * \param[in] block VoxelBlock to be updated
    * \param[in] scale scale from which propagate down voxel values
    */
-  void propagateDown(const OctreeType& map,
+  static void propagateDown(const OctreeType& map,
                             VoxelBlockType*   block,
                             const int         scale,
-                            const int         min_scale) const {
+                            const int         min_scale) {
 
     const Eigen::Vector3i block_coord = block->coordinates();
     const int block_size = VoxelBlockType::size_li;
@@ -204,14 +209,14 @@ struct MultiresTSDFUpdate {
                     voxel_data.y = fminf(voxel_data.y + parent_data.delta_y, MultiresTSDF::max_weight);
                     voxel_data.delta_y = parent_data.delta_y;
                   }
-                  voxel_data.frame = frame_;
+                  voxel_data.frame = parent_data.frame; // sleutenegger: inherit
                   block->setData(voxel_coord, voxel_scale - 1, voxel_data);
                 }
               }
             }
             parent_data.x_last = parent_data.x;
             parent_data.delta_y = 0;
-            parent_data.frame = frame_;
+            //parent_data.frame = frame_;
             block->setData(parent_coord, voxel_scale, parent_data);
           }
         }
@@ -392,6 +397,7 @@ struct MultiresTSDFUpdateRangeMeasurements {
       frame_(frame) {
     for(const se::RangeMeasurement & range : ranges_) {
       max_range_ = std::max(range.range.norm(), max_range_);
+      min_range_ = std::min(range.range.norm(), min_range_);
     }
   }
 
@@ -401,6 +407,7 @@ struct MultiresTSDFUpdateRangeMeasurements {
   const float voxel_dim_;
   const Eigen::Vector3f& sample_offset_frac_;
   float max_range_ = 0.0f;
+  float min_range_ = std::numeric_limits<float>::max();
   int frame_;
 
   /**
@@ -410,149 +417,27 @@ struct MultiresTSDFUpdateRangeMeasurements {
    * \param[in] block VoxelBlock to be updated
    * \param[in] scale scale from which propagate up voxel values
    */
-  void propagateUp(VoxelBlockType* block,
-                          const int       scale) const {
-    const Eigen::Vector3i block_coord = block->coordinates();
-    const int block_size = VoxelBlockType::size_li;
-    for (int voxel_scale = scale; voxel_scale < se::math::log2_const(block_size); ++voxel_scale) {
-      const int stride = 1 << (voxel_scale + 1);
-      for (int z = 0; z < block_size; z += stride)
-        for (int y = 0; y < block_size; y += stride)
-          for (int x = 0; x < block_size; x += stride) {
-            const Eigen::Vector3i voxel_coord = block_coord + Eigen::Vector3i(x, y, z);
-
-            float mean = 0;
-            int sample_count = 0;
-            float weight = 0;
-            for (int k = 0; k < stride; k += stride / 2) {
-              for (int j = 0; j < stride; j += stride / 2) {
-                for (int i = 0; i < stride; i += stride / 2) {
-                  VoxelData child_data = block->data(voxel_coord + Eigen::Vector3i(i, j, k), voxel_scale);
-                  if (child_data.y != 0) {
-                    mean += child_data.x;
-                    weight += child_data.y;
-                    sample_count++;
-                  }
-                }
-              }
-            }
-            VoxelData voxel_data = block->data(voxel_coord, voxel_scale + 1);
-
-            if (sample_count != 0) {
-              mean /= sample_count;
-              weight /= sample_count;
-              voxel_data.x = mean;
-              voxel_data.x_last = mean;
-              voxel_data.y = ceil(weight);
-            } else {
-              voxel_data = VoxelType::initData();
-            }
-            voxel_data.delta_y = 0;
-            voxel_data.frame = frame_;
-            block->setData(voxel_coord, voxel_scale + 1, voxel_data);
-          }
-    }
+  static void propagateUp(VoxelBlockType* block,
+                          const int       scale) {
+    MultiresTSDFUpdate::propagateUp(block, scale);
   }
 
 
-
-  void propagateUp(NodeType*      node,
+  static void propagateUp(NodeType*      node,
                           const int      voxel_depth,
-                          const unsigned timestamp) const {
+                          const unsigned timestamp) {
 
-    if (!node->parent()) {
-      node->timestamp(timestamp);
-      return;
-    }
-
-    float mean = 0;
-    int sample_count = 0;
-    float weight = 0;
-    for (int child_idx = 0; child_idx < 8; ++child_idx) {
-      const VoxelData& child_data = node->childData(child_idx);
-      if (child_data.y != 0) {
-        mean += child_data.x;
-        weight += child_data.y;
-        sample_count++;
-      }
-    }
-
-    const unsigned int child_idx = se::child_idx(node->code(),
-                                                 se::keyops::code(node->code()), voxel_depth);
-    if (sample_count > 0) {
-      VoxelData& node_data = node->parent()->childData(child_idx);
-      mean /= sample_count;
-      weight /= sample_count;
-      node_data.x = mean;
-      node_data.x_last = mean;
-      node_data.y = ceil(weight);
-      node_data.delta_y = 0;
-    }
-    node->timestamp(timestamp);
+    MultiresTSDFUpdate::propagateUp(node, voxel_depth, timestamp);
   }
 
 
-
-  /**
-   * Update the subgrids of a voxel block starting from a given scale
-   * down to the finest grid.
-   *
-   * \param[in] block VoxelBlock to be updated
-   * \param[in] scale scale from which propagate down voxel values
-   */
-  void propagateDown(const OctreeType& map,
+  static void propagateDown(const OctreeType& map,
                             VoxelBlockType*   block,
                             const int         scale,
-                            const int         min_scale) const {
+                            const int         min_scale) {
 
-    const Eigen::Vector3i block_coord = block->coordinates();
-    const int block_size = VoxelBlockType::size_li;
-    for (int voxel_scale = scale; voxel_scale > min_scale; --voxel_scale) {
-      const int stride = 1 << voxel_scale;
-      for (int z = 0; z < block_size; z += stride) {
-        for (int y = 0; y < block_size; y += stride) {
-          for (int x = 0; x < block_size; x += stride) {
-            const Eigen::Vector3i parent_coord = block_coord + Eigen::Vector3i(x, y, z);
-            VoxelData parent_data = block->data(parent_coord, voxel_scale);
-            float delta_x = parent_data.x - parent_data.x_last;
-            const int half_stride = stride / 2;
-            for (int k = 0; k < stride; k += half_stride) {
-              for (int j = 0; j < stride; j += half_stride) {
-                for (int i = 0; i < stride; i += half_stride) {
-                  const Eigen::Vector3i voxel_coord = parent_coord + Eigen::Vector3i(i, j, k);
-                  VoxelData voxel_data = block->data(voxel_coord, voxel_scale - 1);
-                  if (voxel_data.y == 0) {
-                    bool is_valid;
-                    const Eigen::Vector3f voxel_sample_coord_f =
-                        se::get_sample_coord(voxel_coord, stride, map.sample_offset_frac_);
-                    voxel_data.x = se::math::clamp(map.interp(voxel_sample_coord_f,
-                                                              VoxelType::selectNodeValue,
-                                                              VoxelType::selectVoxelValue,
-                                                              voxel_scale - 1, is_valid).first, -1.f, 1.f);
-                    voxel_data.y = is_valid ? parent_data.y : 0;
-                    voxel_data.x_last = voxel_data.x;
-                    voxel_data.delta_y = 0;
-                  } else {
-                    voxel_data.x = std::max(voxel_data.x + delta_x, -1.f);
-                    voxel_data.y = fminf(voxel_data.y + parent_data.delta_y, MultiresTSDF::max_weight);
-                    voxel_data.delta_y = parent_data.delta_y;
-                  }
-                  voxel_data.frame = frame_;
-                  block->setData(voxel_coord, voxel_scale - 1, voxel_data);
-                }
-              }
-            }
-            parent_data.x_last = parent_data.x;
-            parent_data.delta_y = 0;
-            parent_data.frame = frame_;
-            block->setData(parent_coord, voxel_scale, parent_data);
-          }
-        }
-      }
-    }
+    MultiresTSDFUpdate::propagateDown(map, block, scale, min_scale);
   }
-
-
 
   /**
    * Update a voxel block at a given scale by first propagating down the parent
@@ -662,6 +547,9 @@ struct MultiresTSDFUpdateRangeMeasurements {
 
     // sleutene: some more early aborting
     if(block_centre_point_C.norm() > max_range_ + voxel_dim_*block_size*sqrt(3.0f)/2.0) {
+      return;
+    }
+    if(block_centre_point_C.norm() < min_range_ - voxel_dim_*block_size*sqrt(3.0f)/2.0) {
       return;
     }
 
