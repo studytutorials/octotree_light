@@ -302,7 +302,7 @@ struct MultiresTSDFUpdate {
                   voxel_data.x = se::math::clamp(
                       (static_cast<float>(voxel_data.y) * voxel_data.x + weight_ * tsdf_value) /
                       (static_cast<float>(voxel_data.y + weight_)), -1.f, 1.f);
-                  voxel_data.y = fminf(voxel_data.y + 1, MultiresTSDF::max_weight);
+                  voxel_data.y = fminf(voxel_data.y + weight_, MultiresTSDF::max_weight);
                   voxel_data.delta_y+=weight_;
                 }
                 voxel_data.frame = frame_;
@@ -379,7 +379,7 @@ struct MultiresTSDFUpdate {
                 (static_cast<float>(voxel_data.y) * voxel_data.x + weight_ * tsdf_value) /
                 (static_cast<float>(voxel_data.y + weight_)),
                 -1.f, 1.f);
-            voxel_data.y = fminf(voxel_data.y + 1, MultiresTSDF::max_weight);
+            voxel_data.y = fminf(voxel_data.y + weight_, MultiresTSDF::max_weight);
             voxel_data.delta_y+=weight_;
             voxel_data.frame = frame_;
             block->setData(voxel_coord, scale, voxel_data);
