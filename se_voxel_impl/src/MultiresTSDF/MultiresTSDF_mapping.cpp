@@ -311,10 +311,10 @@ struct MultiresTSDFUpdate {
                     const Eigen::Vector2f du = Eigen::Vector2f(x,y)-u;
                     const float r = du.dot(du);
                     const float w = sqrt(std::max(0.0f, (R+0.5f) * (R+0.5f) - r));
-                    wacc += w;
                     if(x>=0 && y>=0 && x<sensor_.model.imageWidth() && y<sensor_.model.imageHeight()) {
                       const float depth = depth_image_(x,y);                      
                       if(depth>0.0f) {
+                        wacc += w;
                         depth_value += w*depth;
                       }
                     }
@@ -412,10 +412,10 @@ struct MultiresTSDFUpdate {
               const Eigen::Vector2f du = Eigen::Vector2f(x,y)-u;
               const float r = du.dot(du);
               const float w = sqrt(std::max(0.0f, (R+0.5f) * (R+0.5f) - r));
-              wacc += w;
               if(x>=0 && y>=0 && x<sensor_.model.imageWidth() && y<sensor_.model.imageHeight()) {
                 const float depth = depth_image_(x,y);                      
                 if(depth>0.0f) {
+                  wacc += w;
                   depth_value += w*depth;
                 }
               }
