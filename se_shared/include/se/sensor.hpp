@@ -92,7 +92,6 @@ namespace se {
     }
 
 
-
     /**
      * \brief Computes the scale corresponding to the back-projected pixel size
      * in voxel space
@@ -254,6 +253,7 @@ namespace se {
       }
       return true;
     }
+
 
     /**
      * \brief Computes the scale corresponding to the back-projected pixel size

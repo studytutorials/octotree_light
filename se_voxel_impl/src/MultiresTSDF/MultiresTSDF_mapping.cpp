@@ -287,11 +287,40 @@ struct MultiresTSDFUpdate {
                 }
 
                 float depth_value(0);
-                if (!sensor_.projectToPixelValue(point_C, depth_image_, depth_value,
+                /*if (!sensor_.projectToPixelValue(point_C, depth_image_, depth_value,
                     [](float depth_value){ return depth_value > 0; })) {
                   continue;
+                }*/
+                Eigen::Vector2f u;
+                Eigen::Matrix<float, 2, 3> jacobian;
+                if(sensor_.model.project(point_C, &u, &jacobian) != srl::projection::ProjectionStatus::Successful) {
+                  continue;
                 }
-
+                Eigen::JacobiSVD<Eigen::Matrix<float, 2, 3>> jsvd(jacobian, Eigen::ComputeThinU | Eigen::ComputeThinV);
+                Eigen::Vector2i ui(std::round(u[0]), std::round(u[1]));
+                const float R0 = (1 << voxel_scale) * voxel_dim_ * sqrt(3.0f) / 2.0f;
+                const float R = jsvd.singularValues()[0]*R0;
+                const float wtot = M_PI * R * R; // circle area in pixels = total weight
+                const int wtoti = std::min(1,int(std::round(wtot))); // fixme: this is silly quantisation
+                float wacc = 0.0f;
+                for(int x = ui[0]-1; x<ui[0]+1; ++x) {
+                  for(int y = ui[1]-1; y<ui[1]+1; ++y) {
+                    const Eigen::Vector2f du = Eigen::Vector2f(x,y)-u;
+                    const float r = du.dot(du);
+                    const float w = sqrt(std::max(0.0f, (R+0.5f) * (R+0.5f) - r));
+                    wacc += w;
+                    if(x>0 && y>0 && x<sensor_.model.imageWidth() && y<sensor_.model.imageHeight()) {
+                      const float depth = depth_image_(x,y);                      
+                      if(depth>0.0f) {
+                        depth_value += w*depth;
+                      }
+                    }
+                  }
+                }
+                depth_value /= wacc;
+                if(depth_value<=0.0f) {
+                  continue;
+                }
                 is_visible = true;
 
                 // Update the TSDF
@@ -300,10 +329,10 @@ struct MultiresTSDFUpdate {
                 if (sdf_value > -MultiresTSDF::mu * (1 << voxel_scale)) {
                   const float tsdf_value = fminf(1.f, sdf_value / MultiresTSDF::mu);
                   voxel_data.x = se::math::clamp(
-                      (static_cast<float>(voxel_data.y) * voxel_data.x + weight_ * tsdf_value) /
-                      (static_cast<float>(voxel_data.y + weight_)), -1.f, 1.f);
-                  voxel_data.y = fminf(voxel_data.y + weight_, MultiresTSDF::max_weight);
-                  voxel_data.delta_y+=weight_;
+                      (static_cast<float>(voxel_data.y) * voxel_data.x + weight_ * tsdf_value * wtoti) /
+                      (static_cast<float>(voxel_data.y + weight_ * wtoti)), -1.f, 1.f);
+                  voxel_data.y = fminf(voxel_data.y + weight_ * wtoti, MultiresTSDF::max_weight);
+                  voxel_data.delta_y+=weight_ * wtoti;
                 }
                 voxel_data.frame = frame_;
                 block->setData(voxel_coord, voxel_scale, voxel_data);
@@ -356,11 +385,40 @@ struct MultiresTSDFUpdate {
             continue;
           }
           float depth_value(0);
-          if (!sensor_.projectToPixelValue(point_C, depth_image_, depth_value,
-              [&](float depth_value){ return depth_value >= sensor_.near_plane; })) {
+          /*if (!sensor_.projectToPixelValue(point_C, depth_image_, depth_value,
+              [](float depth_value){ return depth_value > 0; })) {
+            continue;
+          }*/
+          Eigen::Vector2f u;
+          Eigen::Matrix<float, 2, 3> jacobian;
+          if(sensor_.model.project(point_C, &u, &jacobian) != srl::projection::ProjectionStatus::Successful) {
             continue;
           }
-
+          Eigen::JacobiSVD<Eigen::Matrix<float, 2, 3>> jsvd(jacobian, Eigen::ComputeThinU | Eigen::ComputeThinV);
+          Eigen::Vector2i ui(std::round(u[0]), std::round(u[1]));
+          const float R0 = (1 << scale) * voxel_dim_ * sqrt(3.0f) / 2.0f;
+          const float R = jsvd.singularValues()[0]*R0;
+          const float wtot = M_PI * R * R; // circle area in pixels = total weight
+          const int wtoti = std::min(1,int(std::round(wtot))); // fixme: this is silly quantisation
+          float wacc = 0.0f;
+          for(int x = ui[0]-1; x<ui[0]+1; ++x) {
+            for(int y = ui[1]-1; y<ui[1]+1; ++y) {
+              const Eigen::Vector2f du = Eigen::Vector2f(x,y)-u;
+              const float r = du.dot(du);
+              const float w = sqrt(std::max(0.0f, (R+0.5f) * (R+0.5f) - r));
+              wacc += w;
+              if(x>0 && y>0 && x<sensor_.model.imageWidth() && y<sensor_.model.imageHeight()) {
+                const float depth = depth_image_(x,y);                      
+                if(depth>0.0f) {
+                  depth_value += w*depth;
+                }
+              }
+            }
+          }
+          depth_value /= wacc;
+          if(depth_value<=0.0f) {
+            continue;
+          }
           is_visible = true;
 
           // Update the TSDF
@@ -376,11 +434,11 @@ struct MultiresTSDFUpdate {
               }
             }
             voxel_data.x = se::math::clamp(
-                (static_cast<float>(voxel_data.y) * voxel_data.x + weight_ * tsdf_value) /
-                (static_cast<float>(voxel_data.y + weight_)),
+                (static_cast<float>(voxel_data.y) * voxel_data.x + weight_ * tsdf_value * wtoti) /
+                (static_cast<float>(voxel_data.y + weight_ * wtoti)),
                 -1.f, 1.f);
-            voxel_data.y = fminf(voxel_data.y + weight_, MultiresTSDF::max_weight);
-            voxel_data.delta_y+=weight_;
+            voxel_data.y = fminf(voxel_data.y + weight_ * wtoti, MultiresTSDF::max_weight);
+            voxel_data.delta_y += weight_ * wtoti;
             voxel_data.frame = frame_;
             block->setData(voxel_coord, scale, voxel_data);
           }
