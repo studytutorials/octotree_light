@@ -304,7 +304,7 @@ struct MultiresTSDFUpdate {
                 const float R = jsvd.singularValues()[0]*R0;
                 const int delta = std::ceil(R);
                 const float wtot = M_PI * R * R; // circle area in pixels = total weight
-                const int wtoti = std::min(1,int(std::round(wtot))); // fixme: this is silly quantisation
+                const int wtoti = std::max(1,int(std::round(wtot))); // fixme: this is silly quantisation
                 float wacc = 0.0f;
                 for(int x = ui[0]-delta; x<=ui[0]+delta; ++x) {
                   for(int y = ui[1]-delta; y<=ui[1]+delta; ++y) {
@@ -312,7 +312,7 @@ struct MultiresTSDFUpdate {
                     const float r = du.dot(du);
                     const float w = sqrt(std::max(0.0f, (R+0.5f) * (R+0.5f) - r));
                     wacc += w;
-                    if(x>0 && y>0 && x<sensor_.model.imageWidth() && y<sensor_.model.imageHeight()) {
+                    if(x>=0 && y>=0 && x<sensor_.model.imageWidth() && y<sensor_.model.imageHeight()) {
                       const float depth = depth_image_(x,y);                      
                       if(depth>0.0f) {
                         depth_value += w*depth;
@@ -405,7 +405,7 @@ struct MultiresTSDFUpdate {
           const float R = jsvd.singularValues()[0]*R0;
           const int delta = std::ceil(R);
           const float wtot = M_PI * R * R; // circle area in pixels = total weight
-          const int wtoti = std::min(1,int(std::round(wtot))); // fixme: this is silly quantisation
+          const int wtoti = std::max(1,int(std::round(wtot))); // fixme: this is silly quantisation
           float wacc = 0.0f;
           for(int x = ui[0]-delta; x<=ui[0]+delta; ++x) {
             for(int y = ui[1]-delta; y<=ui[1]+delta; ++y) {
@@ -413,7 +413,7 @@ struct MultiresTSDFUpdate {
               const float r = du.dot(du);
               const float w = sqrt(std::max(0.0f, (R+0.5f) * (R+0.5f) - r));
               wacc += w;
-              if(x>0 && y>0 && x<sensor_.model.imageWidth() && y<sensor_.model.imageHeight()) {
+              if(x>=0 && y>=0 && x<sensor_.model.imageWidth() && y<sensor_.model.imageHeight()) {
                 const float depth = depth_image_(x,y);                      
                 if(depth>0.0f) {
                   depth_value += w*depth;
