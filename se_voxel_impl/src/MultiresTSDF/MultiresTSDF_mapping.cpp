@@ -286,25 +286,28 @@ struct MultiresTSDFUpdate {
                   continue;
                 }
 
+                // sleutenegger: the basic idea here is that we are projecting the voxel approximated as a sphere.
+                // then we apprximate it as a circle in the image, and use as a depth measurement a weighted mean
+                // sampled from the depth image in a patch comprising that circle. The weighting goes with distance
+                // to the projected voxel centre (modelled as penetration depth of a sphere).
                 float depth_value(0);
-                /*if (!sensor_.projectToPixelValue(point_C, depth_image_, depth_value,
-                    [](float depth_value){ return depth_value > 0; })) {
-                  continue;
-                }*/
                 Eigen::Vector2f u;
                 Eigen::Matrix<float, 2, 3> jacobian;
                 if(sensor_.model.project(point_C, &u, &jacobian) != srl::projection::ProjectionStatus::Successful) {
                   continue;
                 }
+                // rather than projecting e.g. all corners, we use the projection Jacobian to approximate the image sphere directly.
+                // this is done in a conservative way by using the largest singular value.
                 Eigen::JacobiSVD<Eigen::Matrix<float, 2, 3>> jsvd(jacobian, Eigen::ComputeThinU | Eigen::ComputeThinV);
                 Eigen::Vector2i ui(std::round(u[0]), std::round(u[1]));
                 const float R0 = (1 << voxel_scale) * voxel_dim_ * sqrt(3.0f) / 2.0f;
                 const float R = jsvd.singularValues()[0]*R0;
+                const int delta = std::ceil(R);
                 const float wtot = M_PI * R * R; // circle area in pixels = total weight
                 const int wtoti = std::min(1,int(std::round(wtot))); // fixme: this is silly quantisation
                 float wacc = 0.0f;
-                for(int x = ui[0]-1; x<ui[0]+1; ++x) {
-                  for(int y = ui[1]-1; y<ui[1]+1; ++y) {
+                for(int x = ui[0]-delta; x<=ui[0]+delta; ++x) {
+                  for(int y = ui[1]-delta; y<=ui[1]+delta; ++y) {
                     const Eigen::Vector2f du = Eigen::Vector2f(x,y)-u;
                     const float r = du.dot(du);
                     const float w = sqrt(std::max(0.0f, (R+0.5f) * (R+0.5f) - r));
@@ -384,25 +387,28 @@ struct MultiresTSDFUpdate {
           if (point_C.norm() > sensor_.farDist(point_C)) {
             continue;
           }
+          // sleutenegger: the basic idea here is that we are projecting the voxel approximated as a sphere.
+          // then we apprximate it as a circle in the image, and use as a depth measurement a weighted mean
+          // sampled from the depth image in a patch comprising that circle. The weighting goes with distance
+          // to the projected voxel centre (modelled as penetration depth of a sphere).
           float depth_value(0);
-          /*if (!sensor_.projectToPixelValue(point_C, depth_image_, depth_value,
-              [](float depth_value){ return depth_value > 0; })) {
-            continue;
-          }*/
           Eigen::Vector2f u;
           Eigen::Matrix<float, 2, 3> jacobian;
           if(sensor_.model.project(point_C, &u, &jacobian) != srl::projection::ProjectionStatus::Successful) {
             continue;
           }
+          // rather than projecting e.g. all corners, we use the projection Jacobian to approximate the image sphere directly.
+          // this is done in a conservative way by using the largest singular value.
           Eigen::JacobiSVD<Eigen::Matrix<float, 2, 3>> jsvd(jacobian, Eigen::ComputeThinU | Eigen::ComputeThinV);
           Eigen::Vector2i ui(std::round(u[0]), std::round(u[1]));
           const float R0 = (1 << scale) * voxel_dim_ * sqrt(3.0f) / 2.0f;
           const float R = jsvd.singularValues()[0]*R0;
+          const int delta = std::ceil(R);
           const float wtot = M_PI * R * R; // circle area in pixels = total weight
           const int wtoti = std::min(1,int(std::round(wtot))); // fixme: this is silly quantisation
           float wacc = 0.0f;
-          for(int x = ui[0]-1; x<ui[0]+1; ++x) {
-            for(int y = ui[1]-1; y<ui[1]+1; ++y) {
+          for(int x = ui[0]-delta; x<=ui[0]+delta; ++x) {
+            for(int y = ui[1]-delta; y<=ui[1]+delta; ++y) {
               const Eigen::Vector2f du = Eigen::Vector2f(x,y)-u;
               const float r = du.dot(du);
               const float w = sqrt(std::max(0.0f, (R+0.5f) * (R+0.5f) - r));
