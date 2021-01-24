@@ -307,7 +307,7 @@ struct MultiresTSDFUpdate {
                     if(x>=0 && y>=0 && x<sensor_.model.imageWidth() && y<sensor_.model.imageHeight()) {
                       const float depth = depth_image_(x,y);                      
                       if((depth>0.0f) && (fabs(depth-d_closest)<2.0f*MultiresTSDF::mu)) {
-                        const float weight = r[1-dx]*r[1-dy];
+                        const float weight = fabs((float(1-dx)-r[0])*(float(1-dy)-r[1]));
                         depth_value += weight*depth;
                         w_tot += weight;
                       }
@@ -402,7 +402,7 @@ struct MultiresTSDFUpdate {
               if(x>=0 && y>=0 && x<sensor_.model.imageWidth() && y<sensor_.model.imageHeight()) {
                 const float depth = depth_image_(x,y);                      
                 if((depth>0.0f) && (fabs(depth-d_closest)<2.0f*MultiresTSDF::mu)) {
-                  const float weight = r[1-dx]*r[1-dy];
+                  const float weight = fabs((float(1-dx)-r[0])*(float(1-dy)-r[1]));
                   depth_value += weight*depth;
                   w_tot += weight;
                 }
