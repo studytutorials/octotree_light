@@ -141,7 +141,7 @@ namespace meshing {
     unsigned int size_0  = 1 << map.get(source_coord, data_0);
     float value_0 = select_value(data_0);
     typename FieldType::VoxelData data_1;
-    unsigned int size_1  = 1 << map.get(source_coord, data_1);
+    unsigned int size_1  = 1 << map.get(dest_coord, data_1);
     float value_1 = select_value(data_1);
 
     const float voxel_dim = map.dim() / map.size();
